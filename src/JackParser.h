@@ -1,0 +1,79 @@
+/*
+ * Copyright (c) 2012 Dano Pernis
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+#pragma once
+#include <string>
+#include <stdexcept>
+#include "JackTokenizer.h"
+#include "JackAST.h"
+
+namespace hcc {
+
+struct ParseError: public std::runtime_error {
+	unsigned int line, column;
+	ParseError(const std::string& what, const JackTokenizer& tokenizer)
+		: runtime_error(what)
+		, line(tokenizer.getLine())
+		, column(tokenizer.getColumn()) {}
+	virtual ~ParseError() throw () {}
+};
+
+class JackParser {
+	JackTokenizer& tokenizer;
+
+	JackTokenizer::Keyword lastKeyword;
+	char lastSymbol;
+	StringID lastStringConstant, lastIdentifier;
+	int lastIntConstant;
+	VariableType lastType;
+
+	void next();
+	bool acceptKeyword(JackTokenizer::Keyword keyword);
+	void expectKeyword(JackTokenizer::Keyword keyword);
+	bool acceptIdentifier();
+	void expectIdentifier();
+	bool acceptSymbol(char symbol);
+	void expectSymbol(char symbol);
+
+	void parseClass();
+	void parseVariable(Variable::Kind k, VariableList &l);
+	void parseSubroutine(Subroutine::Kind k, SubroutineList &l);
+	void parseParameterList();
+	void parseStatements();
+	void parseExpressionList();
+
+	bool acceptType();
+	void expectType();
+	bool acceptExpression();
+	void expectExpression();
+	bool acceptTerm();
+	void expectTerm();
+
+public:
+	Class c;
+	JackParser(JackTokenizer& tokenizer);
+	void parse();
+};
+
+} // end namespace
