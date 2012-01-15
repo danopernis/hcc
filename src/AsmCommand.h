@@ -24,7 +24,7 @@
  */
 #pragma once
 #include <list>
-#include <string>
+#include "StringTable.h"
 
 namespace hcc {
 
@@ -32,9 +32,8 @@ struct AsmCommand {
 	typedef enum {LOAD, VERBATIM, LABEL} Type;
 
 	Type type;
-	std::string symbol;
+	StringID symbol;
 	unsigned short instr;
-
 };
 typedef std::list<AsmCommand> AsmCommandList;
 

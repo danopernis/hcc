@@ -30,7 +30,7 @@ namespace hcc {
 std::map<std::string, StringID> StringTable::string2id;
 std::map<StringID, std::string> StringTable::id2string;
 
-StringID& StringTable::id(std::string &s) {
+StringID& StringTable::id(std::string s) {
 	if (string2id.find(s) == string2id.end()) {
 		StringID &rv = string2id[s];
 		rv.id = string2id.size();

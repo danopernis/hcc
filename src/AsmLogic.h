@@ -22,34 +22,11 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-#pragma once
-#include <map>
-#include <string>
-#include <iostream>
+#include "AsmCommand.h"
 
 namespace hcc {
 
-struct StringID {
-	unsigned int id;
-	bool operator<(const StringID &other) const {
-		return id<other.id;
-	}
-	bool operator==(const StringID &other) const {
-		return id == other.id;
-	}
-};
+void AsmLogic(AsmCommandList &commands);
+void AsmOutput(AsmCommandList &commands, const char *file);
 
-class StringTable {
-	static std::map<std::string, StringID> string2id;
-	static std::map<StringID, std::string> id2string;
-
-public:
-	virtual ~StringTable() {}
-
-	static StringID& id(std::string s);
-	static std::string& string(StringID &i);
-};
-
-std::ostream& operator<<(std::ostream &out, StringID &s);
-
-} // end namespace
+} //end namespace

@@ -26,6 +26,7 @@
 #include <iostream>
 #include "instruction.h"
 #include "AsmParser.h"
+#include "StringTable.h"
 
 namespace hcc {
 
@@ -119,11 +120,11 @@ void ParserAsm::advance()
 			ss >> command.instr;
 		} else {
 			command.type = AsmCommand::LOAD;
-			command.symbol = symbol;
+			command.symbol = StringTable::id(symbol);
 		}
 	} else if (line.at(0) == '(') {
 		command.type = AsmCommand::LABEL;
-		command.symbol = line.substr(1,line.length()-2);
+		command.symbol = StringTable::id(line.substr(1,line.length()-2));
 	} else {
 		command.type = AsmCommand::VERBATIM;
 		// dest=comp;jump
