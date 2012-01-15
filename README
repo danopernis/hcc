@@ -10,5 +10,5 @@ INSTALLATION
 To install, issue commands
     # cd src
     # make
-and copy compiled executables to some directory in your $PATH.
+and copy compiled executables to any directory in your $PATH.
 
