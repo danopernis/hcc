@@ -22,11 +22,10 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-#include <fstream>
 #include <iostream>
-#include <sstream>
 #include <stdexcept>
 #include "VMParser.h"
+#include "StageConnect.h"
 #include "VMWriter.h"
 #include "VMOptimize.h"
 
@@ -37,7 +36,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	std::string output("output.asm");
+	hcc::VMFileOutput output("output.asm");
 	hcc::VMWriter writer(output);
 	writer.writeBootstrap();
 
@@ -92,7 +91,7 @@ int main(int argc, char *argv[])
 #endif
 
 		for (hcc::VMCommandList::iterator i = cmds.begin(); i != cmds.end(); ++i) {
-			writer.out << (*i);
+			output.stream << (*i);
 			switch (i->type) {
 			case hcc::VMCommand::CONSTANT:
 				writer.writeConstant(i->in, i->fin, i->int1);

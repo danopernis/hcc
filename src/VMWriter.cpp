@@ -31,9 +31,9 @@ namespace hcc {
 
 using namespace instruction;
 
-VMWriter::VMWriter(std::string &fileName)
+VMWriter::VMWriter(VMOutput &out)
+	: out(out)
 {
-	out.open(fileName.c_str());
 	compareCounter = 0;
 	returnCounter = 0;
 }
@@ -53,16 +53,16 @@ StringID& constructString(StringID &s1, StringID &s2)
 }
 void VMWriter::push()
 {
-	emitA	("SP");
-	emitC	(DEST_M | COMP_M_PLUS_ONE);// ++SP
-	emitC	(DEST_A | COMP_M_MINUS_ONE);
-	emitC	(DEST_M | COMP_D);// push
+	out.emitA	("SP");
+	out.emitC	(DEST_M | COMP_M_PLUS_ONE);// ++SP
+	out.emitC	(DEST_A | COMP_M_MINUS_ONE);
+	out.emitC	(DEST_M | COMP_D);// push
 }
 void VMWriter::pop()
 {
-	emitA	("SP");
-	emitC	(DEST_A | DEST_M | COMP_M_MINUS_ONE);// --SP
-	emitC	(DEST_D | COMP_M);// pop
+	out.emitA	("SP");
+	out.emitC	(DEST_A | DEST_M | COMP_M_MINUS_ONE);// --SP
+	out.emitC	(DEST_D | COMP_M);// pop
 }
 void VMWriter::unaryCompare(int intArg)
 {
@@ -71,14 +71,14 @@ void VMWriter::unaryCompare(int intArg)
 		// D=D-0
 		break;
 	case 1:
-		emitC	(DEST_D | COMP_D_MINUS_ONE);// comparison
+		out.emitC	(DEST_D | COMP_D_MINUS_ONE);// comparison
 		break;
 	case -1:
-		emitC	(DEST_D | COMP_D_PLUS_ONE);// comparison
+		out.emitC	(DEST_D | COMP_D_PLUS_ONE);// comparison
 		break;
 	default:
-		emitA	(intArg);
-		emitC	(DEST_D | COMP_D_MINUS_A);// comparison
+		out.emitA	(intArg);
+		out.emitC	(DEST_D | COMP_D_MINUS_A);// comparison
 		break;
 	}
 }
@@ -89,43 +89,43 @@ void VMWriter::load(unsigned short dest, Segment segment, unsigned int index)
 {
 	// some instructions can be saved when index = 0, 1 or 2
 	if (index > 2) {
-		emitA	(index);
-		emitC	(DEST_D | COMP_A);
+		out.emitA	(index);
+		out.emitC	(DEST_D | COMP_A);
 	}
 	switch (segment) {
 	case LOCAL:
-		emitA	("LCL");
+		out.emitA	("LCL");
 		break;
 	case ARGUMENT:
-		emitA	("ARG");
+		out.emitA	("ARG");
 		break;
 	case THIS:
-		emitA	("THIS");
+		out.emitA	("THIS");
 		break;
 	case THAT:
-		emitA	("THAT");
+		out.emitA	("THAT");
 		break;
 	default:
 		throw 1;
 	}
 	switch (index) {
 	case 0:
-		emitC	(dest | COMP_M);
+		out.emitC	(dest | COMP_M);
 		break;
 	case 1:
-		emitC	(dest | COMP_M_PLUS_ONE);
+		out.emitC	(dest | COMP_M_PLUS_ONE);
 		break;
 	case 2:
-		emitC	(dest | COMP_M_PLUS_ONE);
+		out.emitC	(dest | COMP_M_PLUS_ONE);
 		if (dest == DEST_D) {
-			emitC	(DEST_D | COMP_D_PLUS_ONE);
+			out.emitC	(DEST_D | COMP_D_PLUS_ONE);
 		}
 		if (dest == DEST_A) {
-			emitC	(DEST_A | COMP_A_PLUS_ONE);
+			out.emitC	(DEST_A | COMP_A_PLUS_ONE);
 		}
 		break;
 	default:
-		emitC	(dest | COMP_D_PLUS_M);
+		out.emitC	(dest | COMP_D_PLUS_M);
 		break;
 	}
 }
@@ -133,23 +133,23 @@ void VMWriter::push_load(Segment segment, int index)
 {
 	switch (segment) {
 	case STATIC:
-		emitA	(constructString(filename.c_str(), index));
-		emitC	(DEST_D | COMP_M);
+		out.emitA	(constructString(filename.c_str(), index));
+		out.emitC	(DEST_D | COMP_M);
 		break;
 	case POINTER:
-		emitA	(3 + index);
-		emitC	(DEST_D | COMP_M);
+		out.emitA	(3 + index);
+		out.emitC	(DEST_D | COMP_M);
 		break;
 	case TEMP:
-		emitA	(5 + index);
-		emitC	(DEST_D | COMP_M);
+		out.emitA	(5 + index);
+		out.emitC	(DEST_D | COMP_M);
 		break;
 	case LOCAL:
 	case ARGUMENT:
 	case THIS:
 	case THAT:
 		load(DEST_A, segment, index);
-		emitC	(DEST_D | COMP_M);
+		out.emitC	(DEST_D | COMP_M);
 		break;
 	}
 }
@@ -157,10 +157,10 @@ void VMWriter::poptop(bool in)
 {
 	if (in) {
 		pop();
-		emitC	(DEST_A | COMP_A_MINUS_ONE);
+		out.emitC	(DEST_A | COMP_A_MINUS_ONE);
 	} else {
-		emitA	("SP");
-		emitC	(DEST_A | COMP_M_MINUS_ONE);
+		out.emitA	("SP");
+		out.emitC	(DEST_A | COMP_M_MINUS_ONE);
 	}
 }
 
@@ -170,43 +170,43 @@ void VMWriter::poptop(bool in)
 void VMWriter::writeConstant(bool in, bool fin, int value)
 {
 	if (fin && -2 <= value && value <= 2) {
-		emitA	("SP");
-		emitC	(DEST_M | COMP_M_PLUS_ONE);// ++SP
-		emitC	(DEST_A | COMP_M_MINUS_ONE);
+		out.emitA	("SP");
+		out.emitC	(DEST_M | COMP_M_PLUS_ONE);// ++SP
+		out.emitC	(DEST_A | COMP_M_MINUS_ONE);
 		switch (value) {
 		case -2:
-			emitC	(DEST_M | COMP_MINUS_ONE);
-			emitC	(DEST_M | COMP_M_MINUS_ONE);
+			out.emitC	(DEST_M | COMP_MINUS_ONE);
+			out.emitC	(DEST_M | COMP_M_MINUS_ONE);
 			break;
 		case -1:
-			emitC	(DEST_M | COMP_MINUS_ONE);
+			out.emitC	(DEST_M | COMP_MINUS_ONE);
 			break;
 		case 0:
-			emitC	(DEST_M | COMP_ZERO);
+			out.emitC	(DEST_M | COMP_ZERO);
 			break;
 		case 1:
-			emitC	(DEST_M | COMP_ONE);
+			out.emitC	(DEST_M | COMP_ONE);
 			break;
 		case 2:
-			emitC	(DEST_M | COMP_ONE);
-			emitC	(DEST_M | COMP_M_PLUS_ONE);
+			out.emitC	(DEST_M | COMP_ONE);
+			out.emitC	(DEST_M | COMP_M_PLUS_ONE);
 			break;
 		}
 		return;
 	}
 
 	if (value == -1) {
-		emitC	(DEST_D | COMP_MINUS_ONE);
+		out.emitC	(DEST_D | COMP_MINUS_ONE);
 	} else if (value == 0) {
-		emitC	(DEST_D | COMP_ZERO);
+		out.emitC	(DEST_D | COMP_ZERO);
 	} else if (value == 1) {
-		emitC	(DEST_D | COMP_ONE);
+		out.emitC	(DEST_D | COMP_ONE);
 	} else if (value < 0) {
-		emitA	(-value);
-		emitC	(DEST_D | COMP_MINUS_A);
+		out.emitA	(-value);
+		out.emitC	(DEST_D | COMP_MINUS_A);
 	} else {
-		emitA	(value);
-		emitC	(DEST_D | COMP_A);
+		out.emitA	(value);
+		out.emitC	(DEST_D | COMP_A);
 	}
 	if (fin)
 		push();
@@ -223,13 +223,13 @@ void VMWriter::writePopDirect(bool in, bool fin, Segment segment, int index)
 		pop();
 	switch (segment) {
 	case STATIC:
-		emitA	(constructString(filename.c_str(), index));
+		out.emitA	(constructString(filename.c_str(), index));
 		break;
 	case POINTER:
-		emitA	(3 + index);
+		out.emitA	(3 + index);
 		break;
 	case TEMP:
-		emitA	(5 + index);
+		out.emitA	(5 + index);
 		break;
 	case LOCAL:
 	case ARGUMENT:
@@ -237,27 +237,27 @@ void VMWriter::writePopDirect(bool in, bool fin, Segment segment, int index)
 	case THAT:
 		throw 1;
 	}
-	emitC	(DEST_M | COMP_D);// save
+	out.emitC	(DEST_M | COMP_D);// save
 }
 void VMWriter::writePopIndirect(Segment segment, int index)
 {
 	load(DEST_D, segment, index);
-	emitA	("R15");
-	emitC	(DEST_M | COMP_D);// save calculated address for popping
+	out.emitA	("R15");
+	out.emitC	(DEST_M | COMP_D);// save calculated address for popping
 	pop();
-	emitA	("R15");
-	emitC	(DEST_A | COMP_M);// load the address
-	emitC	(DEST_M | COMP_D);// save
+	out.emitA	("R15");
+	out.emitC	(DEST_A | COMP_M);// load the address
+	out.emitC	(DEST_M | COMP_D);// save
 }
 void VMWriter::writePopIndirectPush(bool in, bool fin, Segment segment, int index)
 {
 	load(DEST_D, segment, index);
-	emitA	("R15");
-	emitC	(DEST_M | COMP_D);// save calculated address for popping
+	out.emitA	("R15");
+	out.emitC	(DEST_M | COMP_D);// save calculated address for popping
 	pop();
-	emitA	("R15");
-	emitC	(DEST_A | COMP_M);// load the address
-	emitC	(DEST_M | COMP_D);// save
+	out.emitA	("R15");
+	out.emitC	(DEST_A | COMP_M);// load the address
+	out.emitC	(DEST_M | COMP_D);// save
 	if (fin)
 		push();
 }
@@ -269,24 +269,24 @@ void VMWriter::writeCopy(Segment sseg, int sind, Segment dseg, int dind)
 
 		if (std::abs(dind-sind) < 4) { // 4 is empiric constant
 			load(DEST_A, sseg, sind);
-			emitC	(DEST_D | COMP_M);// fetch
+			out.emitC	(DEST_D | COMP_M);// fetch
 			for (int i = sind; i>dind; --i)
-				emitC	(DEST_A | COMP_A_MINUS_ONE);
+				out.emitC	(DEST_A | COMP_A_MINUS_ONE);
 			for (int i = sind; i<dind; ++i)
-				emitC	(DEST_A | COMP_A_PLUS_ONE);
-			emitC	(DEST_M | COMP_D);// store
+				out.emitC	(DEST_A | COMP_A_PLUS_ONE);
+			out.emitC	(DEST_M | COMP_D);// store
 			return;
 		}
 	}
 
 	//TODO: do not duplicate writePop()
 	load(DEST_D, dseg, dind);
-	emitA	("R15");
-	emitC	(DEST_M | COMP_D);// save calculated address for popping
+	out.emitA	("R15");
+	out.emitC	(DEST_M | COMP_D);// save calculated address for popping
 	push_load(sseg, sind);
-	emitA	("R15");
-	emitC	(DEST_A | COMP_M);// load the address
-	emitC	(DEST_M | COMP_D);// copy
+	out.emitA	("R15");
+	out.emitC	(DEST_A | COMP_M);// load the address
+	out.emitC	(DEST_M | COMP_D);// copy
 }
 /*
  * UNARY, BINARY
@@ -306,19 +306,19 @@ void VMWriter::writeUnary(bool in, bool fin, UnaryOperation op, int intArg)
 		switch (op) {
 		case NOT:
 		case NEG:
-			emitA	("SP");
-			emitC	(DEST_A | COMP_M_MINUS_ONE);
-			emitC	(unaryTable[op]);
+			out.emitA	("SP");
+			out.emitC	(DEST_A | COMP_M_MINUS_ONE);
+			out.emitC	(unaryTable[op]);
 			break;
 		case DOUBLE:
-			emitC	(DEST_D | COMP_M);
-			emitC	(DEST_M | COMP_D_PLUS_M);
+			out.emitC	(DEST_D | COMP_M);
+			out.emitC	(DEST_M | COMP_D_PLUS_M);
 			break;
 		case SUBC:
 			if (intArg == 1) {
-				emitA	("SP");
-				emitC	(DEST_A | COMP_M_MINUS_ONE);
-				emitC	(DEST_M | COMP_M_MINUS_ONE);
+				out.emitA	("SP");
+				out.emitC	(DEST_A | COMP_M_MINUS_ONE);
+				out.emitC	(DEST_M | COMP_M_MINUS_ONE);
 				return;
 			}
 			// no break;
@@ -326,11 +326,11 @@ void VMWriter::writeUnary(bool in, bool fin, UnaryOperation op, int intArg)
 		case BUSC:
 		case ANDC:
 		case ORC:
-			emitA	(intArg);
-			emitC	(DEST_D | COMP_A);
-			emitA	("SP");
-			emitC	(DEST_A | COMP_M_MINUS_ONE);
-			emitC	(unaryTable[op]);
+			out.emitA	(intArg);
+			out.emitC	(DEST_D | COMP_A);
+			out.emitA	("SP");
+			out.emitC	(DEST_A | COMP_M_MINUS_ONE);
+			out.emitC	(unaryTable[op]);
 			break;
 		}
 
@@ -339,42 +339,42 @@ void VMWriter::writeUnary(bool in, bool fin, UnaryOperation op, int intArg)
 			pop();
 		switch (op) {
 		case NOT:
-			emitC	(DEST_D | COMP_NOT_D);
+			out.emitC	(DEST_D | COMP_NOT_D);
 			break;
 		case NEG:
-			emitC	(DEST_D | COMP_MINUS_D);
+			out.emitC	(DEST_D | COMP_MINUS_D);
 			break;
 		case DOUBLE:
-			emitC	(DEST_A | COMP_D);
-			emitC	(DEST_D | COMP_D_PLUS_A);
+			out.emitC	(DEST_A | COMP_D);
+			out.emitC	(DEST_D | COMP_D_PLUS_A);
 			break;
 		case ADDC:
 			if (intArg == 1)  {
-				emitC	(DEST_D | COMP_D_PLUS_ONE);
+				out.emitC	(DEST_D | COMP_D_PLUS_ONE);
 			} else {
-				emitA	(intArg);
-				emitC	(DEST_D | COMP_D_PLUS_A);
+				out.emitA	(intArg);
+				out.emitC	(DEST_D | COMP_D_PLUS_A);
 			}
 			break;
 		case SUBC:
 			if (intArg == 1) {
-				emitC	(DEST_D | COMP_D_MINUS_ONE);
+				out.emitC	(DEST_D | COMP_D_MINUS_ONE);
 			} else {
-				emitA	(intArg);
-				emitC	(DEST_D | COMP_D_MINUS_A);
+				out.emitA	(intArg);
+				out.emitC	(DEST_D | COMP_D_MINUS_A);
 			}
 			break;
 		case BUSC:
-			emitA	(intArg);
-			emitC	(DEST_D | COMP_A_MINUS_D);
+			out.emitA	(intArg);
+			out.emitC	(DEST_D | COMP_A_MINUS_D);
 			break;
 		case ANDC:
-			emitA	(intArg);
-			emitC	(DEST_D | COMP_D_AND_A);
+			out.emitA	(intArg);
+			out.emitC	(DEST_D | COMP_D_AND_A);
 			break;
 		case ORC:
-			emitA	(intArg);
-			emitC	(DEST_D | COMP_D_OR_A);
+			out.emitA	(intArg);
+			out.emitC	(DEST_D | COMP_D_OR_A);
 			break;
 		}
 		if (fin)
@@ -391,24 +391,24 @@ void VMWriter::writeBinary(bool in, bool fin, BinaryOperation op)
 		dest = DEST_D;
 		if (in) // fetch argument from stack
 			pop();
-			emitA	("SP");
-			emitC	(DEST_A | DEST_M | COMP_M_MINUS_ONE);
+			out.emitA	("SP");
+			out.emitC	(DEST_A | DEST_M | COMP_M_MINUS_ONE);
 	}
 	switch (op) {
 	case ADD:
-		emitC	(dest | COMP_D_PLUS_M);
+		out.emitC	(dest | COMP_D_PLUS_M);
 		break;
 	case SUB:
-		emitC	(dest | COMP_M_MINUS_D);
+		out.emitC	(dest | COMP_M_MINUS_D);
 		break;
 	case BUS:
-		emitC	(dest | COMP_D_MINUS_M);
+		out.emitC	(dest | COMP_D_MINUS_M);
 		break;
 	case AND:
-		emitC	(dest | COMP_D_AND_M);
+		out.emitC	(dest | COMP_D_AND_M);
 		break;
 	case OR:
-		emitC	(dest | COMP_D_OR_M);
+		out.emitC	(dest | COMP_D_OR_M);
 		break;
 	}
 }
@@ -422,36 +422,36 @@ void VMWriter::compareBranches(bool fin, CompareOperation op)
 	++compareCounter;
 
 	if (fin) {
-		emitA	(compareEnd);
-		emitC	(COMP_D | op.jump());
-		emitA	("SP");
-		emitC	(DEST_A | COMP_M_MINUS_ONE);
-		emitC	(DEST_M | COMP_ZERO);// adjust to false
-		emitL	(compareEnd);
+		out.emitA	(compareEnd);
+		out.emitC	(COMP_D | op.jump());
+		out.emitA	("SP");
+		out.emitC	(DEST_A | COMP_M_MINUS_ONE);
+		out.emitC	(DEST_M | COMP_ZERO);// adjust to false
+		out.emitL	(compareEnd);
 	} else {
-		emitA	(compareSwitch);
-		emitC	(COMP_D | op.jump());
-		emitC	(DEST_D | COMP_ZERO);
-		emitA	(compareEnd);
-		emitC	(COMP_ZERO | JMP);
-		emitL	(compareSwitch);
-		emitC	(DEST_D | COMP_MINUS_ONE);
-		emitL	(compareEnd);
+		out.emitA	(compareSwitch);
+		out.emitC	(COMP_D | op.jump());
+		out.emitC	(DEST_D | COMP_ZERO);
+		out.emitA	(compareEnd);
+		out.emitC	(COMP_ZERO | JMP);
+		out.emitL	(compareSwitch);
+		out.emitC	(DEST_D | COMP_MINUS_ONE);
+		out.emitL	(compareEnd);
 	}
 }
 void VMWriter::writeUnaryCompare(bool in, bool fin, CompareOperation op, int intArg)
 {
 	if (fin) { // save result to memory
 		if (in) { // fetch argument from stack, do not adjust SP
-			emitA	("SP");
-			emitC	(DEST_A | COMP_M_MINUS_ONE);
-			emitC	(DEST_D | COMP_M);
+			out.emitA	("SP");
+			out.emitC	(DEST_A | COMP_M_MINUS_ONE);
+			out.emitC	(DEST_D | COMP_M);
 		} else { // argument is in register, increment SP
-			emitA	("SP");
-			emitC	(DEST_M | COMP_M_PLUS_ONE);
-			emitC	(DEST_A | COMP_M_MINUS_ONE);
+			out.emitA	("SP");
+			out.emitC	(DEST_M | COMP_M_PLUS_ONE);
+			out.emitC	(DEST_A | COMP_M_MINUS_ONE);
 		}
-		emitC(DEST_M | COMP_MINUS_ONE);// default is true
+		out.emitC(DEST_M | COMP_MINUS_ONE);// default is true
 	} else { // save result to register
 		if (in)
 			pop(); // fetch argument from stack
@@ -462,12 +462,12 @@ void VMWriter::writeUnaryCompare(bool in, bool fin, CompareOperation op, int int
 void VMWriter::writeCompare(bool in, bool fin, CompareOperation op)
 {
 	poptop(in);
-	emitC	(DEST_D | COMP_M_MINUS_D);// comparison
+	out.emitC	(DEST_D | COMP_M_MINUS_D);// comparison
 	if (fin) {
-		emitC(DEST_M | COMP_MINUS_ONE);// default is true
+		out.emitC(DEST_M | COMP_MINUS_ONE);// default is true
 	} else {
-		emitA	("SP");
-		emitC	(DEST_M | COMP_M_MINUS_ONE);
+		out.emitA	("SP");
+		out.emitC	(DEST_M | COMP_M_MINUS_ONE);
 	}
 	compareBranches(fin, op);
 }
@@ -476,12 +476,12 @@ void VMWriter::writeCompare(bool in, bool fin, CompareOperation op)
  */
 void VMWriter::writeLabel(StringID &label)
 {
-	emitL	(constructString(function, label));
+	out.emitL	(constructString(function, label));
 }
 void VMWriter::writeGoto(StringID &label)
 {
-	emitA	(constructString(function, label));
-	emitC	(COMP_ZERO | JMP);
+	out.emitA	(constructString(function, label));
+	out.emitC	(COMP_ZERO | JMP);
 }
 void VMWriter::writeIf(bool in, bool fin, CompareOperation op, StringID &label, bool compare, bool useConst, int intConst)
 {
@@ -491,13 +491,13 @@ void VMWriter::writeIf(bool in, bool fin, CompareOperation op, StringID &label, 
 		if (useConst) {	// UNARY_COMPARE_IF
 			unaryCompare(intConst);
 		} else {	// COMPARE_IF
-			emitA	("SP");
-			emitC	(DEST_A | DEST_M | COMP_M_MINUS_ONE);// --SP
-			emitC	(DEST_D | COMP_M_MINUS_D);// comparison
+			out.emitA	("SP");
+			out.emitC	(DEST_A | DEST_M | COMP_M_MINUS_ONE);// --SP
+			out.emitC	(DEST_D | COMP_M_MINUS_D);// comparison
 		}
 	} // else just IF
-	emitA	(constructString(function, label));
-	emitC	(COMP_D | op.jump());
+	out.emitA	(constructString(function, label));
+	out.emitC	(COMP_D | op.jump());
 }
 /*
  * FUNCTION, CALL, RETURN
@@ -505,27 +505,27 @@ void VMWriter::writeIf(bool in, bool fin, CompareOperation op, StringID &label, 
 void VMWriter::writeFunction(StringID &name, int localc)
 {
 	function = name;
-	emitL(name);
+	out.emitL(name);
 	switch (localc) {
 	case 0:
 		break;
 	case 1:
-		emitA	("SP");
-		emitC	(DEST_M | COMP_M_PLUS_ONE);
-		emitC	(DEST_A | COMP_M_MINUS_ONE);
-		emitC	(DEST_M | COMP_ZERO);
+		out.emitA	("SP");
+		out.emitC	(DEST_M | COMP_M_PLUS_ONE);
+		out.emitC	(DEST_A | COMP_M_MINUS_ONE);
+		out.emitC	(DEST_M | COMP_ZERO);
 		break;
 	default: // 2*localc+4 instructions
-		emitA	("SP");
-		emitC	(DEST_A | COMP_M);
+		out.emitA	("SP");
+		out.emitC	(DEST_A | COMP_M);
 		for (int i = 1; i<localc; ++i) {
-			emitC	(DEST_M | COMP_ZERO);
-			emitC	(DEST_A | COMP_A_PLUS_ONE);
+			out.emitC	(DEST_M | COMP_ZERO);
+			out.emitC	(DEST_A | COMP_A_PLUS_ONE);
 		}
-		emitC	(DEST_M | COMP_ZERO);
-		emitC	(DEST_D | COMP_A_PLUS_ONE);// "unroll"
-		emitA	("SP");
-		emitC	(DEST_M | COMP_D);
+		out.emitC	(DEST_M | COMP_ZERO);
+		out.emitC	(DEST_D | COMP_A_PLUS_ONE);// "unroll"
+		out.emitA	("SP");
+		out.emitC	(DEST_M | COMP_D);
 		break;
 	}
 }
@@ -544,49 +544,49 @@ void VMWriter::writeCall(StringID &name, int argc)
 	StringID returnAddress = constructString("__returnAddress", returnCounter);
 	++returnCounter;
 
-	emitA	(name);
-	emitC	(DEST_D | COMP_A);
-	emitA	("R15");
-	emitC	(DEST_M | COMP_D);
-	emitA	(returnAddress);
-	emitC	(DEST_D | COMP_A);
+	out.emitA	(name);
+	out.emitC	(DEST_D | COMP_A);
+	out.emitA	("R15");
+	out.emitC	(DEST_M | COMP_D);
+	out.emitA	(returnAddress);
+	out.emitC	(DEST_D | COMP_A);
 	if (found) {
-		emitA	(call);
-		emitC	(COMP_ZERO | JMP);
+		out.emitA	(call);
+		out.emitC	(COMP_ZERO | JMP);
 	} else {
-		emitL	(call);
+		out.emitL	(call);
 		push();
-		emitA	("LCL");
-		emitC	(DEST_D | COMP_M);
+		out.emitA	("LCL");
+		out.emitC	(DEST_D | COMP_M);
 		push();
-		emitA	("ARG");
-		emitC	(DEST_D | COMP_M);
+		out.emitA	("ARG");
+		out.emitC	(DEST_D | COMP_M);
 		push();
-		emitA	("THIS");
-		emitC	(DEST_D | COMP_M);
+		out.emitA	("THIS");
+		out.emitC	(DEST_D | COMP_M);
 		push();
-		emitA	("THAT");
-		emitC	(DEST_D | COMP_M);
+		out.emitA	("THAT");
+		out.emitC	(DEST_D | COMP_M);
 		push();
-		emitA	("SP");
-		emitC	(DEST_D | COMP_M);
-		emitA	("LCL");
-		emitC	(DEST_M | COMP_D);// LCL = SP
-		emitA	(argc + 5);
-		emitC	(DEST_D | COMP_D_MINUS_A);
-		emitA	("ARG");
-		emitC	(DEST_M | COMP_D);// ARG = SP - " << argc << " - 5\n"
-		emitA	("R15");
-		emitC	(DEST_A | COMP_M | JMP);
+		out.emitA	("SP");
+		out.emitC	(DEST_D | COMP_M);
+		out.emitA	("LCL");
+		out.emitC	(DEST_M | COMP_D);// LCL = SP
+		out.emitA	(argc + 5);
+		out.emitC	(DEST_D | COMP_D_MINUS_A);
+		out.emitA	("ARG");
+		out.emitC	(DEST_M | COMP_D);// ARG = SP - " << argc << " - 5\n"
+		out.emitA	("R15");
+		out.emitC	(DEST_A | COMP_M | JMP);
 		argStubs.push_back(argc);
 	}
-	emitL	(returnAddress);
+	out.emitL	(returnAddress);
 }
 
 void VMWriter::writeReturn()
 {
-	emitA	("__return");
-	emitC	(COMP_ZERO | JMP);
+	out.emitA	("__return");
+	out.emitC	(COMP_ZERO | JMP);
 }
 /*
  * BOOTSTRAP
@@ -596,201 +596,52 @@ void VMWriter::writeBootstrap()
 	std::string init("Sys.init");
 	std::string ret("__return");
 
-	emitA	(256);
-	emitC	(DEST_D | COMP_A);
-	emitA	("SP");
-	emitC	(DEST_M | COMP_D);
+	out.emitA	(256);
+	out.emitC	(DEST_D | COMP_A);
+	out.emitA	("SP");
+	out.emitC	(DEST_M | COMP_D);
 	writeCall(StringTable::id(init), 0);
-	emitL	(StringTable::id(ret));
-	emitA	(5);
-	emitC	(DEST_D | COMP_A);
-	emitA	("LCL");
-	emitC	(DEST_A | COMP_M_MINUS_D);
-	emitC	(DEST_D | COMP_M);
-	emitA	("R15");
-	emitC	(DEST_M | COMP_D);// R15 = *(LCL-5)
-	emitA	("SP");
-	emitC	(DEST_A | DEST_M | COMP_M_MINUS_ONE);
-	emitC	(DEST_D | COMP_M);// return value
-	emitA	("ARG");
-	emitC	(DEST_A | COMP_M);
-	emitC	(DEST_M | COMP_D);// *ARG = pop()
-	emitC	(DEST_D | COMP_A_PLUS_ONE);
-	emitA	("SP");
-	emitC	(DEST_M | COMP_D);// SP = ARG + 1
-	emitA	("LCL");
-	emitC	(DEST_D | COMP_M);
-	emitA	("R14");
-	emitC	(DEST_A | DEST_M | COMP_D_MINUS_ONE);// R14 = LCL - 1
-	emitC	(DEST_D | COMP_M);
-	emitA	("THAT");
-	emitC	(DEST_M | COMP_D);// THAT = M[R14]
-	emitA	("R14");
-	emitC	(DEST_A | DEST_M | COMP_M_MINUS_ONE);
-	emitC	(DEST_D | COMP_M);
-	emitA	("THIS");
-	emitC	(DEST_M | COMP_D);// THIS = M[R14--]
-	emitA	("R14");
-	emitC	(DEST_A | DEST_M | COMP_M_MINUS_ONE);
-	emitC	(DEST_D | COMP_M);
-	emitA	("ARG");
-	emitC	(DEST_M | COMP_D);// ARG = M[R14--]
-	emitA	("R14");
-	emitC	(DEST_A | DEST_M | COMP_M_MINUS_ONE);
-	emitC	(DEST_D | COMP_M);
-	emitA	("LCL");
-	emitC	(DEST_M | COMP_D);// LCL = M[R14--]
-	emitA	("R15");
-	emitC	(DEST_A | COMP_M | JMP);// goto R15
-}
-/*
- * Instruction emitting.
- * TODO: combine with assembler
- */
-void VMWriter::emitA(const char *symbol) {
-	out << "@" << symbol << std::endl;
-}
-void VMWriter::emitA(StringID &symbol) {
-	out << "@" << symbol << std::endl;
-}
-void VMWriter::emitA(unsigned short constant) {
-	if (constant & COMPUTE) {
-		std::cout << "Warning! negative constant" << std::endl;
-		out << "@" << abs((signed short)constant) << std::endl;
-		emitC(DEST_A | COMP_MINUS_A);
-	} else {
-		out << "@" << constant << std::endl;
-	}
-}
-
-void VMWriter::emitC(unsigned short instr) {
-	if (instr & MASK_DEST) {
-		if (instr & DEST_A)
-			out << 'A';
-		if (instr & DEST_M)
-			out << 'M';
-		if (instr & DEST_D)
-			out << 'D';
-		out << '=';
-	}
-	switch (instr & MASK_COMP) {
-	case COMP_ZERO:
-		out << "0";
-		break;
-	case COMP_ONE:
-		out << "1";
-		break;
-	case COMP_MINUS_ONE:
-		out << "-1";
-		break;
-	case COMP_D:
-		out << "D";
-		break;
-	case COMP_A:
-		out << "A";
-		break;
-	case COMP_NOT_D:
-		out << "!D";
-		break;
-	case COMP_NOT_A:
-		out << "!A";
-		break;
-	case COMP_MINUS_D:
-		out << "-D";
-		break;
-	case COMP_MINUS_A:
-		out << "-A";
-		break;
-	case COMP_D_PLUS_ONE:
-		out << "D+1";
-		break;
-	case COMP_A_PLUS_ONE:
-		out << "A+1";
-		break;
-	case COMP_D_MINUS_ONE:
-		out << "D-1";
-		break;
-	case COMP_A_MINUS_ONE:
-		out << "A-1";
-		break;
-	case COMP_D_PLUS_A:
-		out << "D+A";
-		break;
-	case COMP_D_MINUS_A:
-		out << "D-A";
-		break;
-	case COMP_A_MINUS_D:
-		out << "A-D";
-		break;
-	case COMP_D_AND_A:
-		out << "D&A";
-		break;
-	case COMP_D_OR_A:
-		out << "D|A";
-		break;
-	case COMP_M:
-		out << "M";
-		break;
-	case COMP_NOT_M:
-		out << "!M";
-		break;
-	case COMP_MINUS_M:
-		out << "-M";
-		break;
-	case COMP_M_PLUS_ONE:
-		out << "M+1";
-		break;
-	case COMP_M_MINUS_ONE:
-		out << "M-1";
-		break;
-	case COMP_D_PLUS_M:
-		out << "D+M";
-		break;
-	case COMP_D_MINUS_M:
-		out << "D-M";
-		break;
-	case COMP_M_MINUS_D:
-		out << "M-D";
-		break;
-	case COMP_D_AND_M:
-		out << "D&M";
-		break;
-	case COMP_D_OR_M:
-		out << "D|M";
-		break;
-	default:
-		throw std::runtime_error("C-instruction uses undocumented computation");
-	}
-	switch (instr & MASK_JUMP) {
-	case JLT:
-		out << ";JLT\n";
-		break;
-	case JGT:
-		out << ";JGT\n";
-		break;
-	case JLE:
-		out << ";JLE\n";
-		break;
-	case JGE:
-		out << ";JGE\n";
-		break;
-	case JNE:
-		out << ";JNE\n";
-		break;
-	case JEQ:
-		out << ";JEQ\n";
-		break;
-	case JMP:
-		out << ";JMP\n";
-		break;
-	default:
-		out << "\n";
-		break;
-	}
-}
-void VMWriter::emitL(StringID &label)
-{
-	out << "(" << label << ")\n";
+	out.emitL	(StringTable::id(ret));
+	out.emitA	(5);
+	out.emitC	(DEST_D | COMP_A);
+	out.emitA	("LCL");
+	out.emitC	(DEST_A | COMP_M_MINUS_D);
+	out.emitC	(DEST_D | COMP_M);
+	out.emitA	("R15");
+	out.emitC	(DEST_M | COMP_D);// R15 = *(LCL-5)
+	out.emitA	("SP");
+	out.emitC	(DEST_A | DEST_M | COMP_M_MINUS_ONE);
+	out.emitC	(DEST_D | COMP_M);// return value
+	out.emitA	("ARG");
+	out.emitC	(DEST_A | COMP_M);
+	out.emitC	(DEST_M | COMP_D);// *ARG = pop()
+	out.emitC	(DEST_D | COMP_A_PLUS_ONE);
+	out.emitA	("SP");
+	out.emitC	(DEST_M | COMP_D);// SP = ARG + 1
+	out.emitA	("LCL");
+	out.emitC	(DEST_D | COMP_M);
+	out.emitA	("R14");
+	out.emitC	(DEST_A | DEST_M | COMP_D_MINUS_ONE);// R14 = LCL - 1
+	out.emitC	(DEST_D | COMP_M);
+	out.emitA	("THAT");
+	out.emitC	(DEST_M | COMP_D);// THAT = M[R14]
+	out.emitA	("R14");
+	out.emitC	(DEST_A | DEST_M | COMP_M_MINUS_ONE);
+	out.emitC	(DEST_D | COMP_M);
+	out.emitA	("THIS");
+	out.emitC	(DEST_M | COMP_D);// THIS = M[R14--]
+	out.emitA	("R14");
+	out.emitC	(DEST_A | DEST_M | COMP_M_MINUS_ONE);
+	out.emitC	(DEST_D | COMP_M);
+	out.emitA	("ARG");
+	out.emitC	(DEST_M | COMP_D);// ARG = M[R14--]
+	out.emitA	("R14");
+	out.emitC	(DEST_A | DEST_M | COMP_M_MINUS_ONE);
+	out.emitC	(DEST_D | COMP_M);
+	out.emitA	("LCL");
+	out.emitC	(DEST_M | COMP_D);// LCL = M[R14--]
+	out.emitA	("R15");
+	out.emitC	(DEST_A | COMP_M | JMP);// goto R15
 }
 
 } // end namespace

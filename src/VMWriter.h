@@ -24,8 +24,7 @@
  */
 #pragma once
 #include "VMParser.h"
-#include <fstream>
-#include <map>
+#include "StageConnect.h"
 #include <list>
 #include <string>
 
@@ -37,6 +36,7 @@ class VMWriter
 	std::string filename;
 	StringID function;
 	std::list<int> argStubs;
+	VMOutput &out;
 
 	void push();
 	void pop();
@@ -45,15 +45,8 @@ class VMWriter
 	void unaryCompare(int intArg);
 	void compareBranches(bool fin, CompareOperation op);
 	void push_load(Segment segment, int index);
-
-	void emitC(unsigned short instr);
-	void emitA(const char *symbol);
-	void emitA(StringID &symbol);
-	void emitA(unsigned short constant);
-	void emitL(StringID &label);
 public:
-	std::ofstream out;
-	VMWriter(std::string& filename);
+	VMWriter(VMOutput& out);
 
 	void setFilename(std::string& filename) {
 		this->filename.assign(filename);
