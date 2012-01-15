@@ -27,46 +27,9 @@
 
 namespace hcc {
 
-/*
- * optimizeN routine calls callback for all successive N-tuples. If callback returns true, routine restarts.
- */
-typedef void (*o1cb)(VMCommandList &cmds, VMCommandList::iterator &c1);
-typedef bool (*o2cb)(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList::iterator &c2);
-typedef bool (*o3cb)(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList::iterator &c2, VMCommandList::iterator &c3);
-
-void optimize1(VMCommandList &cmds, o1cb cb);
-void optimize2(VMCommandList &cmds, o2cb cb);
-void optimize3(VMCommandList &cmds, o3cb cb);
-
-// optimizations removing commands
-bool o_bloated_goto(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList::iterator &c2, VMCommandList::iterator &c3);
-bool o_double_notneg(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList::iterator &c2);
-bool o_negated_compare(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList::iterator &c2);
-bool o_negated_if(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList::iterator &c2);
-
-// const expressions
-bool o_const_expression3(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList::iterator &c2, VMCommandList::iterator &c3);
-bool o_const_expression2(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList::iterator &c2);
-bool o_const_if(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList::iterator &c2);
-
-// convert binary operation to unary
-bool o_const_swap(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList::iterator &c2, VMCommandList::iterator &c3);
-bool o_binary_to_unary(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList::iterator &c2);
-void o_special_unary(VMCommandList &cmds, VMCommandList::iterator &c1);
-bool o_binary_equalarg(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList::iterator &c2, VMCommandList::iterator &c3);
-
-// merge
-bool o_push_pop(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList::iterator &c2);
-bool o_compare_if(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList::iterator &c2);
-bool o_goto_goto(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList::iterator &c2);
-bool o_pop_push(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList::iterator &c2);
-
-// stack-less computation chains
-void s_replicate(VMCommandList &cmds, VMCommandList::iterator &c1);
-bool s_reduce(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList::iterator &c2);
-bool s_reconstruct(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList::iterator &c2);
-
 void o_stat_reset();
 void o_stat_print();
+
+void VMOptimize(VMCommandList &cmds);
 
 } // end namespace

@@ -45,13 +45,6 @@ class VMWriter
 	void unaryCompare(int intArg);
 	void compareBranches(bool fin, CompareOperation op);
 	void push_load(Segment segment, int index);
-public:
-	VMWriter(VMOutput& out);
-
-	void setFilename(std::string& filename) {
-		this->filename.assign(filename);
-	}
-
 	void writePush(bool in, bool fin, Segment segment, int index);
 	void writeConstant(bool in, bool fin, int index);
 	void writePopDirect(bool in, bool fin, Segment segment, int index);
@@ -68,7 +61,15 @@ public:
 	void writeFunction(StringID &name, int argc);
 	void writeCall(StringID &name, int argc);
 	void writeReturn();
+public:
+	VMWriter(VMOutput& out);
+
+	void setFilename(std::string& filename) {
+		this->filename.assign(filename);
+	}
 	void writeBootstrap();
+	void write(VMCommand &c);
+
 };
 
 } // end namespace

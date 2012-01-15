@@ -31,6 +31,9 @@ namespace hcc {
 
 using namespace instruction;
 
+/*
+ * File output
+ */
 VMFileOutput::VMFileOutput(const char *file)
 	: stream(file)
 {
@@ -179,6 +182,48 @@ void VMFileOutput::emitC(unsigned short instr) {
 void VMFileOutput::emitL(StringID &label)
 {
 	stream << "(" << label << ")\n";
+}
+/*
+ * Asm output
+ */
+VMAsmOutput::~VMAsmOutput()
+{
+}
+void VMAsmOutput::emitA(const char *symbol) {
+	emitA(StringTable::id(symbol));
+}
+void VMAsmOutput::emitA(StringID &symbol) {
+	AsmCommand c;
+	c.type = AsmCommand::LOAD;
+	c.symbol = symbol;
+	asmCommands.push_back(c);
+}
+void VMAsmOutput::emitA(unsigned short constant) {
+	AsmCommand c;
+	c.type = AsmCommand::VERBATIM;
+
+	if (constant & COMPUTE) {
+		c.instr = std::abs((signed short)constant);
+		asmCommands.push_back(c);
+		emitC(DEST_A | COMP_MINUS_A);
+	} else {
+		c.instr = constant;
+		asmCommands.push_back(c);
+	}
+}
+void VMAsmOutput::emitC(unsigned short instr)
+{
+	AsmCommand c;
+	c.type = AsmCommand::VERBATIM;
+	c.instr = instr | instruction::RESERVED | instruction::COMPUTE;
+	asmCommands.push_back(c);
+}
+void VMAsmOutput::emitL(StringID &label)
+{
+	AsmCommand c;
+	c.type = AsmCommand::LABEL;
+	c.symbol = label;
+	asmCommands.push_back(c);
 }
 
 } // end namespace

@@ -22,46 +22,52 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-#pragma once
-#include "StringTable.h"
-#include "AsmCommand.h"
-#include <fstream>
+#include <iostream>
+#include "VMParser.h"
+#include "StageConnect.h"
+#include "VMWriter.h"
+#include "VMOptimize.h"
+#include "AsmLogic.h"
 
-namespace hcc {
+int main(int argc, char *argv[])
+{
+	if (argc < 2) {
+		std::cerr << "Missing input file(s)" << std::endl;
+		return 1;
+	}
 
-struct VMOutput {
-	virtual ~VMOutput() {}
+	hcc::VMAsmOutput output;
+	hcc::VMWriter writer(output);
+	writer.writeBootstrap();
 
-	virtual void emitC(unsigned short instr) = 0;
-	virtual void emitA(const char *symbol) = 0;
-	virtual void emitA(StringID &symbol) = 0;
-	virtual void emitA(unsigned short constant) = 0;
-	virtual void emitL(StringID &label) = 0;
-};
+	hcc::o_stat_reset();
+	for (int i = 1; i<argc; ++i) {
+		std::string filename(argv[i]);
+		std::cout << "***Processing " << filename << std::endl;
+		writer.setFilename(filename);
+		hcc::VMParser parser(filename);
 
-struct VMFileOutput : public VMOutput {
-	std::ofstream stream;
+		hcc::VMCommandList cmds;
 
-	VMFileOutput(const char *file);
-	virtual ~VMFileOutput() {}
+		// load commands from file
+		while (parser.hasMoreCommands()) {
+			hcc::VMCommand c = parser.advance();
+			if (c.type == hcc::VMCommand::NOP)
+				continue; // NOP is an artifact from parser and thus ignored
 
-	virtual void emitC(unsigned short instr);
-	virtual void emitA(const char *symbol);
-	virtual void emitA(StringID &symbol);
-	virtual void emitA(unsigned short constant);
-	virtual void emitL(StringID &label);
-};
+			cmds.push_back(c);
+		}
 
-struct VMAsmOutput : public VMOutput {
-	AsmCommandList asmCommands;
+		hcc::VMOptimize(cmds);
 
-	virtual ~VMAsmOutput();
+		for (hcc::VMCommandList::iterator i = cmds.begin(); i != cmds.end(); ++i) {
+			writer.write(*i);
+		}
+	}
+	hcc::o_stat_print();
 
-	virtual void emitC(unsigned short instr);
-	virtual void emitA(const char *symbol);
-	virtual void emitA(StringID &symbol);
-	virtual void emitA(unsigned short constant);
-	virtual void emitL(StringID &label);
-};
+	hcc::AsmLogic(output.asmCommands);
+	hcc::AsmOutput(output.asmCommands, "output.hack");
 
+	return 0;
 }

@@ -35,6 +35,10 @@ unsigned int stat_bloated_goto, stat_double_notneg, stat_negated_compare, stat_n
 	     stat_unary_arith, stat_unary_compare, stat_unary_noeffect,
 	     stat_compare_if, stat_pop_push, stat_stack_avoid;
 
+typedef void (*o1cb)(VMCommandList &cmds, VMCommandList::iterator &c1);
+typedef bool (*o2cb)(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList::iterator &c2);
+typedef bool (*o3cb)(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList::iterator &c2, VMCommandList::iterator &c3);
+
 /*
  * optimizeN routine calls callback for all successive N-tuples. If callback returns true, routine restarts.
  */
@@ -573,6 +577,38 @@ void o_stat_reset()
 	stat_compare_if = 0;
 	stat_pop_push = 0;
 	stat_stack_avoid = 0;
+}
+
+void VMOptimize(VMCommandList &cmds)
+{
+	// order is somewhat important!
+	// optimizations removing commands are best taken early
+	optimize3(cmds, o_bloated_goto);
+	optimize2(cmds, o_double_notneg);
+	optimize2(cmds, o_negated_compare);
+	optimize2(cmds, o_negated_if); // take this *after* o_bloated_goto
+
+	// const expressions
+	optimize3(cmds, o_const_expression3);
+	optimize2(cmds, o_const_expression2);
+	optimize2(cmds, o_const_if);
+
+	// convert binary operation to unary
+	optimize3(cmds, o_const_swap);
+	optimize2(cmds, o_binary_to_unary);
+	optimize1(cmds, o_special_unary);
+	optimize3(cmds, o_binary_equalarg);
+
+	// merge
+	optimize2(cmds, o_push_pop);
+	optimize2(cmds, o_compare_if);
+	optimize2(cmds, o_goto_goto);
+	optimize2(cmds, o_pop_push);
+
+	// stack-less computation chain -- do NOT change order!
+	optimize1(cmds, s_replicate);
+	optimize2(cmds, s_reduce);
+	optimize2(cmds, s_reconstruct);
 }
 
 } // end namespace

@@ -13,4 +13,4 @@ in this directory. Optionally, do
     # make test
 as well. Then copy compiled executables from directory "src" to any
 directory in your $PATH, e.g.
-    # cp src/hcc-{vm,asm,emulator} ~/bin
+    # cp src/hcc-{vm,asm,emulator,vm2hack} ~/bin

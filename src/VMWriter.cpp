@@ -41,15 +41,13 @@ StringID& constructString(const char *s, unsigned int i)
 {
 	std::stringstream ss;
 	ss << s << i;
-	std::string s2 = ss.str();
-	return StringTable::id(s2);
+	return StringTable::id(ss.str());
 }
 StringID& constructString(StringID &s1, StringID &s2)
 {
 	std::stringstream ss;
 	ss << s1 << '$' << s2;
-	std::string s3 = ss.str();
-	return StringTable::id(s3);
+	return StringTable::id(ss.str());
 }
 void VMWriter::push()
 {
@@ -593,15 +591,12 @@ void VMWriter::writeReturn()
  */
 void VMWriter::writeBootstrap()
 {
-	std::string init("Sys.init");
-	std::string ret("__return");
-
 	out.emitA	(256);
 	out.emitC	(DEST_D | COMP_A);
 	out.emitA	("SP");
 	out.emitC	(DEST_M | COMP_D);
-	writeCall(StringTable::id(init), 0);
-	out.emitL	(StringTable::id(ret));
+	writeCall	(StringTable::id("Sys.init"), 0);
+	out.emitL	(StringTable::id("__return"));
 	out.emitA	(5);
 	out.emitC	(DEST_D | COMP_A);
 	out.emitA	("LCL");
@@ -642,6 +637,71 @@ void VMWriter::writeBootstrap()
 	out.emitC	(DEST_M | COMP_D);// LCL = M[R14--]
 	out.emitA	("R15");
 	out.emitC	(DEST_A | COMP_M | JMP);// goto R15
+}
+
+void VMWriter::write(VMCommand &c)
+{
+	switch (c.type) {
+	case VMCommand::CONSTANT:
+		writeConstant(c.in, c.fin, c.int1);
+		break;
+	case VMCommand::PUSH:
+		writePush(c.in, c.fin, c.segment1, c.int1);
+		break;
+	case VMCommand::POP_DIRECT:
+		writePopDirect(c.in, c.fin, c.segment1, c.int1);
+		break;
+	case VMCommand::POP_INDIRECT:
+		writePopIndirect(c.segment1, c.int1);
+		break;
+	case VMCommand::POP_INDIRECT_PUSH:
+		writePopIndirectPush(c.in, c.fin, c.segment1, c.int1);
+		break;
+	case VMCommand::COPY:
+		writeCopy(c.segment1, c.int1, c.segment2, c.int2);
+		break;
+	case VMCommand::UNARY:
+		writeUnary(c.in, c.fin, c.unary, c.int1);
+		break;
+	case VMCommand::BINARY:
+		writeBinary(c.in, c.fin, c.binary);
+		break;
+	case VMCommand::COMPARE:
+		writeCompare(c.in, c.fin, c.compare);
+		break;
+	case VMCommand::UNARY_COMPARE:
+		writeUnaryCompare(c.in, c.fin, c.compare, c.int1);
+		break;
+	case VMCommand::LABEL:
+		writeLabel(c.arg1);
+		break;
+	case VMCommand::GOTO:
+		writeGoto(c.arg1);
+		break;
+	case VMCommand::IF:
+		writeIf(c.in, c.fin, c.compare, c.arg1, false, false, 0);
+		break;
+	case VMCommand::COMPARE_IF:
+		writeIf(c.in, c.fin, c.compare, c.arg1, true, false, 0);
+		break;
+	case VMCommand::UNARY_COMPARE_IF:
+		writeIf(c.in, c.fin, c.compare, c.arg1, true, true, c.int1);
+		break;
+	case VMCommand::FUNCTION:
+		writeFunction(c.arg1, c.int1);
+		break;
+	case VMCommand::CALL:
+		writeCall(c.arg1, c.int1);
+		break;
+	case VMCommand::RETURN:
+		writeReturn();
+		break;
+	case VMCommand::NOP:
+	case VMCommand::IN:
+	case VMCommand::FIN:
+		throw std::runtime_error("helper commands made it to the final version");
+		break;
+	}
 }
 
 } // end namespace

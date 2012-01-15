@@ -58,101 +58,11 @@ int main(int argc, char *argv[])
 			cmds.push_back(c);
 		}
 
-#define OPTIMIZE
-#if defined OPTIMIZE
-		// order is somewhat important!
-		// optimizations removing commands are best taken early
-		hcc::optimize3(cmds, hcc::o_bloated_goto);
-		hcc::optimize2(cmds, hcc::o_double_notneg);
-		hcc::optimize2(cmds, hcc::o_negated_compare);
-		hcc::optimize2(cmds, hcc::o_negated_if); // take this *after* o_bloated_goto
-
-		// const expressions
-		hcc::optimize3(cmds, hcc::o_const_expression3);
-		hcc::optimize2(cmds, hcc::o_const_expression2);
-		hcc::optimize2(cmds, hcc::o_const_if);
-
-		// convert binary operation to unary
-		hcc::optimize3(cmds, hcc::o_const_swap);
-		hcc::optimize2(cmds, hcc::o_binary_to_unary);
-		hcc::optimize1(cmds, hcc::o_special_unary);
-		hcc::optimize3(cmds, hcc::o_binary_equalarg);
-
-		// merge
-		hcc::optimize2(cmds, hcc::o_push_pop);
-		hcc::optimize2(cmds, hcc::o_compare_if);
-		hcc::optimize2(cmds, hcc::o_goto_goto);
-		hcc::optimize2(cmds, hcc::o_pop_push);
-
-		// stack-less computation chain -- do NOT change order!
-		hcc::optimize1(cmds, hcc::s_replicate);
-		hcc::optimize2(cmds, hcc::s_reduce);
-		hcc::optimize2(cmds, hcc::s_reconstruct);
-#endif
+		hcc::VMOptimize(cmds);
 
 		for (hcc::VMCommandList::iterator i = cmds.begin(); i != cmds.end(); ++i) {
 			output.stream << (*i);
-			switch (i->type) {
-			case hcc::VMCommand::CONSTANT:
-				writer.writeConstant(i->in, i->fin, i->int1);
-				break;
-			case hcc::VMCommand::PUSH:
-				writer.writePush(i->in, i->fin, i->segment1, i->int1);
-				break;
-			case hcc::VMCommand::POP_DIRECT:
-				writer.writePopDirect(i->in, i->fin, i->segment1, i->int1);
-				break;
-			case hcc::VMCommand::POP_INDIRECT:
-				writer.writePopIndirect(i->segment1, i->int1);
-				break;
-			case hcc::VMCommand::POP_INDIRECT_PUSH:
-				writer.writePopIndirectPush(i->in, i->fin, i->segment1, i->int1);
-				break;
-			case hcc::VMCommand::COPY:
-				writer.writeCopy(i->segment1, i->int1, i->segment2, i->int2);
-				break;
-			case hcc::VMCommand::UNARY:
-				writer.writeUnary(i->in, i->fin, i->unary, i->int1);
-				break;
-			case hcc::VMCommand::BINARY:
-				writer.writeBinary(i->in, i->fin, i->binary);
-				break;
-			case hcc::VMCommand::COMPARE:
-				writer.writeCompare(i->in, i->fin, i->compare);
-				break;
-			case hcc::VMCommand::UNARY_COMPARE:
-				writer.writeUnaryCompare(i->in, i->fin, i->compare, i->int1);
-				break;
-			case hcc::VMCommand::LABEL:
-				writer.writeLabel(i->arg1);
-				break;
-			case hcc::VMCommand::GOTO:
-				writer.writeGoto(i->arg1);
-				break;
-			case hcc::VMCommand::IF:
-				writer.writeIf(i->in, i->fin, i->compare, i->arg1, false, false, 0);
-				break;
-			case hcc::VMCommand::COMPARE_IF:
-				writer.writeIf(i->in, i->fin, i->compare, i->arg1, true, false, 0);
-				break;
-			case hcc::VMCommand::UNARY_COMPARE_IF:
-				writer.writeIf(i->in, i->fin, i->compare, i->arg1, true, true, i->int1);
-				break;
-			case hcc::VMCommand::FUNCTION:
-				writer.writeFunction(i->arg1, i->int1);
-				break;
-			case hcc::VMCommand::CALL:
-				writer.writeCall(i->arg1, i->int1);
-				break;
-			case hcc::VMCommand::RETURN:
-				writer.writeReturn();
-				break;
-			case hcc::VMCommand::NOP:
-			case hcc::VMCommand::IN:
-			case hcc::VMCommand::FIN:
-				throw std::runtime_error("helper commands made it to the final version");
-				break;
-			}
+			writer.write(*i);
 		}
 	}
 	hcc::o_stat_print();
