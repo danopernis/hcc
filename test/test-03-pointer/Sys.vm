@@ -1,0 +1,19 @@
+// test pop&push using this, that and pointer segments
+// adopted from "The Elements of Computing Systems" by Nisan and Schocken, MIT Press
+
+function Sys.init 0
+push constant 3030
+pop pointer 0
+push constant 3040
+pop pointer 1
+push constant 32
+pop this 2
+push constant 46
+pop that 6
+push pointer 0
+push pointer 1
+add
+push this 2
+sub
+push that 6
+add

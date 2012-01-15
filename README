@@ -7,8 +7,10 @@ available at http://www1.idc.ac.il/tecs/
 
 INSTALLATION
 ~~~~~~~~~~~~
-To install, issue commands
-    # cd src
+To install, issue command
     # make
-and copy compiled executables to any directory in your $PATH.
-
+in this directory. Optionally, do
+    # make test
+as well. Then copy compiled executables from directory "src" to any
+directory in your $PATH, e.g.
+    # cp src/hcc-{vm,asm,emulator} ~/bin
