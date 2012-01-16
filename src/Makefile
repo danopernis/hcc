@@ -4,7 +4,7 @@ ASM_OBJECTS = asm.o AsmParser.o StringTable.o AsmLogic.o
 VM_OBJECTS = vm.o VMParser.o VMCommand.o VMWriter.o VMOptimize.o cpu.o StringTable.o StageConnect.o
 EMULATOR_OBJECTS = emulator.o cpu.o
 VM2HACK_OBJECTS = vm2hack.o VMParser.o VMWriter.o VMOptimize.o AsmLogic.o StringTable.o cpu.o StageConnect.o
-JACK_OBJECTS = jack.o JackTokenizer.o StringTable.o
+JACK_OBJECTS = jack.o JackTokenizer.o StringTable.o JackParser.o
 
 all: hcc-asm hcc-vm hcc-emulator hcc-vm2hack hcc-jack
 

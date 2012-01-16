@@ -22,29 +22,57 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-#include <fstream>
-#include <iostream>
+#pragma once
+#include <string>
+#include <stdexcept>
 #include "JackTokenizer.h"
-#include "JackParser.h"
 
-using namespace hcc::jack;
+namespace hcc {
+namespace jack {
 
-int main(int argc, char *argv[])
-{
-	if (argc < 2) {
-		std::cerr << "Missing input file(s)" << std::endl;
-		return 1;
-	}
+struct ParseError: public std::runtime_error {
+	unsigned int line, column;
+	ParseError(const std::string& what, const Tokenizer& tokenizer)
+		: runtime_error(what)
+		, line(tokenizer.getLine())
+		, column(tokenizer.getColumn()) {}
+	virtual ~ParseError() throw () {}
+};
 
-	for (int i = 1; i<argc; ++i) {
-		std::string input(argv[i]);
-		std::cout << "Processing " << input << std::endl;
+class Parser {
+	Tokenizer& tokenizer;
 
-		Tokenizer tokenizer(input);
-		Parser parser(tokenizer);
-		parser.parse();
-	}
+	Tokenizer::Keyword lastKeyword;
+	char lastSymbol;
+	StringID lastStringConstant, lastIdentifier;
+	int lastIntConstant;
 
-	return 0;
-}
+	void next();
+	bool acceptKeyword(Tokenizer::Keyword keyword);
+	void expectKeyword(Tokenizer::Keyword keyword);
+	bool acceptIdentifier();
+	void expectIdentifier();
+	bool acceptSymbol(char symbol);
+	void expectSymbol(char symbol);
 
+	void parseClass();
+	void parseVariable();
+	void parseSubroutine();
+	void parseArgumentList();
+	void parseStatements();
+	void parseExpressionList();
+
+	bool acceptType();
+	void expectType();
+	bool acceptExpression();
+	void expectExpression();
+	bool acceptTerm();
+	void expectTerm();
+
+public:
+	Parser(Tokenizer& tokenizer);
+	void parse();
+};
+
+} // end namespace jack
+} // end namespace hcc
