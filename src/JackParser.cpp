@@ -28,8 +28,9 @@
 namespace hcc {
 namespace jack {
 
-Parser::Parser(Tokenizer& tokenizer)
+Parser::Parser(Tokenizer &tokenizer, ParserCallback &callback)
 	: tokenizer(tokenizer)
+	, callback(callback)
 {
 }
 
@@ -97,51 +98,54 @@ void Parser::parseClass()
 	next();
 	expectKeyword(Tokenizer::K_CLASS);
 	expectIdentifier();
+	callback.doClass(lastIdentifier);
 
 	expectSymbol('{');
 nextClassVarDec:
 	if (acceptKeyword(Tokenizer::K_STATIC)) {
-		parseVariable();
+		parseVariable(STATIC);
 		goto nextClassVarDec;
 	}
 	if (acceptKeyword(Tokenizer::K_FIELD)) {
-		parseVariable();
+		parseVariable(FIELD);
 		goto nextClassVarDec;
 	}
 nextSubroutineDec:
 	if (acceptKeyword(Tokenizer::K_CONSTRUCTOR)) {
-		parseSubroutine();
+		parseSubroutine(CONSTRUCTOR);
 		goto nextSubroutineDec;
 	}
 	if (acceptKeyword(Tokenizer::K_FUNCTION)) {
-		parseSubroutine();
+		parseSubroutine(FUNCTION);
 		goto nextSubroutineDec;
 	}
 	if (acceptKeyword(Tokenizer::K_METHOD)) {
-		parseSubroutine();
+		parseSubroutine(METHOD);
 		goto nextSubroutineDec;
 	}
 	expectSymbol('}');
 }
-void Parser::parseVariable()
+void Parser::parseVariable(VariableStorage storage)
 {
 	expectType();
 nextVar:
 	expectIdentifier();
+	callback.doVariableDec(storage, lastType, lastIdentifier);
 		
 	if (acceptSymbol(',')) {
 		goto nextVar;
 	}
 	expectSymbol(';');
 }
-void Parser::parseSubroutine()
+void Parser::parseSubroutine(SubroutineKind kind)
 {
 	if (acceptKeyword(Tokenizer::K_VOID)) {
-		;
+		lastType.kind = VariableType::VOID;
 	} else {
 		expectType();
 	}
 	expectIdentifier();
+	callback.doSubroutineStart(kind, lastType, lastIdentifier);
 
 	expectSymbol('(');
 	parseArgumentList();
@@ -150,9 +154,11 @@ void Parser::parseSubroutine()
 
 nextVarDec:
 	if (acceptKeyword(Tokenizer::K_VAR)) {
-		parseVariable();
+		parseVariable(LOCAL);
 		goto nextVarDec;
 	}
+
+	callback.doSubroutineAfterVarDec();
 	parseStatements();
 	expectSymbol('}');
 }
@@ -162,11 +168,13 @@ void Parser::parseArgumentList()
 	if (acceptType()) {
 		// first argument
 		expectIdentifier();
+		callback.doVariableDec(ARGUMENT, lastType, lastIdentifier);
 
 		while (acceptSymbol(',')) {
 			// each other argument
 			expectType();
 			expectIdentifier();
+			callback.doVariableDec(ARGUMENT, lastType, lastIdentifier);
 		}
 	}
 }
@@ -176,58 +184,88 @@ void Parser::parseStatements()
 nextStatement:
 	if (acceptKeyword(Tokenizer::K_LET)) {
 		expectIdentifier();
+		StringID name = lastIdentifier;
 		if (acceptSymbol('[')) {
 			expectExpression();
 			expectSymbol(']');
+			callback.doLetVectorStart(name);
+			expectSymbol('=');
+			expectExpression();
+			expectSymbol(';');
+			callback.doLetVectorEnd();
+		} else {
+			expectSymbol('=');
+			expectExpression();
+			expectSymbol(';');
+			callback.doLetScalar(name);
 		}
-		expectSymbol('=');
-		expectExpression();
-		expectSymbol(';');
 		goto nextStatement;
 	}
 	if (acceptKeyword(Tokenizer::K_IF)) {
 		expectSymbol('(');
 		expectExpression();
 		expectSymbol(')');
+
+		callback.doIf();
 		expectSymbol('{');
 		parseStatements();
 		expectSymbol('}');
 		if (acceptKeyword(Tokenizer::K_ELSE)) {
+			callback.doElse();
 			expectSymbol('{');
 			parseStatements();
 			expectSymbol('}');
+			callback.doEndif(true);
+		} else {
+			callback.doEndif(false);
 		}
 		goto nextStatement;
 	}
 	if (acceptKeyword(Tokenizer::K_WHILE)) {
+		callback.doWhileExp();
+
 		expectSymbol('(');
 		expectExpression();
 		expectSymbol(')');
+		callback.doWhile();
+
 		expectSymbol('{');
 		parseStatements();
 		expectSymbol('}');
+		callback.doEndwhile();
+
 		goto nextStatement;
 	}
 	if (acceptKeyword(Tokenizer::K_DO)) {
 		expectIdentifier();
+		StringID name = lastIdentifier;
+
 		if (acceptSymbol('(')) {
+			callback.doDoSimpleStart();
 			parseExpressionList();
 			expectSymbol(')');
 			expectSymbol(';');
+			callback.doDoSimpleEnd(name);
 			goto nextStatement;
 		}
 		if (acceptSymbol('.')) {
+			callback.doDoCompoundStart(name);
 			expectIdentifier();
+			name = lastIdentifier;
 			expectSymbol('(');
 			parseExpressionList();
 			expectSymbol(')');
 			expectSymbol(';');
+			callback.doDoCompoundEnd(name);
 			goto nextStatement;
 		}
 		throw ParseError("Expected subroutine call", tokenizer);
 	}
 	if (acceptKeyword(Tokenizer::K_RETURN)) {
 		if (acceptExpression()) {
+			callback.doReturn(true);
+		} else {
+			callback.doReturn(false);
 		}
 		expectSymbol(';');
 		goto nextStatement;
@@ -237,15 +275,20 @@ nextStatement:
 bool Parser::acceptType()
 {
 	if (acceptKeyword(Tokenizer::K_INT)) {
+		lastType.kind = VariableType::INT;
 		return true;
 	}
 	if (acceptKeyword(Tokenizer::K_CHAR)) {
+		lastType.kind = VariableType::CHAR;
 		return true;
 	}
 	if (acceptKeyword(Tokenizer::K_BOOLEAN)) {
+		lastType.kind = VariableType::BOOLEAN;
 		return true;
 	}
 	if (acceptIdentifier()) {
+		lastType.kind = VariableType::AGGREGATE;
+		lastType.name = lastIdentifier;
 		return true;
 	}
 	return false;
@@ -268,7 +311,9 @@ bool Parser::acceptExpression()
 		       acceptSymbol('<') ||
 		       acceptSymbol('>') ||
 		       acceptSymbol('=')) {
+			char op = lastSymbol;
 			expectTerm();
+			callback.doBinary(op);
 		}
 		return true;
 	}
@@ -282,23 +327,37 @@ void Parser::expectExpression()
 
 bool Parser::acceptTerm()
 {
-	if (acceptKeyword(Tokenizer::K_TRUE) ||
-	    acceptKeyword(Tokenizer::K_FALSE) ||
-	    acceptKeyword(Tokenizer::K_NULL) ||
-	    acceptKeyword(Tokenizer::K_THIS)) {
+	if (acceptKeyword(Tokenizer::K_TRUE)) {
+		callback.doIntConstant(0);
+		callback.doNot();
+		return true; // keyword constant
+	}
+	if (acceptKeyword(Tokenizer::K_FALSE) ||
+	    acceptKeyword(Tokenizer::K_NULL)) {
+		callback.doIntConstant(0);
+		return true; // keyword constant
+	}
+	if (acceptKeyword(Tokenizer::K_THIS)) {
+		callback.doThis();
 		return true; // keyword constant
 	}
 	if (acceptIdentifier()) {
+		StringID name = lastIdentifier;
+
 		if (acceptSymbol('[')) {
 			expectExpression();
 			expectSymbol(']');
+			callback.doVariableVector(name);
 			return true; // array access
 		}
 		if (acceptSymbol('.')) {
+			callback.doCallCompoundStart(name);
 			expectIdentifier();
+			name = lastIdentifier;
 			expectSymbol('(');
 			parseExpressionList();
 			expectSymbol(')');
+			callback.doCallCompoundEnd(name);
 			return true; // subroutine call
 		}
 		if (acceptSymbol('(')) {
@@ -306,7 +365,8 @@ bool Parser::acceptTerm()
 			expectSymbol(')');
 			return true; // method call
 		}
-		// else it is variable access
+		// else it is scalar variable access
+		callback.doVariableScalar(name);
 		return true;
 	}
 	if (acceptSymbol('(')) {
@@ -314,17 +374,24 @@ bool Parser::acceptTerm()
 		expectSymbol(')');
 		return true; // expression
 	}
-	if (acceptSymbol('-') ||
-	    acceptSymbol('~')) {
+	if (acceptSymbol('-')) {
 		expectTerm();
-		return true; // unary expression
+		callback.doNeg();
+		return true; // unary minus
+	}
+	if (acceptSymbol('~')) {
+		expectTerm();
+		callback.doNot();
+		return true; // unary not
 	}
 	if (tokenizer.getTokenType() == Tokenizer::T_INT_CONST) {
 		next();
+		callback.doIntConstant(lastIntConstant);
 		return true; // integer constant
 	}
 	if (tokenizer.getTokenType() == Tokenizer::T_STRING_CONST) {
 		next();
+		callback.doStringConstant(lastStringConstant);
 		return true; // string constant
 	}
 
@@ -338,11 +405,15 @@ void Parser::expectTerm()
 
 void Parser::parseExpressionList()
 {
+	unsigned int expressionsCount = 0;
 	if (acceptExpression()) {
+		++expressionsCount;
 		while (acceptSymbol(',')) {
 			expectExpression();
+			++expressionsCount;
 		}
 	}
+	callback.setExpressionsCount(expressionsCount);
 }
 
 /*
