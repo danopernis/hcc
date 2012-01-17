@@ -26,6 +26,7 @@
 #include <string>
 #include <stdexcept>
 #include "JackTokenizer.h"
+#include "JackParserCallback.h"
 
 namespace hcc {
 namespace jack {
@@ -41,11 +42,13 @@ struct ParseError: public std::runtime_error {
 
 class Parser {
 	Tokenizer& tokenizer;
+	ParserCallback& callback;
 
 	Tokenizer::Keyword lastKeyword;
 	char lastSymbol;
 	StringID lastStringConstant, lastIdentifier;
 	int lastIntConstant;
+	VariableType lastType;
 
 	void next();
 	bool acceptKeyword(Tokenizer::Keyword keyword);
@@ -56,8 +59,8 @@ class Parser {
 	void expectSymbol(char symbol);
 
 	void parseClass();
-	void parseVariable();
-	void parseSubroutine();
+	void parseVariable(VariableStorage storage);
+	void parseSubroutine(SubroutineKind kind);
 	void parseArgumentList();
 	void parseStatements();
 	void parseExpressionList();
@@ -70,7 +73,7 @@ class Parser {
 	void expectTerm();
 
 public:
-	Parser(Tokenizer& tokenizer);
+	Parser(Tokenizer &tokenizer, ParserCallback &callback);
 	void parse();
 };
 

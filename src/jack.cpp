@@ -41,7 +41,12 @@ int main(int argc, char *argv[])
 		std::cout << "Processing " << input << std::endl;
 
 		Tokenizer tokenizer(input);
-		Parser parser(tokenizer);
+
+        	std::string output(input, 0, input.rfind('.'));
+	        output.append(".vm");
+		ParserCallback callback(output.c_str());
+
+		Parser parser(tokenizer, callback);
 		parser.parse();
 	}
 
