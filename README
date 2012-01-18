@@ -13,4 +13,6 @@ in this directory. Optionally, do
     # make test
 as well. Then copy compiled executables from directory "src" to any
 directory in your $PATH, e.g.
-    # cp src/hcc-{vm,asm,emulator,vm2hack} ~/bin
+    # cp src/{asm2hack,vm2asm,jack2vm,vm2asm2hack,emulator} ~/bin
+Standard library/OS is included in directory "lib". Contents of this directory
+shall be copied to your Jack project.
