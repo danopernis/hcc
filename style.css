@@ -1,0 +1,6 @@
+body {font-family: sans-serif}
+#body {max-width: 50em; margin: 0 auto}
+a {color: blue}
+a:visited {color: blue}
+a:active {color: blue}
+a:hover {color: red}
