@@ -26,6 +26,7 @@
 #include <iostream>
 #include "JackTokenizer.h"
 #include "JackParser.h"
+#include "JackVMWriter.h"
 
 using namespace hcc::jack;
 
@@ -44,9 +45,9 @@ int main(int argc, char *argv[])
 
         	std::string output(input, 0, input.rfind('.'));
 	        output.append(".vm");
-		ParserCallback callback(output.c_str());
+		VMWriter writer(output.c_str());
 
-		Parser parser(tokenizer, callback);
+		Parser parser(tokenizer, writer);
 		parser.parse();
 	}
 

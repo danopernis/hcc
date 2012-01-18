@@ -24,8 +24,6 @@
  */
 #pragma once
 #include "StringTable.h"
-#include <fstream>
-#include <stack>
 
 namespace hcc {
 namespace jack {
@@ -48,57 +46,42 @@ typedef enum {CONSTRUCTOR, FUNCTION, METHOD} SubroutineKind;
 std::ostream& operator<<(std::ostream &stream, SubroutineKind &kind);
 
 /* called by Parser */
-class ParserCallback {
-	// flow control
-	unsigned int whileCounter, ifCounter, expressionsCount, argumentOffset;
-	std::stack<unsigned int> whileStack, ifStack;
+struct ParserCallback {
+	virtual ~ParserCallback();
 
-	// variable scoping
-	unsigned int staticVarsCount, fieldVarsCount, argumentVarsCount, localVarsCount;
-	std::map<StringID, unsigned int> staticVarNames, fieldVarNames, argumentVarNames, localVarNames;
-	std::map<StringID, VariableType> staticVarTypes, fieldVarTypes, argumentVarTypes, localVarTypes;
+	virtual void setExpressionsCount(unsigned int count) = 0;
 
-	bool doMethod, callMethod;
-	StringID className, subroutineName, doCompoundStart, callCompoundStart;
-	SubroutineKind subroutineKind;
-	std::ofstream output;
-public:
-	ParserCallback(const char *file);
-	void setExpressionsCount(unsigned int count) {
-		expressionsCount = count;
-	}
+	virtual void doClass(StringID &name) = 0;
+	virtual void doVariableDec(VariableStorage storage, VariableType &type, StringID &name) = 0;
+	virtual void doSubroutineStart(SubroutineKind kind, VariableType &returnType, StringID &name) = 0;
+	virtual void doSubroutineAfterVarDec() = 0;
 
-	void doClass(StringID &name);
-	void doVariableDec(VariableStorage storage, VariableType &type, StringID &name);
-	void doSubroutineStart(SubroutineKind kind, VariableType &returnType, StringID &name);
-	void doSubroutineAfterVarDec();
+	virtual void doIf() = 0;
+	virtual void doElse() = 0;
+	virtual void doEndif(bool hasElse) = 0;
+	virtual void doWhileExp() = 0;
+	virtual void doWhile() = 0;
+	virtual void doEndwhile() = 0;
+	virtual void doReturn(bool nonVoid) = 0;
 
-	void doIf();
-	void doElse();
-	void doEndif(bool hasElse);
-	void doWhileExp();
-	void doWhile();
-	void doEndwhile();
-	void doReturn(bool nonVoid);
+	virtual void doDoSimpleStart() = 0;
+	virtual void doDoSimpleEnd(StringID &name) = 0;
+	virtual void doDoCompoundStart(StringID &name) = 0;
+	virtual void doDoCompoundEnd(StringID &name) = 0;
+	virtual void doCallCompoundStart(StringID &name) = 0;
+	virtual void doCallCompoundEnd(StringID &name) = 0;
+	virtual void doLetScalar(StringID &name) = 0;
+	virtual void doLetVectorStart(StringID &name) = 0;
+	virtual void doLetVectorEnd() = 0;
 
-	void doDoSimpleStart();
-	void doDoSimpleEnd(StringID &name);
-	void doDoCompoundStart(StringID &name);
-	void doDoCompoundEnd(StringID &name);
-	void doCallCompoundStart(StringID &name);
-	void doCallCompoundEnd(StringID &name);
-	void doLetScalar(StringID &name);
-	void doLetVectorStart(StringID &name);
-	void doLetVectorEnd();
-
-	void doVariableVector(StringID &name);
-	void doVariableScalar(StringID &name);
-	void doBinary(char op);
-	void doNeg();
-	void doNot();
-	void doThis();
-	void doIntConstant(int i);
-	void doStringConstant(StringID &s);
+	virtual void doVariableVector(StringID &name) = 0;
+	virtual void doVariableScalar(StringID &name) = 0;
+	virtual void doBinary(char op) = 0;
+	virtual void doNeg() = 0;
+	virtual void doNot() = 0;
+	virtual void doThis() = 0;
+	virtual void doIntConstant(int i) = 0;
+	virtual void doStringConstant(StringID &s) = 0;
 };
 
 } // end namespace jack
