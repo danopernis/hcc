@@ -1,0 +1,120 @@
+/*
+ * Copyright (c) 2012 Dano Pernis
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+/**
+ * A library for handling user input from the keyboard.
+ */
+class Keyboard {
+
+	/** Initializes the keyboard. */
+	function void init() {
+		return;
+	} 
+
+	/**
+	 * Returns the ASCII code (as char) of the currently pressed key,
+	 * or 0 if no key is currently pressed.
+	 * Recognizes all ASCII characters, and the following extension
+	 * of action keys:
+	 * New line = 128 = String.newline()
+	 * Backspace = 129 = String.backspace()
+	 * Left Arrow = 130
+	 * Up Arrow = 131
+	 * Right Arrow = 132
+	 * Down Arrow = 133
+	 * Home = 134
+	 * End = 135
+	 * Page Up = 136
+	 * Page Down = 137
+	 * Insert = 138
+	 * Delete = 139
+	 * ESC = 140
+	 * F1 - F12 = 141 - 152
+	 */
+	function char keyPressed() {
+		return Memory.peek(24576);
+	}
+
+	/**								
+	 * Reads the next character from the keyboard.
+	 * waits until a key is pressed and then released, then echoes
+	 * the key to the screen, and returns the value of the pressed key.
+	 */
+	function char readChar() {
+		var int a, c;
+		do Output.printChar(0);
+		while ((c=0)|(a>0)) {
+			let a = Keyboard.keyPressed();
+			if (a>0) {
+				let c = a;
+			}
+		}
+		do Output.printChar(String.backSpace());
+		do Output.printChar(c);
+		return c;
+	}
+
+	/**								
+	 * prints the message on the screen and then reads the next line
+	 * (until a newline character) from the keyboard and returns its value.
+	 */
+	function String readLine(String message) {
+		var char c, nl, bs;
+		var String s;
+		var boolean e;
+
+		let s = String.new(80);
+		do Output.printString(message);
+		let nl = String.newLine();
+		let bs = String.backSpace();
+
+		while (~e) {
+			let c = Keyboard.readChar();
+			let e = (c = nl);
+			if (~e) {
+				if (c = bs) {
+					do s.eraseLastChar();
+				} else {
+					let s = s.appendChar(c);
+				}
+			}
+		}
+		return s;
+	}   
+
+	/**								
+	 * prints the message on the screen and then reads the next line
+	 * (until a newline character) from the keyboard and returns its
+	 * integer value (until the first non numeric character).
+	 */
+	function int readInt(String message) {
+		var String line;
+		var int i;
+		let line = Keyboard.readLine(message);
+		let i = line.intValue();
+		do line.dispose();
+		return i;
+	}
+}

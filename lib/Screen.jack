@@ -1,0 +1,266 @@
+/*
+ * Copyright (c) 2012 Dano Pernis
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+/**
+ * Graphic screen library.
+ */
+class Screen {
+	static int bits;
+	static int video;
+	static boolean color;
+
+	/** Initializes the Screen. */
+	function void init() {
+		var int i;
+
+		let video = 16384;
+		let color = true;
+
+		let bits = Array.new(17);
+		let bits[0] = 1;
+		while (i < 16) {
+			let i = i + 1;
+			let bits[i] = bits[i-1] + bits[i-1];
+		}
+		return;
+	}
+
+	/** Erases the whole screen. */
+	function void clearScreen() {
+		var int i;
+		while (i < 8192) {
+			let video[i] = 0;
+			let i = i + 1;
+		}
+		return;
+	}
+
+	/** puts val to addr in video ram */
+	function void updateLocation(int addr, int val) {
+		if (color) {
+			let video[addr] = video[addr] | val;
+		} else {
+			let video[addr] = video[addr] & (~val);
+		}
+		return;
+	}
+
+	/** Sets the color to be used in further draw commands
+	 *  where white = false, black = true. */
+	function void setColor(boolean b) {
+		let color = b;
+		return;
+	}
+
+	/** Draws the (x, y) pixel. */
+	function void drawPixel(int x, int y) {
+		var int off, bit, addr;
+
+		if ((x<0)|(x>511)|(y<0)|(y>255)) {
+			do Sys.error(7);
+		}
+
+		let off = x/16;
+		let bit = x - (off*16);
+		let addr = (y*32) + off;
+		do Screen.updateLocation(addr, bits[bit]);
+		return;
+	}
+
+	function void drawConditional(int x, int y, boolean swap) {
+		if (swap) {
+			do Screen.drawPixel(y, x);
+		} else {
+			do Screen.drawPixel(x, y);
+		}
+		return;
+	}
+
+	/** Draws a line from pixel (x1, y1) to (x2, y2). */
+	function void drawLine(int x1, int y1, int x2, int y2) {
+		var int x, y, dy, dx, tmp, c;
+		var boolean swap, f;
+		var int g, h, i;
+
+		if ((x1<0)|(x2>511)|(y1<0)|(y2>255)) {
+			do Sys.error(8);
+		}
+
+		let dx = Math.abs(x2 - x1);
+		let dy = Math.abs(y2 - y1);
+
+		let swap = dx < dy;
+		if ((swap & (y2 < y1)) | ((~swap) & (x2 < x1))) {
+			let tmp = x1;
+			let x1 = x2;
+			let x2 = tmp;
+
+			let tmp = y1;
+			let y1 = y2;
+			let y2 = tmp;
+		}
+		if (swap) {
+			let tmp = dx;
+			let dx = dy;
+			let dy = tmp;
+			let y = y1;
+			let x = x1;
+			let g = y2;
+			let f = x1 > x2;
+		} else {
+			let y = x1;
+			let x = y1;
+			let g = x2;
+			let f = y1 > y2;
+		}
+		let c = 2*dy - dx;
+		let h = 2*dy;
+		let i = 2*(dy - dx);
+		do Screen.drawConditional(y, x, swap);
+
+		while (y < g) {
+			if (c < 0) {
+				let c = c + h;
+			} else {
+				let c = c + i;
+				if (f) {
+					let x = x - 1;
+				} else {
+					let x = x + 1;
+				}
+			}
+			let y = y + 1;
+			do Screen.drawConditional(y, x, swap);
+		}
+		return;
+	}
+
+	/** Draws a filled rectangle where the top left corner
+	 *  is (x1, y1) and the bottom right corner is (x2, y2). */
+	function void drawRectangle(int x1, int y1, int x2, int y2) {
+		var int addr, b, c, d, e, tail, head, h, i;
+
+		if ((x1>x2)|(y1>y2)|(x1<0)|(x2>511)|(y1<0)|(y2>255)) {
+			do Sys.error(9);
+		}
+
+		let d = Math.divide(x1, 16);
+		let h = x1 - Math.multiply(d, 16);
+		let e = Math.divide(x2, 16);
+		let i = x2 - Math.multiply(e, 16);
+
+		let head = ~(bits[h]-1);
+		let tail = bits[i+1]-1;
+
+		let addr = y1*32 + d;
+		let c = e - d;
+
+		while (~(y1 > y2)) {
+			let b = addr + c;
+			if (c = 0) {
+				do Screen.updateLocation(addr, tail & head);
+			} else {
+				do Screen.updateLocation(addr, head);
+				let addr = addr + 1;
+				while (addr < b) {
+					do Screen.updateLocation(addr, -1);
+					let addr = addr + 1;
+				}
+				do Screen.updateLocation(b, tail);
+			}
+			let y1 = y1 + 1;
+			let addr = b + 32 - c;
+		}
+
+		return;
+	}
+	function void drawHorizontal(int a, int b , int c) {
+		var int d, e, f, g, tail, head, j, min, max, k, l;
+		let min = Math.min(b, c);
+		let max = Math.max(b, c);
+
+		if ((a>(-1))&(a<256)&(min<512)&(max>-1)) {
+			let min = Math.max(min, 0);
+			let max = Math.min(max, 511);
+			let e = min/16;
+			let k = min - (e*16);
+			let f = max/16;
+			let l = max - (f*16);
+
+			let head = ~(bits[k] - 1);
+			let tail = bits[l+1] - 1;
+
+			let d = (a*32) + e;
+			let j = f - e;
+			let g = d + j;
+			if (j = 0) {
+				do Screen.updateLocation(d, tail & head);
+			} else {
+				do Screen.updateLocation(d, head);
+				let d = d + 1;
+				while (d<g) {
+					do Screen.updateLocation(d, -1);
+					let d = d + 1;
+				}
+				do Screen.updateLocation(g, tail);
+			}
+		}
+		return;
+	}
+
+	function void drawSymetric(int cx, int cy, int w, int h) {
+		do Screen.drawHorizontal(cy - h, cx + w, cx - w);
+		do Screen.drawHorizontal(cy + h, cx + w, cx - w);
+		do Screen.drawHorizontal(cy - w, cx - h, cx + h);
+		do Screen.drawHorizontal(cy + w, cx - h, cx + h);
+		return;
+	}
+
+	/** Draws a filled circle of radius r around (cx, cy). */
+	function void drawCircle(int cx, int cy, int r) {
+		var int x, xmax, c;
+
+		if ((cx<0)|(cx>511)|(cy<0)|(cy>255)) {
+			do Sys.error(12);
+		}
+		if (((cx-r)<0)|((cx+r)>511)|((cy-r)<0)|((cy+r)>255)) {
+			do Sys.error(13);
+		}
+		let xmax = r;
+		let c = 1 - r;
+		do Screen.drawSymetric(cx, cy, x, xmax);
+		while (xmax>x) {
+			if (c<0) {
+				let c = c + (2*x) + 3;
+			} else {
+				let c = c + (2*(x-xmax)) + 5;
+				let xmax = xmax - 1;
+			}
+			let x = x + 1;
+			do Screen.drawSymetric(cx, cy, x, xmax);
+		}
+		return;
+	}
+}
