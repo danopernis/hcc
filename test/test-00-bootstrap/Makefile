@@ -1,11 +1,11 @@
 all:
-	../../src/hcc-vm *.vm
-	../../src/hcc-asm output.asm
-	../../src/hcc-emulator output.hack 1000 0 1 2 >result
+	../../src/vm2asm *.vm
+	../../src/asm2hack output.asm
+	../../src/emulator output.hack 1000 0 1 2 >result
 	diff result compare
 	rm -f output.hack
-	../../src/hcc-vm2hack *.vm
-	../../src/hcc-emulator output.hack 1000 0 1 2 >result
+	../../src/vm2asm2hack *.vm
+	../../src/emulator output.hack 1000 0 1 2 >result
 	diff result compare
 
 clean:

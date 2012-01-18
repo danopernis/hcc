@@ -2,29 +2,29 @@ CXXFLAGS = -Wall -g
 
 ASM_OBJECTS = asm.o AsmParser.o StringTable.o AsmLogic.o
 VM_OBJECTS = vm.o VMParser.o VMCommand.o VMWriter.o VMOptimize.o cpu.o StringTable.o StageConnect.o
-EMULATOR_OBJECTS = emulator.o cpu.o
-VM2HACK_OBJECTS = vm2hack.o VMParser.o VMWriter.o VMOptimize.o AsmLogic.o StringTable.o cpu.o StageConnect.o
 JACK_OBJECTS = jack.o JackTokenizer.o StringTable.o JackParser.o JackParserCallback.o
+VM_ASM_OBJECTS = vm2hack.o VMParser.o VMWriter.o VMOptimize.o AsmLogic.o StringTable.o cpu.o StageConnect.o
+EMULATOR_OBJECTS = emulator.o cpu.o
 
-all: hcc-asm hcc-vm hcc-emulator hcc-vm2hack hcc-jack
+all: asm2hack vm2asm jack2vm vm2asm2hack emulator
 
 Makefile.depend:
 	g++ -MM *.cpp > Makefile.depend
 
-hcc-asm: $(ASM_OBJECTS)
-	g++ -o hcc-asm $(ASM_OBJECTS)
+asm2hack: $(ASM_OBJECTS)
+	g++ -o asm2hack $(ASM_OBJECTS)
 
-hcc-vm: $(VM_OBJECTS)
-	g++ -o hcc-vm $(VM_OBJECTS)
+vm2asm: $(VM_OBJECTS)
+	g++ -o vm2asm $(VM_OBJECTS)
 
-hcc-emulator: $(EMULATOR_OBJECTS)
-	g++ -o hcc-emulator $(EMULATOR_OBJECTS)
+jack2vm: $(JACK_OBJECTS)
+	g++ -o jack2vm $(JACK_OBJECTS)
 
-hcc-vm2hack: $(VM2HACK_OBJECTS)
-	g++ -o hcc-vm2hack $(VM2HACK_OBJECTS)
+vm2asm2hack: $(VM_ASM_OBJECTS)
+	g++ -o vm2asm2hack $(VM_ASM_OBJECTS)
 
-hcc-jack: $(JACK_OBJECTS)
-	g++ -o hcc-jack $(JACK_OBJECTS)
+emulator: $(EMULATOR_OBJECTS)
+	g++ -o emulator $(EMULATOR_OBJECTS)
 
 %.o: %.cpp
 	g++ $(CXXFLAGS) -o $@ -c $<
@@ -32,9 +32,9 @@ hcc-jack: $(JACK_OBJECTS)
 include Makefile.depend
 
 clean:
-	rm -f hcc-asm $(ASM_OBJECTS)
-	rm -f hcc-vm $(VM_OBJECTS)
-	rm -f hcc-emulator $(EMULATOR_OBJECTS)
-	rm -f hcc-vm2hack $(VM2HACK_OBJECTS)
-	rm -f hcc-jack $(JACK_OBJECTS)
+	rm -f asm2hack $(ASM_OBJECTS)
+	rm -f vm2asm $(VM_OBJECTS)
+	rm -f jack2vm $(JACK_OBJECTS)
+	rm -f vm2asm2hack $(VM_ASM_OBJECTS)
+	rm -f emulator $(EMULATOR_OBJECTS)
 	rm -f Makefile.depend
