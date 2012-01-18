@@ -63,6 +63,7 @@ class VMWriter
 	void writeReturn();
 public:
 	VMWriter(VMOutput& out);
+	virtual ~VMWriter();
 
 	void setFilename(std::string& filename) {
 		this->filename.assign(filename);

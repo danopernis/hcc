@@ -37,6 +37,11 @@ VMWriter::VMWriter(VMOutput &out)
 	compareCounter = 0;
 	returnCounter = 0;
 }
+
+VMWriter::~VMWriter()
+{
+}
+
 StringID& constructString(const char *s, unsigned int i)
 {
 	std::stringstream ss;
