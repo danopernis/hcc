@@ -37,42 +37,43 @@ void VMWriter::doClass(StringID &name)
 {
 	staticVarsCount = 0;
 	fieldVarsCount = 0;
+	symbols.beginScope();
+
 	className = name;
 }
 
 void VMWriter::doVariableDec(VariableStorage storage, VariableType &type, StringID &name)
 {
+	Symbol symbol;
+	symbol.storage = storage;
+	symbol.type = type;
+
 	switch (storage) {
 	case STATIC:
-		staticVarNames[name] = staticVarsCount;
-		staticVarTypes[name] = type;
+		symbol.index = staticVarsCount;
 		++staticVarsCount;
 		break;
 	case FIELD:
-		fieldVarNames[name] = fieldVarsCount;
-		fieldVarTypes[name] = type;
+		symbol.index = fieldVarsCount;
 		++fieldVarsCount;
 		break;
 	case ARGUMENT:
-		argumentVarNames[name] = argumentVarsCount;
-		argumentVarTypes[name] = type;
+		symbol.index = argumentVarsCount;
 		++argumentVarsCount;
 		break;
 	case LOCAL:
-		localVarNames[name] = localVarsCount;
-		localVarTypes[name] = type;
+		symbol.index = localVarsCount;
 		++localVarsCount;
 		break;
 	}
+	symbols.insert(name, symbol);
 }
 
 void VMWriter::doSubroutineStart(SubroutineKind kind, VariableType &returnType, StringID &name)
 {
 	localVarsCount = 0;
-	localVarNames.clear();
-
 	argumentVarsCount = 0;
-	argumentVarNames.clear();
+	symbols.beginScope();
 
 	whileCounter = 0;
 	ifCounter = 0;
@@ -100,6 +101,11 @@ void VMWriter::doSubroutineAfterVarDec()
 		break;
 	}
 }
+void VMWriter::doSubroutineEnd()
+{
+	symbols.endScope();
+}
+
 /*
  * flow
  */
@@ -170,35 +176,39 @@ void VMWriter::doDoSimpleEnd(StringID &name)
 	output << "pop temp 0" << std::endl;
 }
 
+void storageToSegment(VariableStorage s, std::ostream &output)
+{
+	switch (s) {
+	case STATIC:
+		output << "static ";
+		break;
+	case FIELD:
+		output << "this ";
+		break;
+	case ARGUMENT:
+		output << "argument ";
+		break;
+	case LOCAL:
+		output << "local ";
+		break;
+	}
+}
+
 void VMWriter::doDoCompoundStart(StringID &name)
 {
-	if (staticVarNames.count(name) == 1) {
-		output << "push static " << staticVarNames[name] << std::endl;
-		doCompoundStart = staticVarTypes[name].name;
-		doMethod = true;
-		return;
-	}
-	if (fieldVarNames.count(name) == 1) {
-		output << "push this " << fieldVarNames[name] << std::endl;
-		doCompoundStart = fieldVarTypes[name].name;
-		doMethod = true;
-		return;
-	}
-	if (argumentVarNames.count(name) == 1) {
-		output << "push argument " << (argumentVarNames[name]+argumentOffset) << std::endl;
-		doCompoundStart = argumentVarTypes[name].name;
-		doMethod = true;
-		return;
-	}
-	if (localVarNames.count(name) == 1) {
-		output << "push local " << localVarNames[name] << std::endl;
-		doCompoundStart = localVarTypes[name].name;
-		doMethod = true;
-		return;
-	}
+	if (symbols.contains(name)) {
+		Symbol symbol = symbols.get(name);
 
-	doCompoundStart = name;
-	doMethod = false;
+		output << "push ";
+		storageToSegment(symbol.storage, output);
+		output << symbol.index << std::endl;;
+
+		doCompoundStart = symbol.type.name;
+		doMethod = true;
+	} else {
+		doCompoundStart = name;
+		doMethod = false;
+	}
 }
 
 void VMWriter::doDoCompoundEnd(StringID &name)
@@ -215,33 +225,19 @@ void VMWriter::doDoCompoundEnd(StringID &name)
 
 void VMWriter::doCallCompoundStart(StringID &name)
 {
-	if (staticVarNames.count(name) == 1) {
-		output << "push static " << staticVarNames[name] << std::endl;
-		callCompoundStart = staticVarTypes[name].name;
-		callMethod = true;
-		return;
-	}
-	if (fieldVarNames.count(name) == 1) {
-		output << "push this " << fieldVarNames[name] << std::endl;
-		callCompoundStart = fieldVarTypes[name].name;
-		callMethod = true;
-		return;
-	}
-	if (argumentVarNames.count(name) == 1) {
-		output << "push argument " << (argumentVarNames[name]+argumentOffset) << std::endl;
-		callCompoundStart = argumentVarTypes[name].name;
-		callMethod = true;
-		return;
-	}
-	if (localVarNames.count(name) == 1) {
-		output << "push local " << localVarNames[name] << std::endl;
-		callCompoundStart = localVarTypes[name].name;
-		callMethod = true;
-		return;
-	}
+	if (symbols.contains(name)) {
+		Symbol symbol = symbols.get(name);
 
-	callCompoundStart = name;
-	callMethod = false;
+		output << "push ";
+		storageToSegment(symbol.storage, output);
+		output << symbol.index << std::endl;;
+
+		callCompoundStart = symbol.type.name;
+		callMethod = true;
+	} else {
+		callCompoundStart = name;
+		callMethod = false;
+	}
 }
 
 void VMWriter::doCallCompoundEnd(StringID &name)
@@ -253,23 +249,15 @@ void VMWriter::doCallCompoundEnd(StringID &name)
 
 void VMWriter::doLetScalar(StringID &name)
 {
-	if (staticVarNames.count(name) == 1) {
-		output << "pop static " << staticVarNames[name] << std::endl;
-		return;
+	if (symbols.contains(name)) {
+		Symbol symbol = symbols.get(name);
+
+		output << "pop ";
+		storageToSegment(symbol.storage, output);
+		output << (symbol.index + (symbol.storage == ARGUMENT ? argumentOffset : 0)) << std::endl;;
+	} else {
+		throw std::runtime_error("no such variable");
 	}
-	if (fieldVarNames.count(name) == 1) {
-		output << "pop this " << fieldVarNames[name] << std::endl;
-		return;
-	}
-	if (argumentVarNames.count(name) == 1) {
-		output << "pop argument " << (argumentVarNames[name]+argumentOffset) << std::endl;
-		return;
-	}
-	if (localVarNames.count(name) == 1) {
-		output << "pop local " << localVarNames[name] << std::endl;
-		return;
-	}
-	throw std::runtime_error("no such variable");
 }
 
 void VMWriter::doLetVectorStart(StringID &name)
@@ -289,48 +277,31 @@ void VMWriter::doLetVectorEnd()
  */
 void VMWriter::doVariableVector(StringID &name)
 {
-	if (staticVarNames.count(name) == 1) {
-		output << "push static " << staticVarNames[name] << std::endl;
-		goto fin;
+	if (symbols.contains(name)) {
+		Symbol symbol = symbols.get(name);
+
+		output << "push ";
+		storageToSegment(symbol.storage, output);
+		output << (symbol.index + (symbol.storage == ARGUMENT ? argumentOffset : 0)) << std::endl;;
+		output << "add" << std::endl;
+		output << "pop pointer 1" << std::endl;
+		output << "push that 0" << std::endl;
+	} else {
+		throw std::runtime_error("no such variable");
 	}
-	if (fieldVarNames.count(name) == 1) {
-		output << "push this " << fieldVarNames[name] << std::endl;
-		goto fin;
-	}
-	if (argumentVarNames.count(name) == 1) {
-		output << "push argument " << (argumentVarNames[name]+argumentOffset) << std::endl;
-		goto fin;
-	}
-	if (localVarNames.count(name) == 1) {
-		output << "push local " << localVarNames[name] << std::endl;
-		goto fin;
-	}
-	throw std::runtime_error("no such variable");
-fin:
-	output << "add" << std::endl;
-	output << "pop pointer 1" << std::endl;
-	output << "push that 0" << std::endl;
 }
 
 void VMWriter::doVariableScalar(StringID &name)
 {
-	if (staticVarNames.count(name) == 1) {
-		output << "push static " << staticVarNames[name] << std::endl;
-		return;
+	if (symbols.contains(name)) {
+		Symbol symbol = symbols.get(name);
+
+		output << "push ";
+		storageToSegment(symbol.storage, output);
+		output << (symbol.index + (symbol.storage == ARGUMENT ? argumentOffset : 0)) << std::endl;;
+	} else {
+		throw std::runtime_error("no such variable");
 	}
-	if (fieldVarNames.count(name) == 1) {
-		output << "push this " << fieldVarNames[name] << std::endl;
-		return;
-	}
-	if (argumentVarNames.count(name) == 1) {
-		output << "push argument " << (argumentVarNames[name]+argumentOffset) << std::endl;
-		return;
-	}
-	if (localVarNames.count(name) == 1) {
-		output << "push local " << localVarNames[name] << std::endl;
-		return;
-	}
-	throw std::runtime_error("no such variable");
 }
 
 void VMWriter::doBinary(char op)

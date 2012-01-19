@@ -55,6 +55,7 @@ struct ParserCallback {
 	virtual void doVariableDec(VariableStorage storage, VariableType &type, StringID &name) = 0;
 	virtual void doSubroutineStart(SubroutineKind kind, VariableType &returnType, StringID &name) = 0;
 	virtual void doSubroutineAfterVarDec() = 0;
+	virtual void doSubroutineEnd() = 0;
 
 	virtual void doIf() = 0;
 	virtual void doElse() = 0;

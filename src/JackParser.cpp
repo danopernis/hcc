@@ -161,6 +161,7 @@ nextVarDec:
 	callback.doSubroutineAfterVarDec();
 	parseStatements();
 	expectSymbol('}');
+	callback.doSubroutineEnd();
 }
 
 void Parser::parseArgumentList()

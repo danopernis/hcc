@@ -26,6 +26,7 @@
 #include "JackParserCallback.h"
 #include <fstream>
 #include <stack>
+#include "SymbolTable.h"
 
 namespace hcc {
 namespace jack {
@@ -36,9 +37,8 @@ class VMWriter : public ParserCallback {
 	std::stack<unsigned int> whileStack, ifStack;
 
 	// variable scoping
+	SymbolTable symbols;
 	unsigned int staticVarsCount, fieldVarsCount, argumentVarsCount, localVarsCount;
-	std::map<StringID, unsigned int> staticVarNames, fieldVarNames, argumentVarNames, localVarNames;
-	std::map<StringID, VariableType> staticVarTypes, fieldVarTypes, argumentVarTypes, localVarTypes;
 
 	bool doMethod, callMethod;
 	StringID className, subroutineName, doCompoundStart, callCompoundStart;
@@ -54,6 +54,7 @@ public:
 	virtual void doVariableDec(VariableStorage storage, VariableType &type, StringID &name);
 	virtual void doSubroutineStart(SubroutineKind kind, VariableType &returnType, StringID &name);
 	virtual void doSubroutineAfterVarDec();
+	virtual void doSubroutineEnd();
 
 	virtual void doIf();
 	virtual void doElse();
