@@ -2,7 +2,7 @@ CXXFLAGS = -Wall -g
 
 ASM_OBJECTS = asm.o AsmParser.o StringTable.o AsmLogic.o
 VM_OBJECTS = vm.o VMParser.o VMCommand.o VMWriter.o VMOptimize.o cpu.o StringTable.o StageConnect.o
-JACK_OBJECTS = jack.o JackTokenizer.o StringTable.o JackParser.o JackParserCallback.o JackVMWriter.o
+JACK_OBJECTS = jack.o JackTokenizer.o StringTable.o JackParser.o JackParserCallback.o JackVMWriter.o SymbolTable.o
 VM_ASM_OBJECTS = vm2hack.o VMParser.o VMWriter.o VMOptimize.o AsmLogic.o StringTable.o cpu.o StageConnect.o
 EMULATOR_OBJECTS = emulator.o cpu.o
 
