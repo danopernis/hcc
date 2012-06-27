@@ -23,10 +23,13 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 #pragma once
+#include <string>
 
 namespace hcc {
 
 namespace instruction {
+
+std::string instructionToString(unsigned short instr);
 
 // instruction (de)coding
 static const unsigned short COMPUTE   = 1 << 15;
