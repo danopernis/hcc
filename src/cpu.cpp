@@ -29,91 +29,71 @@ namespace hcc {
 
 using namespace instruction;
 
-void CPU::comp(unsigned short instr, unsigned short x, unsigned short y, unsigned short &out, bool &zr, bool &ng)
+void CPU::comp(unsigned short instruction, unsigned short x, unsigned short y, unsigned short &out, bool &zr, bool &ng)
 {
-		if (instr & ALU_ZX)
-			x = 0;
-		if (instr & ALU_NX)
-			x = ~x;
-		if (instr & ALU_ZY)
-			y = 0;
-		if (instr & ALU_NY)
-			y = ~y;
-		out = (instr & ALU_F) ? (x + y) : (x & y);
-		if (instr & ALU_NO)
-			out = ~out;
-		zr = (out == 0);
-		ng = (out & (1<<15));
+	if (instruction & ALU_ZX) {
+		x = 0;
+	}
+	if (instruction & ALU_NX) {
+		x = ~x;
+	}
+	if (instruction & ALU_ZY) {
+		y = 0;
+	}
+	if (instruction & ALU_NY) {
+		y = ~y;
+	}
+	if (instruction & ALU_F) {
+		out = x + y;
+	} else {
+		out = x & y;
+	}
+	if (instruction & ALU_NO) {
+		out = ~out;
+	}
+	zr = (out == 0);
+	ng = (out & (1<<15));
 }
 
-bool CPU::jump(unsigned short instr, bool zr, bool ng)
+bool CPU::jump(unsigned short instruction, bool zr, bool ng)
 {
-	return (((instr & JUMP_NEG)  && ng) ||
-	        ((instr & JUMP_ZERO) && zr) ||
-	        ((instr & JUMP_POS)  && !ng && !zr));
+	return (((instruction & JUMP_NEG)  && ng) ||
+	        ((instruction & JUMP_ZERO) && zr) ||
+	        ((instruction & JUMP_POS)  && !ng && !zr));
 }
 
-void CPU::step()
+void CPU::step(IROM *rom, IRAM *ram)
 {
-	unsigned short olda = a;
-	unsigned short instr = rom[pc];
+	auto olda = a;
+	auto instruction = rom->get(pc);
 
-	if (instr & COMPUTE) {
+	if (instruction & COMPUTE) {
 		// COMP
 		unsigned short out;
 		bool zr, ng;
-		CPU::comp(instr, d, (instr & FETCH) ? ram[olda] : a, out, zr, ng);
+		CPU::comp(instruction, d, (instruction & FETCH) ? ram->get(olda) : a, out, zr, ng);
 
 		// DEST
-		if (instr & DEST_A)
+		if (instruction & DEST_A) {
 			a = out;
-		if (instr & DEST_D)
+		}
+		if (instruction & DEST_D) {
 			d = out;
-		if (instr & DEST_M)
-			ram[olda] = out;
+		}
+		if (instruction & DEST_M) {
+			ram->set(olda, out);
+		}
 
 		// JUMP
-		if (CPU::jump(instr, zr, ng))
+		if (CPU::jump(instruction, zr, ng)) {
 			pc = a;
-		else
+		} else {
 			++pc;
+		}
 	} else {
-		a = instr;
+		a = instruction;
 		++pc;
 	}
-}
-
-bool CPU::load(std::istream &in)
-{
-	for (unsigned int i = 0; i<romsize; ++i) {
-		rom[i] = 0;
-	}
-
-	std::string line;
-	unsigned int counter = 0;
-	while (in.good() && counter < romsize) {
-		getline(in, line);
-		if (line.size() == 0)
-			continue;
-		if (line.size() != 16)
-			return false;
-
-		unsigned int instr = 0;
-		for (unsigned int i = 0; i<16; ++i) {
-			instr <<= 1;
-			switch (line[i]) {
-			case '0':
-				break;
-			case '1':
-				instr |= 1;
-				break;
-			default:
-				return false;
-			}
-		}
-		rom[counter++] = instr;
-	}
-	return true;
 }
 
 } // end namespace
