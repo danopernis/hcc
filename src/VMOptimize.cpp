@@ -348,7 +348,7 @@ void o_special_unary(VMCommandList &cmds, VMCommandList::iterator &c1)
 		break;
 	case BUSC:
 		if (c1->int1 == 0) {
-			std::cout << "O: unary operation x -> 0-x ===> x -> -x" << std::endl;
+			std::cout << "O: unary operation x -> 0-x ===> x -> -x\n";
 			c1->unary = NEG;
 		}
 		break;
@@ -515,45 +515,45 @@ bool s_reconstruct(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandLi
 void o_stat_print()
 {
 	if (stat_bloated_goto > 0)
-		std::cout << "(" << stat_bloated_goto << "x) simplified bloated goto" << std::endl;
+		std::cout << "(" << stat_bloated_goto << "x) simplified bloated goto\n";
 	if (stat_double_notneg > 0)
-		std::cout << "(" << stat_double_notneg << "x) removed double negation" << std::endl;
+		std::cout << "(" << stat_double_notneg << "x) removed double negation\n";
 	if (stat_negated_compare > 0)
-		std::cout << "(" << stat_negated_compare << "x) merged negated compare" << std::endl;
+		std::cout << "(" << stat_negated_compare << "x) merged negated compare\n";
 	if (stat_negated_if > 0)
-		std::cout << "(" << stat_negated_if << "x) merged negated if-goto" << std::endl;
+		std::cout << "(" << stat_negated_if << "x) merged negated if-goto\n";
 
 	if (stat_const_arithmetic > 0)
-		std::cout << "(" << stat_const_arithmetic << "x) eliminated constant arithmetic expression" << std::endl;
+		std::cout << "(" << stat_const_arithmetic << "x) eliminated constant arithmetic expression\n";
 	if (stat_const_compare > 0)
-		std::cout << "(" << stat_const_compare << "x) eliminated constant comparison expression" << std::endl;
+		std::cout << "(" << stat_const_compare << "x) eliminated constant comparison expression\n";
 	if (stat_const_unary > 0)
-		std::cout << "(" << stat_const_unary << "x) eliminated constant unary expression" << std::endl;
+		std::cout << "(" << stat_const_unary << "x) eliminated constant unary expression\n";
 	if (stat_const_if > 0)
-		std::cout << "(" << stat_const_if << "x) eliminated constant expression branching" << std::endl;
+		std::cout << "(" << stat_const_if << "x) eliminated constant expression branching\n";
 
 	if (stat_double > 0)
-		std::cout << "(" << stat_double << "x) optimized addition with equal arguments" << std::endl;
+		std::cout << "(" << stat_double << "x) optimized addition with equal arguments\n";
 	if (stat_goto_goto > 0)
-		std::cout << "(" << stat_goto_goto << "x) removed unreachable goto" << std::endl;
+		std::cout << "(" << stat_goto_goto << "x) removed unreachable goto\n";
 	if (stat_copy > 0)
-		std::cout << "(" << stat_copy << "x) merged push followed by indirect pop" << std::endl;
+		std::cout << "(" << stat_copy << "x) merged push followed by indirect pop\n";
 	if (stat_swap_arith > 0)
-		std::cout << "(" << stat_swap_arith << "x) swapped argument of arithmetic operation" << std::endl;
+		std::cout << "(" << stat_swap_arith << "x) swapped argument of arithmetic operation\n";
 	if (stat_swap_compare > 0)
-		std::cout << "(" << stat_swap_arith << "x) swapped argument of comparison operation" << std::endl;
+		std::cout << "(" << stat_swap_arith << "x) swapped argument of comparison operation\n";
 	if (stat_unary_arith > 0)
-		std::cout << "(" << stat_unary_arith << "x) converted binary arithmetic operation to unary" << std::endl;
+		std::cout << "(" << stat_unary_arith << "x) converted binary arithmetic operation to unary\n";
 	if (stat_unary_compare > 0)
-		std::cout << "(" << stat_unary_compare << "x) converted binary comparison operation to unary" << std::endl;
+		std::cout << "(" << stat_unary_compare << "x) converted binary comparison operation to unary\n";
 	if (stat_unary_noeffect > 0)
-		std::cout << "(" << stat_unary_noeffect << "x) removed unary operation with no effect" << std::endl;
+		std::cout << "(" << stat_unary_noeffect << "x) removed unary operation with no effect\n";
 	if (stat_compare_if > 0)
-		std::cout << "(" << stat_compare_if << "x) merged compare followed by if-goto" << std::endl;
+		std::cout << "(" << stat_compare_if << "x) merged compare followed by if-goto\n";
 	if (stat_pop_push > 0)
-		std::cout << "(" << stat_pop_push << "x) merged pop-push with the same segment&index" << std::endl;
+		std::cout << "(" << stat_pop_push << "x) merged pop-push with the same segment&index\n";
 	if (stat_stack_avoid > 0)
-		std::cout << "(" << stat_stack_avoid << "x) avoided stack pointer operations" << std::endl;
+		std::cout << "(" << stat_stack_avoid << "x) avoided stack pointer operations\n";
 
 }
 void o_stat_reset()

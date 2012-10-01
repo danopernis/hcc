@@ -75,7 +75,7 @@ struct ROM : public IROM {
 		if (address < size) {
 			return data[address];
 		} else {
-			std::cerr << "requested memory at " << address << std::endl;
+			std::cerr << "requested memory at " << address << '\n';
 			throw std::runtime_error("Memory::get");
 		}
 	}

@@ -51,7 +51,7 @@ void VMFileOutput::emitA(unsigned short constant) {
 }
 
 void VMFileOutput::emitC(unsigned short instr) {
-	stream << instructionToString(instr | COMPUTE) << std::endl;
+	stream << instructionToString(instr | COMPUTE) << '\n';
 }
 void VMFileOutput::emitL(const std::string label)
 {

@@ -88,7 +88,7 @@ void outputHACK(AsmCommandList &commands, const std::string filename)
 			outputFile << (i->instr & (1<<15) ? '1' : '0');
 			i->instr <<= 1;
 		}
-		outputFile << std::endl;
+		outputFile << '\n';
 	}
 }
 
