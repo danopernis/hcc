@@ -425,7 +425,7 @@ void Parser::parse()
 	try {
 		parseClass();
 	} catch (ParseError &e) {
-		std::cerr << "Parse error: " << e.what() << " at " << e.line << ":" << e.column << std::endl;
+		std::cerr << "Parse error: " << e.what() << " at " << e.line << ":" << e.column << '\n';
 	}
 }
 

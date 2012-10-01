@@ -32,7 +32,7 @@
 int main(int argc, char *argv[])
 {
 	if (argc < 2) {
-		std::cerr << "Missing input file(s)" << std::endl;
+		std::cerr << "Missing input file(s)\n";
 		return 1;
 	}
 
@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
 	hcc::o_stat_reset();
 	for (int i = 1; i<argc; ++i) {
 		std::string filename(argv[i]);
-		std::cout << "***Processing " << filename << std::endl;
+		std::cout << "***Processing " << filename << '\n';
 		writer.setFilename(filename);
 		hcc::VMParser parser(filename);
 

@@ -33,13 +33,13 @@ using namespace hcc::jack;
 int main(int argc, char *argv[])
 {
 	if (argc < 2) {
-		std::cerr << "Missing input file(s)" << std::endl;
+		std::cerr << "Missing input file(s)\n";
 		return 1;
 	}
 
 	for (int i = 1; i<argc; ++i) {
 		std::string input(argv[i]);
-		std::cout << "Processing " << input << std::endl;
+		std::cout << "Processing " << input << '\n';
 
 		Tokenizer tokenizer(input);
 
