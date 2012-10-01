@@ -25,7 +25,7 @@
 #include <iostream>
 #include <stdexcept>
 #include "VMOptimize.h"
-#include "cpu.h"
+#include "CPU.h"
 
 namespace hcc {
 

@@ -27,8 +27,8 @@
 #include <iostream>
 #include <stdexcept>
 #include <cassert>
-#include "cpu.h"
-#include "rom.h"
+#include "CPU.h"
+#include "ROM.h"
 
 struct GUIEmulatorRAM : public hcc::IRAM {
 	static const unsigned int CHANNELS = 3;

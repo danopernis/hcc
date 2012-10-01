@@ -22,34 +22,34 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-#pragma once
-#include <map>
-#include <string>
 #include <iostream>
+#include <string>
+#include "Assembler.h"
+#include "ParserAsm.h"
 
-namespace hcc {
-
-struct StringID {
-	unsigned int id;
-	bool operator<(const StringID &other) const {
-		return id<other.id;
+int main(int argc, char *argv[])
+{
+	if (argc != 2) {
+		std::cerr << "Missing input file\n";
+		return 1;
 	}
-	bool operator==(const StringID &other) const {
-		return id == other.id;
+	std::string input(argv[1]);
+
+	// Parse
+	hcc::ParserAsm parser(input);
+	hcc::AsmCommandList commands;
+	while (parser.hasMoreCommands()) {
+		parser.advance();
+		commands.push_back(parser.getCommand());
 	}
-};
 
-class StringTable {
-	static std::map<std::string, StringID> string2id;
-	static std::map<StringID, std::string> id2string;
+	// Assemble
+	hcc::assemble(commands);
 
-public:
-	virtual ~StringTable() {}
+	// Output
+	std::string output(input, 0, input.rfind('.'));
+	output.append(".hack");
+	hcc::outputHACK(commands, output);
 
-	static StringID& id(std::string s);
-	static std::string& string(StringID &i);
-};
-
-std::ostream& operator<<(std::ostream &out, StringID &s);
-
-} // end namespace
+	return 0;
+}

@@ -33,7 +33,7 @@ VMWriter::VMWriter(const char *file)
 {
 }
 
-void VMWriter::doClass(StringID &name)
+void VMWriter::doClass(const std::string name)
 {
 	staticVarsCount = 0;
 	fieldVarsCount = 0;
@@ -42,7 +42,7 @@ void VMWriter::doClass(StringID &name)
 	className = name;
 }
 
-void VMWriter::doVariableDec(VariableStorage storage, VariableType &type, StringID &name)
+void VMWriter::doVariableDec(VariableStorage storage, VariableType &type, const std::string name)
 {
 	Symbol symbol;
 	symbol.storage = storage;
@@ -69,7 +69,7 @@ void VMWriter::doVariableDec(VariableStorage storage, VariableType &type, String
 	symbols.insert(name, symbol);
 }
 
-void VMWriter::doSubroutineStart(SubroutineKind kind, VariableType &returnType, StringID &name)
+void VMWriter::doSubroutineStart(SubroutineKind kind, VariableType &returnType, const std::string name)
 {
 	localVarsCount = 0;
 	argumentVarsCount = 0;
@@ -167,7 +167,7 @@ void VMWriter::doDoSimpleStart()
 {
 	output << "push pointer 0" << std::endl;
 }
-void VMWriter::doDoSimpleEnd(StringID &name)
+void VMWriter::doDoSimpleEnd(const std::string name)
 {
 	output << "call " << className << "." << name << " " << (expressionsCount+1) << std::endl;
 	/* Do not spoil the stack!
@@ -194,7 +194,7 @@ void storageToSegment(VariableStorage s, std::ostream &output)
 	}
 }
 
-void VMWriter::doDoCompoundStart(StringID &name)
+void VMWriter::doDoCompoundStart(const std::string name)
 {
 	if (symbols.contains(name)) {
 		Symbol symbol = symbols.get(name);
@@ -211,7 +211,7 @@ void VMWriter::doDoCompoundStart(StringID &name)
 	}
 }
 
-void VMWriter::doDoCompoundEnd(StringID &name)
+void VMWriter::doDoCompoundEnd(const std::string name)
 {
 	if (doMethod)
 		++expressionsCount;
@@ -223,7 +223,7 @@ void VMWriter::doDoCompoundEnd(StringID &name)
 	output << "pop temp 0" << std::endl;
 }
 
-void VMWriter::doCallCompoundStart(StringID &name)
+void VMWriter::doCallCompoundStart(const std::string name)
 {
 	if (symbols.contains(name)) {
 		Symbol symbol = symbols.get(name);
@@ -240,14 +240,14 @@ void VMWriter::doCallCompoundStart(StringID &name)
 	}
 }
 
-void VMWriter::doCallCompoundEnd(StringID &name)
+void VMWriter::doCallCompoundEnd(const std::string name)
 {
 	if (callMethod)
 		++expressionsCount;
 	output << "call " << callCompoundStart << "." << name << " " << expressionsCount << std::endl;
 }
 
-void VMWriter::doLetScalar(StringID &name)
+void VMWriter::doLetScalar(const std::string name)
 {
 	if (symbols.contains(name)) {
 		Symbol symbol = symbols.get(name);
@@ -260,7 +260,7 @@ void VMWriter::doLetScalar(StringID &name)
 	}
 }
 
-void VMWriter::doLetVectorStart(StringID &name)
+void VMWriter::doLetVectorStart(const std::string name)
 {
 	doVariableScalar(name);
 	output << "add" << std::endl;
@@ -275,7 +275,7 @@ void VMWriter::doLetVectorEnd()
 /*
  * expressions
  */
-void VMWriter::doVariableVector(StringID &name)
+void VMWriter::doVariableVector(const std::string name)
 {
 	if (symbols.contains(name)) {
 		Symbol symbol = symbols.get(name);
@@ -291,7 +291,7 @@ void VMWriter::doVariableVector(StringID &name)
 	}
 }
 
-void VMWriter::doVariableScalar(StringID &name)
+void VMWriter::doVariableScalar(const std::string name)
 {
 	if (symbols.contains(name)) {
 		Symbol symbol = symbols.get(name);
@@ -359,9 +359,8 @@ void VMWriter::doIntConstant(int i)
 	output << "push constant " << i << std::endl;
 }
 
-void VMWriter::doStringConstant(StringID &s)
+void VMWriter::doStringConstant(const std::string str)
 {
-	std::string str = StringTable::string(s);
 	unsigned int len = str.length();
 	output << "push constant " << len << std::endl;
 	output << "call String.new 1" << std::endl;

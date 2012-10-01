@@ -22,51 +22,22 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-#include <iostream>
-#include <stdexcept>
-#include "VMParser.h"
-#include "StageConnect.h"
-#include "VMWriter.h"
-#include "VMOptimize.h"
+#pragma once
+#include <list>
+#include <string>
 
-int main(int argc, char *argv[])
-{
-	if (argc < 2) {
-		std::cerr << "Missing input file(s)" << std::endl;
-		return 1;
-	}
+namespace hcc {
 
-	hcc::VMFileOutput output("output.asm");
-	hcc::VMWriter writer(output);
-	writer.writeBootstrap();
+struct AsmCommand {
+	typedef enum {LOAD, VERBATIM, LABEL} Type;
 
-	hcc::o_stat_reset();
-	for (int i = 1; i<argc; ++i) {
-		std::string filename(argv[i]);
-		std::cout << "***Processing " << filename << std::endl;
-		writer.setFilename(filename);
-		hcc::VMParser parser(filename);
+	Type type;
+	std::string symbol;
+	unsigned short instr;
+};
+typedef std::list<AsmCommand> AsmCommandList;
 
-		hcc::VMCommandList cmds;
+void assemble(AsmCommandList &commands);
+void outputHACK(AsmCommandList &commands, const std::string filename);
 
-		// load commands from file
-		while (parser.hasMoreCommands()) {
-			hcc::VMCommand c = parser.advance();
-			if (c.type == hcc::VMCommand::NOP)
-				continue; // NOP is an artifact from parser and thus ignored
-
-			cmds.push_back(c);
-		}
-
-		hcc::VMOptimize(cmds);
-
-		for (hcc::VMCommandList::iterator i = cmds.begin(); i != cmds.end(); ++i) {
-			output.stream << (*i);
-			writer.write(*i);
-		}
-	}
-	hcc::o_stat_print();
-
-	return 0;
-}
-
+} // end namespace

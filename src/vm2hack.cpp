@@ -23,11 +23,11 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 #include <iostream>
-#include "VMParser.h"
+#include "ParserVM.h"
 #include "StageConnect.h"
 #include "VMWriter.h"
 #include "VMOptimize.h"
-#include "AsmLogic.h"
+#include "Assembler.h"
 
 int main(int argc, char *argv[])
 {
@@ -66,8 +66,8 @@ int main(int argc, char *argv[])
 	}
 	hcc::o_stat_print();
 
-	hcc::AsmLogic(output.asmCommands);
-	hcc::AsmOutput(output.asmCommands, "output.hack");
+	hcc::assemble(output.asmCommands);
+	hcc::outputHACK(output.asmCommands, "output.hack");
 
 	return 0;
 }

@@ -22,10 +22,7 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-#include "VMParser.h"
-#include "StringTable.h"
-#include <sstream>
-#include <iostream>
+#include "ParserVM.h"
 #include <vector>
 #include <cstdlib>
 #include <stdexcept>
@@ -93,25 +90,25 @@ VMCommand& VMParser::advance()
 
 	if (words[0].compare("label") == 0) {
 		c.type = VMCommand::LABEL;
-		c.arg1 = StringTable::id(words[1]);
+		c.arg1 = words[1];
 		return c;
 	} else if (words[0].compare("goto") == 0) {
 		c.type = VMCommand::GOTO;
-		c.arg1 = StringTable::id(words[1]);
+		c.arg1 = words[1];
 		return c;
 	} else if (words[0].compare("if-goto") == 0) {
 		c.type = VMCommand::IF;
-		c.arg1 = StringTable::id(words[1]);
+		c.arg1 = words[1];
 		c.compare.set(true, false, true);
 		return c;
 	} else if (words[0].compare("function") == 0) {
 		c.type = VMCommand::FUNCTION;
-		c.arg1 = StringTable::id(words[1]);
+		c.arg1 = words[1];
 		c.int1 = atoi(words[2].c_str());
 		return c;
 	} else if (words[0].compare("call") == 0) {
 		c.type = VMCommand::CALL;
-		c.arg1 = StringTable::id(words[1]);
+		c.arg1 = words[1];
 		c.int1 = atoi(words[2].c_str());
 		return c;
 	} else if (words[0].compare("return") == 0) {

@@ -26,7 +26,6 @@
 #include <string>
 #include <list>
 #include <iostream>
-#include "StringTable.h"
 #include "instruction.h"
 
 namespace hcc {
@@ -77,7 +76,7 @@ public:
 	typedef enum {NOP, CONSTANT, UNARY, BINARY, COMPARE, PUSH, POP_DIRECT, POP_INDIRECT, COPY, LABEL, GOTO, IF,
 	UNARY_COMPARE, UNARY_COMPARE_IF, COMPARE_IF, FUNCTION, RETURN, CALL, IN, FIN, POP_INDIRECT_PUSH} Type;
 
-	StringID arg1;
+	std::string arg1;
 	Type type;
 	UnaryOperation unary;
 	BinaryOperation binary;

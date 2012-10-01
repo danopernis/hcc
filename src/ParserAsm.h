@@ -22,11 +22,32 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-#include "AsmCommand.h"
+#pragma once
+#include <string>
+#include <map>
+#include <fstream>
+#include "Assembler.h"
 
 namespace hcc {
 
-void AsmLogic(AsmCommandList &commands);
-void AsmOutput(AsmCommandList &commands, const char *file);
+class ParserAsm {
+private:
+	std::ifstream input;
+	std::string line;
+	AsmCommand command;
 
-} //end namespace
+	std::map<std::string, unsigned short> destMap, compMap, jumpMap;
+
+public:
+	ParserAsm(std::string& fileName);
+	virtual ~ParserAsm();
+
+	bool hasMoreCommands();
+	void advance();
+
+	AsmCommand getCommand() {
+		return command;
+	}
+};
+
+} // end namespace

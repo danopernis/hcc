@@ -25,8 +25,7 @@
 #include <sstream>
 #include <iostream>
 #include "instruction.h"
-#include "AsmParser.h"
-#include "StringTable.h"
+#include "ParserAsm.h"
 
 namespace hcc {
 
@@ -113,18 +112,18 @@ bool ParserAsm::hasMoreCommands()
 void ParserAsm::advance()
 {
 	if (line.at(0) == '@') {
-		std::string symbol = line.substr(1,line.length()-1);
+		std::string symbol = line.substr(1, line.length()-1);
 		if (isdigit(symbol.at(0))) {
 			command.type = AsmCommand::VERBATIM;
 			std::stringstream ss(symbol);
 			ss >> command.instr;
 		} else {
 			command.type = AsmCommand::LOAD;
-			command.symbol = StringTable::id(symbol);
+			command.symbol = symbol;
 		}
 	} else if (line.at(0) == '(') {
 		command.type = AsmCommand::LABEL;
-		command.symbol = StringTable::id(line.substr(1,line.length()-2));
+		command.symbol = line.substr(1, line.length()-2);
 	} else {
 		command.type = AsmCommand::VERBATIM;
 		// dest=comp;jump

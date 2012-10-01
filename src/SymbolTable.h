@@ -43,9 +43,9 @@ public:
 	SymbolTable();
 	void beginScope();
 	void endScope();
-	void insert(const StringID &key, const Symbol &value);
-	bool contains(const StringID &key) const;
-	const Symbol& get(const StringID &key) const;
+	void insert(const std::string key, const Symbol &value);
+	bool contains(const std::string key) const;
+	const Symbol& get(const std::string key) const;
 };
 
 } // ned namespace hcc

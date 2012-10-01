@@ -29,7 +29,7 @@
 
 namespace hcc {
 
-typedef std::map<StringID, Symbol> Scope;
+typedef std::map<std::string, Symbol> Scope;
 typedef	std::list<Scope> ScopeList;
 
 class SymbolTable::impl {
@@ -56,12 +56,12 @@ void SymbolTable::endScope()
 	pimpl->scopes.pop_front();
 }
 
-void SymbolTable::insert(const StringID &key, const Symbol &value)
+void SymbolTable::insert(const std::string key, const Symbol &value)
 {
 	pimpl->scopes.front().insert(std::make_pair(key,value));
 }
 
-bool SymbolTable::contains(const StringID &key) const
+bool SymbolTable::contains(const std::string key) const
 {
 	for (ScopeList::iterator i = pimpl->scopes.begin(); i != pimpl->scopes.end(); ++i) {
 		if (i->find(key) != i->end()) {
@@ -71,7 +71,7 @@ bool SymbolTable::contains(const StringID &key) const
 	return false;
 }
 
-const Symbol& SymbolTable::get(const StringID &key) const
+const Symbol& SymbolTable::get(const std::string key) const
 {
 	Scope::iterator result;
 	for (ScopeList::iterator i = pimpl->scopes.begin(); i != pimpl->scopes.end(); ++i) {

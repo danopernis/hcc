@@ -135,8 +135,7 @@ void Tokenizer::advance()
 		case STRING:
 			if (c == '"') {
 				type = T_STRING_CONST;
-				std::string s = stringConstantStream.str();
-				stringConstant = StringTable::id(s);
+				stringConstant = stringConstantStream.str();
 
 				state = START;
 			} else {
@@ -157,9 +156,8 @@ void Tokenizer::advance()
 			if (isalnum(c)) {
 				identifierStream << c;
 			} else {
-				std::string s = identifierStream.str();
-				identifier = StringTable::id(s);
-				KeywordMap::iterator kw = keywords.find(s);
+				identifier = identifierStream.str();
+				KeywordMap::iterator kw = keywords.find(identifier);
 				if (kw == keywords.end()) {
 					type = T_IDENTIFIER;
 				} else {

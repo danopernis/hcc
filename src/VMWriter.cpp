@@ -24,6 +24,7 @@
  */
 #include "VMWriter.h"
 #include "instruction.h"
+#include <map>
 #include <cstdlib>
 #include <stdexcept>
 
@@ -42,17 +43,17 @@ VMWriter::~VMWriter()
 {
 }
 
-StringID& constructString(const char *s, unsigned int i)
+const std::string constructString(const std::string s, unsigned int i)
 {
 	std::stringstream ss;
 	ss << s << i;
-	return StringTable::id(ss.str());
+	return ss.str();
 }
-StringID& constructString(StringID &s1, StringID &s2)
+const std::string constructString(const std::string s1, const std::string s2)
 {
 	std::stringstream ss;
 	ss << s1 << '$' << s2;
-	return StringTable::id(ss.str());
+	return ss.str();
 }
 void VMWriter::push()
 {
@@ -136,7 +137,7 @@ void VMWriter::push_load(Segment segment, int index)
 {
 	switch (segment) {
 	case STATIC:
-		out.emitA	(constructString(filename.c_str(), index));
+		out.emitA	(constructString(filename, index));
 		out.emitC	(DEST_D | COMP_M);
 		break;
 	case POINTER:
@@ -420,8 +421,8 @@ void VMWriter::writeBinary(bool in, bool fin, BinaryOperation op)
  */
 void VMWriter::compareBranches(bool fin, CompareOperation op)
 {
-	StringID compareSwitch = constructString("__compareSwitch", compareCounter);
-	StringID compareEnd    = constructString("__compareEnd", compareCounter);
+	std::string compareSwitch = constructString("__compareSwitch", compareCounter);
+	std::string compareEnd    = constructString("__compareEnd", compareCounter);
 	++compareCounter;
 
 	if (fin) {
@@ -477,16 +478,16 @@ void VMWriter::writeCompare(bool in, bool fin, CompareOperation op)
 /*
  * LABEL, GOTO, IF, COMPARE_IF, UNARY_COMPARE_IF
  */
-void VMWriter::writeLabel(StringID &label)
+void VMWriter::writeLabel(const std::string label)
 {
 	out.emitL	(constructString(function, label));
 }
-void VMWriter::writeGoto(StringID &label)
+void VMWriter::writeGoto(const std::string label)
 {
 	out.emitA	(constructString(function, label));
 	out.emitC	(COMP_ZERO | JMP);
 }
-void VMWriter::writeIf(bool in, bool fin, CompareOperation op, StringID &label, bool compare, bool useConst, int intConst)
+void VMWriter::writeIf(bool in, bool fin, CompareOperation op, const std::string label, bool compare, bool useConst, int intConst)
 {
 	if (in)
 		pop();
@@ -505,7 +506,7 @@ void VMWriter::writeIf(bool in, bool fin, CompareOperation op, StringID &label, 
 /*
  * FUNCTION, CALL, RETURN
  */
-void VMWriter::writeFunction(StringID &name, int localc)
+void VMWriter::writeFunction(const std::string name, int localc)
 {
 	function = name;
 	out.emitL(name);
@@ -534,7 +535,7 @@ void VMWriter::writeFunction(StringID &name, int localc)
 }
 // 44 instructions when called for the first time
 //  8 instructions when called next time with the same argc
-void VMWriter::writeCall(StringID &name, int argc)
+void VMWriter::writeCall(const std::string name, int argc)
 {
 	bool found = false;
 	for (std::list<int>::iterator i = argStubs.begin(); i != argStubs.end(); ++i) {
@@ -543,8 +544,8 @@ void VMWriter::writeCall(StringID &name, int argc)
 		}
 	}
 
-	StringID call          = constructString("__call", argc);
-	StringID returnAddress = constructString("__returnAddress", returnCounter);
+	std::string call          = constructString("__call", argc);
+	std::string returnAddress = constructString("__returnAddress", returnCounter);
 	++returnCounter;
 
 	out.emitA	(name);
@@ -600,8 +601,8 @@ void VMWriter::writeBootstrap()
 	out.emitC	(DEST_D | COMP_A);
 	out.emitA	("SP");
 	out.emitC	(DEST_M | COMP_D);
-	writeCall	(StringTable::id("Sys.init"), 0);
-	out.emitL	(StringTable::id("__return"));
+	writeCall	("Sys.init", 0);
+	out.emitL	("__return");
 	out.emitA	(5);
 	out.emitC	(DEST_D | COMP_A);
 	out.emitA	("LCL");

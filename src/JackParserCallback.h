@@ -23,7 +23,8 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 #pragma once
-#include "StringTable.h"
+#include <string>
+#include <ostream>
 
 namespace hcc {
 namespace jack {
@@ -33,7 +34,7 @@ struct VariableType {
 	typedef enum {VOID, INT, CHAR, BOOLEAN, AGGREGATE} Kind;
 
 	Kind kind;
-	StringID name; // for aggregate kind
+	std::string name; // for aggregate kind
 };
 std::ostream& operator<<(std::ostream &stream, VariableType &vartype);
 
@@ -51,9 +52,9 @@ struct ParserCallback {
 
 	virtual void setExpressionsCount(unsigned int count) = 0;
 
-	virtual void doClass(StringID &name) = 0;
-	virtual void doVariableDec(VariableStorage storage, VariableType &type, StringID &name) = 0;
-	virtual void doSubroutineStart(SubroutineKind kind, VariableType &returnType, StringID &name) = 0;
+	virtual void doClass(const std::string name) = 0;
+	virtual void doVariableDec(VariableStorage storage, VariableType &type, const std::string name) = 0;
+	virtual void doSubroutineStart(SubroutineKind kind, VariableType &returnType, const std::string name) = 0;
 	virtual void doSubroutineAfterVarDec() = 0;
 	virtual void doSubroutineEnd() = 0;
 
@@ -66,23 +67,23 @@ struct ParserCallback {
 	virtual void doReturn(bool nonVoid) = 0;
 
 	virtual void doDoSimpleStart() = 0;
-	virtual void doDoSimpleEnd(StringID &name) = 0;
-	virtual void doDoCompoundStart(StringID &name) = 0;
-	virtual void doDoCompoundEnd(StringID &name) = 0;
-	virtual void doCallCompoundStart(StringID &name) = 0;
-	virtual void doCallCompoundEnd(StringID &name) = 0;
-	virtual void doLetScalar(StringID &name) = 0;
-	virtual void doLetVectorStart(StringID &name) = 0;
+	virtual void doDoSimpleEnd(const std::string name) = 0;
+	virtual void doDoCompoundStart(const std::string name) = 0;
+	virtual void doDoCompoundEnd(const std::string name) = 0;
+	virtual void doCallCompoundStart(const std::string name) = 0;
+	virtual void doCallCompoundEnd(const std::string name) = 0;
+	virtual void doLetScalar(const std::string name) = 0;
+	virtual void doLetVectorStart(const std::string name) = 0;
 	virtual void doLetVectorEnd() = 0;
 
-	virtual void doVariableVector(StringID &name) = 0;
-	virtual void doVariableScalar(StringID &name) = 0;
+	virtual void doVariableVector(const std::string name) = 0;
+	virtual void doVariableScalar(const std::string name) = 0;
 	virtual void doBinary(char op) = 0;
 	virtual void doNeg() = 0;
 	virtual void doNot() = 0;
 	virtual void doThis() = 0;
 	virtual void doIntConstant(int i) = 0;
-	virtual void doStringConstant(StringID &s) = 0;
+	virtual void doStringConstant(const std::string s) = 0;
 };
 
 } // end namespace jack

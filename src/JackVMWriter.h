@@ -41,7 +41,7 @@ class VMWriter : public ParserCallback {
 	unsigned int staticVarsCount, fieldVarsCount, argumentVarsCount, localVarsCount;
 
 	bool doMethod, callMethod;
-	StringID className, subroutineName, doCompoundStart, callCompoundStart;
+	std::string className, subroutineName, doCompoundStart, callCompoundStart;
 	SubroutineKind subroutineKind;
 	std::ofstream output;
 public:
@@ -50,9 +50,9 @@ public:
 		expressionsCount = count;
 	}
 
-	virtual void doClass(StringID &name);
-	virtual void doVariableDec(VariableStorage storage, VariableType &type, StringID &name);
-	virtual void doSubroutineStart(SubroutineKind kind, VariableType &returnType, StringID &name);
+	virtual void doClass(const std::string name);
+	virtual void doVariableDec(VariableStorage storage, VariableType &type, const std::string name);
+	virtual void doSubroutineStart(SubroutineKind kind, VariableType &returnType, const std::string name);
 	virtual void doSubroutineAfterVarDec();
 	virtual void doSubroutineEnd();
 
@@ -65,23 +65,23 @@ public:
 	virtual void doReturn(bool nonVoid);
 
 	virtual void doDoSimpleStart();
-	virtual void doDoSimpleEnd(StringID &name);
-	virtual void doDoCompoundStart(StringID &name);
-	virtual void doDoCompoundEnd(StringID &name);
-	virtual void doCallCompoundStart(StringID &name);
-	virtual void doCallCompoundEnd(StringID &name);
-	virtual void doLetScalar(StringID &name);
-	virtual void doLetVectorStart(StringID &name);
+	virtual void doDoSimpleEnd(const std::string name);
+	virtual void doDoCompoundStart(const std::string name);
+	virtual void doDoCompoundEnd(const std::string name);
+	virtual void doCallCompoundStart(const std::string name);
+	virtual void doCallCompoundEnd(const std::string name);
+	virtual void doLetScalar(const std::string name);
+	virtual void doLetVectorStart(const std::string name);
 	virtual void doLetVectorEnd();
 
-	virtual void doVariableVector(StringID &name);
-	virtual void doVariableScalar(StringID &name);
+	virtual void doVariableVector(const std::string name);
+	virtual void doVariableScalar(const std::string name);
 	virtual void doBinary(char op);
 	virtual void doNeg();
 	virtual void doNot();
 	virtual void doThis();
 	virtual void doIntConstant(int i);
-	virtual void doStringConstant(StringID &s);
+	virtual void doStringConstant(const std::string s);
 };
 
 } // end namespace jack
