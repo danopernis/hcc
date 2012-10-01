@@ -27,7 +27,6 @@
 #include <map>
 #include <fstream>
 #include <sstream>
-#include "StringTable.h"
 
 namespace hcc {
 namespace jack {
@@ -51,7 +50,7 @@ private:
 	Keyword keyword;
 	char symbol;
 	std::stringstream identifierStream, stringConstantStream;
-	StringID identifier, stringConstant;
+	std::string identifier, stringConstant;
 	int intConstant;
 	unsigned int line, column;
 
@@ -75,11 +74,11 @@ public:
 		return symbol;
 	}
 
-	const StringID& getIdentifier() const {
+	const std::string getIdentifier() const {
 		return identifier;
 	}
 
-	const StringID& getStringConstant() const {
+	const std::string getStringConstant() const {
 		return stringConstant;
 	}
 

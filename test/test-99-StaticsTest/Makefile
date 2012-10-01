@@ -1,5 +1,5 @@
 all:
-	../../src/vm2asm2hack *.vm
+	../../src/vm2hack *.vm
 	../../src/emulator output.hack 2500 0 261 262 >result
 	diff result compare
 

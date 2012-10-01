@@ -26,8 +26,8 @@
 #include <fstream>
 #include <cstdlib>
 #include <stdexcept>
-#include "cpu.h"
-#include "rom.h"
+#include "CPU.h"
+#include "ROM.h"
 
 struct RAM : public hcc::IRAM {
 	static const unsigned int size = 0x6001;

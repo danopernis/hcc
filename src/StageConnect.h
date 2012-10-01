@@ -23,8 +23,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 #pragma once
-#include "StringTable.h"
-#include "AsmCommand.h"
+#include "Assembler.h"
 #include <fstream>
 
 namespace hcc {
@@ -33,10 +32,9 @@ struct VMOutput {
 	virtual ~VMOutput() {}
 
 	virtual void emitC(unsigned short instr) = 0;
-	virtual void emitA(const char *symbol) = 0;
-	virtual void emitA(StringID &symbol) = 0;
+	virtual void emitA(const std::string symbol) = 0;
 	virtual void emitA(unsigned short constant) = 0;
-	virtual void emitL(StringID &label) = 0;
+	virtual void emitL(const std::string label) = 0;
 };
 
 struct VMFileOutput : public VMOutput {
@@ -46,10 +44,9 @@ struct VMFileOutput : public VMOutput {
 	virtual ~VMFileOutput() {}
 
 	virtual void emitC(unsigned short instr);
-	virtual void emitA(const char *symbol);
-	virtual void emitA(StringID &symbol);
+	virtual void emitA(const std::string symbol);
 	virtual void emitA(unsigned short constant);
-	virtual void emitL(StringID &label);
+	virtual void emitL(const std::string label);
 };
 
 struct VMAsmOutput : public VMOutput {
@@ -58,10 +55,9 @@ struct VMAsmOutput : public VMOutput {
 	virtual ~VMAsmOutput();
 
 	virtual void emitC(unsigned short instr);
-	virtual void emitA(const char *symbol);
-	virtual void emitA(StringID &symbol);
+	virtual void emitA(const std::string symbol);
 	virtual void emitA(unsigned short constant);
-	virtual void emitL(StringID &label);
+	virtual void emitL(const std::string label);
 };
 
 }

@@ -46,7 +46,7 @@ class Parser {
 
 	Tokenizer::Keyword lastKeyword;
 	char lastSymbol;
-	StringID lastStringConstant, lastIdentifier;
+	std::string lastStringConstant, lastIdentifier;
 	int lastIntConstant;
 	VariableType lastType;
 

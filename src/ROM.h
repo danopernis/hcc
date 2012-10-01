@@ -24,7 +24,7 @@
  */
 #pragma once
 #include <fstream>
-#include "cpu.h"
+#include "CPU.h"
 
 namespace hcc {
 

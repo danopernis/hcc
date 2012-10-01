@@ -185,7 +185,7 @@ void Parser::parseStatements()
 nextStatement:
 	if (acceptKeyword(Tokenizer::K_LET)) {
 		expectIdentifier();
-		StringID name = lastIdentifier;
+		std::string name = lastIdentifier;
 		if (acceptSymbol('[')) {
 			expectExpression();
 			expectSymbol(']');
@@ -239,7 +239,7 @@ nextStatement:
 	}
 	if (acceptKeyword(Tokenizer::K_DO)) {
 		expectIdentifier();
-		StringID name = lastIdentifier;
+		std::string name = lastIdentifier;
 
 		if (acceptSymbol('(')) {
 			callback.doDoSimpleStart();
@@ -343,7 +343,7 @@ bool Parser::acceptTerm()
 		return true; // keyword constant
 	}
 	if (acceptIdentifier()) {
-		StringID name = lastIdentifier;
+		std::string name = lastIdentifier;
 
 		if (acceptSymbol('[')) {
 			expectExpression();

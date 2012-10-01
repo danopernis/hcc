@@ -23,7 +23,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 #pragma once
-#include "VMParser.h"
+#include "ParserVM.h"
 #include "StageConnect.h"
 #include <list>
 #include <string>
@@ -33,8 +33,7 @@ namespace hcc {
 class VMWriter
 {
 	int compareCounter, returnCounter;
-	std::string filename;
-	StringID function;
+	std::string filename, function;
 	std::list<int> argStubs;
 	VMOutput &out;
 
@@ -55,11 +54,11 @@ class VMWriter
 	void writeBinary(bool in, bool fin, BinaryOperation op);
 	void writeCompare(bool in, bool fin, CompareOperation op);
 	void writeUnaryCompare(bool in, bool fin, CompareOperation op, int intArg);
-	void writeLabel(StringID &label);
-	void writeGoto(StringID &label);
-	void writeIf(bool in, bool fin, CompareOperation op, StringID &label, bool compare, bool useConst, int intConst);
-	void writeFunction(StringID &name, int argc);
-	void writeCall(StringID &name, int argc);
+	void writeLabel(const std::string label);
+	void writeGoto(const std::string label);
+	void writeIf(bool in, bool fin, CompareOperation op, const std::string label, bool compare, bool useConst, int intConst);
+	void writeFunction(const std::string name, int argc);
+	void writeCall(const std::string name, int argc);
 	void writeReturn();
 public:
 	VMWriter(VMOutput& out);

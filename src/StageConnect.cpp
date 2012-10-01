@@ -38,28 +38,24 @@ VMFileOutput::VMFileOutput(const char *file)
 	: stream(file)
 {
 }
-void VMFileOutput::emitA(const char *symbol) {
-	stream << "@" << symbol << std::endl;
-}
-void VMFileOutput::emitA(StringID &symbol) {
-	stream << "@" << symbol << std::endl;
+void VMFileOutput::emitA(const std::string symbol) {
+	stream << '@' << symbol << '\n';
 }
 void VMFileOutput::emitA(unsigned short constant) {
 	if (constant & COMPUTE) {
-		std::cout << "Warning! negative constant" << std::endl;
-		stream << "@" << abs((signed short)constant) << std::endl;
+		stream << '@' << abs((signed short)constant) << '\n';
 		emitC(DEST_A | COMP_MINUS_A);
 	} else {
-		stream << "@" << constant << std::endl;
+		stream << '@' << constant << '\n';
 	}
 }
 
 void VMFileOutput::emitC(unsigned short instr) {
 	stream << instructionToString(instr | COMPUTE) << std::endl;
 }
-void VMFileOutput::emitL(StringID &label)
+void VMFileOutput::emitL(const std::string label)
 {
-	stream << "(" << label << ")\n";
+	stream << '(' << label << ")\n";
 }
 /*
  * Asm output
@@ -67,10 +63,7 @@ void VMFileOutput::emitL(StringID &label)
 VMAsmOutput::~VMAsmOutput()
 {
 }
-void VMAsmOutput::emitA(const char *symbol) {
-	emitA(StringTable::id(symbol));
-}
-void VMAsmOutput::emitA(StringID &symbol) {
+void VMAsmOutput::emitA(const std::string symbol) {
 	AsmCommand c;
 	c.type = AsmCommand::LOAD;
 	c.symbol = symbol;
@@ -96,7 +89,7 @@ void VMAsmOutput::emitC(unsigned short instr)
 	c.instr = instr | instruction::RESERVED | instruction::COMPUTE;
 	asmCommands.push_back(c);
 }
-void VMAsmOutput::emitL(StringID &label)
+void VMAsmOutput::emitL(const std::string label)
 {
 	AsmCommand c;
 	c.type = AsmCommand::LABEL;
