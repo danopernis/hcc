@@ -24,6 +24,7 @@
  */
 #include "JackVMWriter.h"
 #include <stdexcept>
+#include <sstream>
 
 namespace hcc {
 namespace jack {
@@ -86,14 +87,14 @@ void VMWriter::doSubroutineAfterVarDec()
 	output << "function " << className << "." << subroutineName << " " << localVarsCount << '\n';
 	switch (subroutineKind) {
 	case CONSTRUCTOR:
-		output << "push constant " << fieldVarsCount << '\n';
-		output << "call Memory.alloc 1\n";
-		output << "pop pointer 0\n";
+		output << "push constant " << fieldVarsCount << '\n'
+		       << "call Memory.alloc 1\n"
+		       << "pop pointer 0\n";
 		argumentOffset = 0;
 		break;
 	case METHOD:
-		output << "push argument 0\n";
-		output << "pop pointer 0\n";
+		output << "push argument 0\n"
+		       << "pop pointer 0\n";
 		argumentOffset = 1;
 		break;
 	case FUNCTION:
@@ -112,15 +113,15 @@ void VMWriter::doSubroutineEnd()
 void VMWriter::doIf()
 {
 	ifStack.push(ifCounter++);
-	output << "if-goto IF_TRUE" << ifStack.top() << '\n';
-	output << "goto IF_FALSE" << ifStack.top() << '\n';
-	output << "label IF_TRUE" << ifStack.top() << '\n';
+	output << "if-goto IF_TRUE" << ifStack.top() << '\n'
+	       << "goto IF_FALSE" << ifStack.top() << '\n'
+	       << "label IF_TRUE" << ifStack.top() << '\n';
 }
 
 void VMWriter::doElse()
 {
-	output << "goto IF_END" << ifStack.top() << '\n';
-	output << "label IF_FALSE" << ifStack.top() << '\n';
+	output << "goto IF_END" << ifStack.top() << '\n'
+	       << "label IF_FALSE" << ifStack.top() << '\n';
 }
 
 void VMWriter::doEndif(bool hasElse)
@@ -141,14 +142,14 @@ void VMWriter::doWhileExp()
 
 void VMWriter::doWhile()
 {
-	output << "not\n";
-	output << "if-goto WHILE_END" << whileStack.top() << '\n';
+	output << "not\n"
+	       << "if-goto WHILE_END" << whileStack.top() << '\n';
 }
 
 void VMWriter::doEndwhile()
 {
-	output << "goto WHILE_EXP" << whileStack.top() << '\n';
-	output << "label WHILE_END" << whileStack.top() << '\n';
+	output << "goto WHILE_EXP" << whileStack.top() << '\n'
+	       << "label WHILE_END" << whileStack.top() << '\n';
 	whileStack.pop();
 }
 
@@ -176,33 +177,32 @@ void VMWriter::doDoSimpleEnd(const std::string name)
 	output << "pop temp 0\n";
 }
 
-void storageToSegment(VariableStorage s, std::ostream &output)
+std::string symbolToSegmentIndex(Symbol symbol, int argumentOffset)
 {
-	switch (s) {
+	std::stringstream result;
+
+	switch (symbol.storage) {
 	case STATIC:
-		output << "static ";
+		result << "static " << symbol.index;
 		break;
 	case FIELD:
-		output << "this ";
+		result << "this " << symbol.index;
 		break;
 	case ARGUMENT:
-		output << "argument ";
+		result << "argument " << (symbol.index + argumentOffset);
 		break;
 	case LOCAL:
-		output << "local ";
+		result << "local " << symbol.index;
 		break;
 	}
+	return result.str();
 }
 
 void VMWriter::doDoCompoundStart(const std::string name)
 {
 	if (symbols.contains(name)) {
 		Symbol symbol = symbols.get(name);
-
-		output << "push ";
-		storageToSegment(symbol.storage, output);
-		output << symbol.index << '\n';;
-
+		output << "push " << symbolToSegmentIndex(symbol, argumentOffset) << '\n';
 		doCompoundStart = symbol.type.name;
 		doMethod = true;
 	} else {
@@ -227,11 +227,7 @@ void VMWriter::doCallCompoundStart(const std::string name)
 {
 	if (symbols.contains(name)) {
 		Symbol symbol = symbols.get(name);
-
-		output << "push ";
-		storageToSegment(symbol.storage, output);
-		output << symbol.index << '\n';;
-
+		output << "push " << symbolToSegmentIndex(symbol, argumentOffset) << '\n';
 		callCompoundStart = symbol.type.name;
 		callMethod = true;
 	} else {
@@ -244,20 +240,16 @@ void VMWriter::doCallCompoundEnd(const std::string name)
 {
 	if (callMethod)
 		++expressionsCount;
+
 	output << "call " << callCompoundStart << "." << name << " " << expressionsCount << '\n';
 }
 
 void VMWriter::doLetScalar(const std::string name)
 {
-	if (symbols.contains(name)) {
-		Symbol symbol = symbols.get(name);
-
-		output << "pop ";
-		storageToSegment(symbol.storage, output);
-		output << (symbol.index + (symbol.storage == ARGUMENT ? argumentOffset : 0)) << '\n';;
-	} else {
+	if (!symbols.contains(name))
 		throw std::runtime_error("no such variable");
-	}
+
+	output << "pop " << symbolToSegmentIndex(symbols.get(name), argumentOffset) << '\n';
 }
 
 void VMWriter::doLetVectorStart(const std::string name)
@@ -267,41 +259,31 @@ void VMWriter::doLetVectorStart(const std::string name)
 }
 void VMWriter::doLetVectorEnd()
 {
-	output << "pop temp 0\n";
-	output << "pop pointer 1\n";
-	output << "push temp 0\n";
-	output << "pop that 0\n";
+	output << "pop temp 0\n"
+	       << "pop pointer 1\n"
+	       << "push temp 0\n"
+	       << "pop that 0\n";
 }
 /*
  * expressions
  */
 void VMWriter::doVariableVector(const std::string name)
 {
-	if (symbols.contains(name)) {
-		Symbol symbol = symbols.get(name);
-
-		output << "push ";
-		storageToSegment(symbol.storage, output);
-		output << (symbol.index + (symbol.storage == ARGUMENT ? argumentOffset : 0)) << '\n';;
-		output << "add\n";
-		output << "pop pointer 1\n";
-		output << "push that 0\n";
-	} else {
+	if (!symbols.contains(name))
 		throw std::runtime_error("no such variable");
-	}
+
+	output << "push " << symbolToSegmentIndex(symbols.get(name), argumentOffset) << '\n'
+	       << "add\n"
+	       << "pop pointer 1\n"
+	       << "push that 0\n";
 }
 
 void VMWriter::doVariableScalar(const std::string name)
 {
-	if (symbols.contains(name)) {
-		Symbol symbol = symbols.get(name);
-
-		output << "push ";
-		storageToSegment(symbol.storage, output);
-		output << (symbol.index + (symbol.storage == ARGUMENT ? argumentOffset : 0)) << '\n';;
-	} else {
+	if (!symbols.contains(name))
 		throw std::runtime_error("no such variable");
-	}
+
+	output << "push " << symbolToSegmentIndex(symbols.get(name), argumentOffset) << '\n';
 }
 
 void VMWriter::doBinary(char op)
@@ -362,11 +344,11 @@ void VMWriter::doIntConstant(int i)
 void VMWriter::doStringConstant(const std::string str)
 {
 	unsigned int len = str.length();
-	output << "push constant " << len << '\n';
-	output << "call String.new 1\n";
+	output << "push constant " << len << '\n'
+	       << "call String.new 1\n";
 	for (unsigned int i = 0; i<len; ++i) {
-		output << "push constant " << (unsigned int)str.at(i) << '\n';
-		output << "call String.appendChar 2\n";
+		output << "push constant " << (unsigned int)str.at(i) << '\n'
+		       << "call String.appendChar 2\n";
 	}
 
 }
