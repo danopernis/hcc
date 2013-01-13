@@ -1,0 +1,4 @@
+!file object
+!subroutine-begin __bootstrap
+!subroutine-begin nested
+!subroutine-end
