@@ -226,7 +226,7 @@ bool o_const_if(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList:
 	if (c1->type != VMCommand::CONSTANT ||
 	    c2->type != VMCommand::IF)
 		return false;
-	
+
 	bool result = false;
 	if (c2->compare.lt)
 		result |= (c1->int1 < 0);
@@ -418,7 +418,7 @@ bool o_goto_goto(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList
 	if (c1->type != VMCommand::GOTO ||
 	    c2->type != VMCommand::GOTO)
 		return false;
-	
+
 	cmds.erase(c2);
 
 	++stat_goto_goto;
@@ -489,7 +489,7 @@ bool s_reduce(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList::i
 	if (c1->type != VMCommand::FIN ||
 	    c2->type != VMCommand::IN)
 		return false;
-	
+
 	cmds.erase(c1);
 	cmds.erase(c2);
 	++stat_stack_avoid;

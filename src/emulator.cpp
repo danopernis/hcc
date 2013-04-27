@@ -43,14 +43,14 @@ public:
 		if (address >= size) {
 			throw std::runtime_error("RAM::set");
 		}
-		
+
 		data[address] = value;
 	}
 	virtual unsigned short get(unsigned int address) const {
 		if (address >= size) {
 			throw std::runtime_error("RAM::get");
 		}
-		
+
 		return data[address];
 	}
 };
@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
 	cpu.reset();
 	for (int i = 0; i<ticks; ++i)
 		cpu.step(&rom, &ram);
-	
+
 	for (int i = 3; i<argc; ++i) {
 		unsigned int address = atoi(argv[i]);
 		std::cout << "RAM[" << address << "] =\t" << ram.get(address) << '\n';

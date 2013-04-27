@@ -45,10 +45,10 @@ struct IROM {
 struct CPU {
 	unsigned short pc;   // program counter
 	unsigned short a, d; // registers
-	
+
 	static const unsigned int romsize = 0x4000;
 	static const unsigned int ramsize = 0x6000;
-	
+
 	void reset() {
 		pc = 0;
 		a = 0;
