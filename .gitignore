@@ -6,3 +6,4 @@ src/emulator-gui
 src/jack2vm
 src/vm2asm
 src/vm2hack
+.teststore/
