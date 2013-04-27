@@ -63,7 +63,7 @@ void Parser::expectKeyword(Tokenizer::Keyword k)
 {
 	if (acceptKeyword(k))
 		return;
-	
+
 	std::stringstream message;
 	message << "Expected keyword " << k;
 	throw ParseError(message.str(), tokenizer);
@@ -318,7 +318,7 @@ void Parser::expectExpression()
 {
 	if (acceptExpression())
 		return;
-	
+
 	throw ParseError("Expected expression", tokenizer);
 }
 

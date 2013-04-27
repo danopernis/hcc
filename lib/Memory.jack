@@ -25,7 +25,7 @@
 
 /**
  * Memory operations library.
- */ 
+ */
 class Memory {
 	static int memory;
 
@@ -49,7 +49,7 @@ class Memory {
 		return;
 	}
 
-	/** finds and allocates from the heap a memory block of the 
+	/** finds and allocates from the heap a memory block of the
 	 *  specified size and returns a reference to its base address. */
 	function int alloc(int size) {
 		var int i;

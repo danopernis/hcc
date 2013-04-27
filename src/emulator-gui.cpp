@@ -35,12 +35,12 @@ struct GUIEmulatorRAM : public hcc::IRAM {
 	static const unsigned int SCREEN_WIDTH = 512;
 	static const unsigned int SCREEN_HEIGHT = 256;
 	static const unsigned int size = 0x6001;
-	
+
 	unsigned short *data;
 	unsigned char *vram;
 	GdkPixbuf *pixbuf;
 	GtkWidget *screen;
-	
+
 	void putpixel(unsigned short x, unsigned short y, bool black) {
 		unsigned int offset = CHANNELS*(SCREEN_WIDTH*y + x);
 		for (unsigned int channel = 0; channel<CHANNELS; ++channel) {
@@ -68,13 +68,13 @@ public:
 		if (address >= size) {
 			throw std::runtime_error("RAM::set");
 		}
-		
+
 		data[address] = value;
-		
+
 		// check if we are writing to video RAM
 		if (0x4000 <= address && address <0x6000) {
 			address -= 0x4000;
-			
+
 			unsigned short y = address / 32;
 			unsigned short x = 16*(address % 32);
 			for (int bit = 0; bit<16; ++bit) {
@@ -90,7 +90,7 @@ public:
 		if (address >= size) {
 			throw std::runtime_error("RAM::get");
 		}
-		
+
 		return data[address];
 	}
 };
@@ -116,7 +116,7 @@ void load_clicked(GtkButton *button, gpointer user_data)
 		g_free(filename);
 	}
 	gtk_widget_destroy(dialog);
-	
+
 	if (!loaded) {
 		GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(window),
 			GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE,
@@ -145,19 +145,19 @@ gpointer run_thread(gpointer user_data)
 void run_clicked()
 {
 	assert(!running);
-	
+
 	running = true;
 	gtk_widget_set_sensitive(GTK_WIDGET(button_run), FALSE);
 	gtk_widget_set_visible(GTK_WIDGET(button_run), FALSE);
 	gtk_widget_set_sensitive(GTK_WIDGET(button_pause), TRUE);
 	gtk_widget_set_visible(GTK_WIDGET(button_pause), TRUE);
-	
+
 	g_thread_create(run_thread, NULL, FALSE, NULL);
 }
 void pause_clicked()
 {
 	assert(running);
-	
+
 	running = false;
 	gtk_widget_set_sensitive(GTK_WIDGET(button_pause), FALSE);
 	gtk_widget_set_visible(GTK_WIDGET(button_pause), FALSE);
@@ -273,12 +273,12 @@ int main(int argc, char *argv[])
 	button_load    = create_button(GTK_STOCK_OPEN,        "Load...", G_CALLBACK(load_clicked));
 	button_run     = create_button(GTK_STOCK_MEDIA_PLAY,  "Run",     G_CALLBACK(run_clicked));
 	button_pause   = create_button(GTK_STOCK_MEDIA_PAUSE, "Pause",   G_CALLBACK(pause_clicked));
-	
+
 	GtkToolItem *separator1 = gtk_separator_tool_item_new();
-	
+
 	gtk_widget_set_sensitive(GTK_WIDGET(button_run), FALSE);
 	gtk_widget_set_sensitive(GTK_WIDGET(button_pause), FALSE);
-	
+
 	/* toolbar itself */
 	GtkWidget *toolbar = gtk_toolbar_new();
 	gtk_widget_set_hexpand(toolbar, TRUE);
@@ -293,13 +293,13 @@ int main(int argc, char *argv[])
 	gtk_widget_add_events(keyboard, GDK_KEY_PRESS_MASK | GDK_KEY_RELEASE_MASK);
 	g_signal_connect(keyboard, "key-press-event",   G_CALLBACK(keyboard_callback), NULL);
 	g_signal_connect(keyboard, "key-release-event", G_CALLBACK(keyboard_callback), NULL);
-	
+
 	/* main layout */
 	GtkWidget *grid = gtk_grid_new();
 	gtk_grid_attach(GTK_GRID(grid), toolbar, 0, 0, 1, 1);
 	gtk_grid_attach(GTK_GRID(grid), ram->getScreenWidget(), 0, 1, 1, 1);
 	gtk_grid_attach(GTK_GRID(grid), keyboard, 0, 2, 1, 1);
-	
+
 	/* main window */
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	gtk_window_set_title(GTK_WINDOW(window), "HACK emulator");
@@ -309,7 +309,7 @@ int main(int argc, char *argv[])
 	gtk_container_add(GTK_CONTAINER(window), grid);
 	gtk_widget_show_all(window);
 	gtk_widget_set_visible(GTK_WIDGET(button_pause), FALSE);
-	
+
 	gtk_main();
 	return 0;
 }
