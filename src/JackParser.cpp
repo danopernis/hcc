@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Dano Pernis
+ * Copyright (c) 2012-2013 Dano Pernis
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -23,410 +23,537 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 #include "JackParser.h"
-#include <iostream>
+#include "make_unique.h"
+#include <sstream>
+#include <fstream>
+#include <boost/optional.hpp>
+
 
 namespace hcc {
 namespace jack {
 
-Parser::Parser(Tokenizer &tokenizer, ParserCallback &callback)
-	: tokenizer(tokenizer)
-	, callback(callback)
+
+/** pimpl idiom */
+struct Parser::Impl {
+    /** The source of tokens for parser. */
+    Tokenizer* tokenizer;
+
+
+    /**
+     * If current token is the given keyword, advance() and return true.
+     * Otherwise return false.
+     */
+    bool acceptToken(TokenType tt)
+    {
+        if (tokenizer->getTokenType() == tt) {
+            tokenizer->advance();
+            return true;
+        }
+        return false;
+    }
+
+
+    /**
+     * Throw an exception if current token is not the given keyword.
+     */
+    void expectToken(TokenType tt)
+    {
+        if (acceptToken(tt))
+            return;
+
+        std::stringstream message;
+        message << "Expected " << tt << ", got " << tokenizer->getTokenType();
+        throw ParseError(message.str(), *tokenizer);
+    }
+
+
+    /**
+     * Maybe return identifier.
+     */
+    using MaybeIdentifier = boost::optional<std::string>;
+    MaybeIdentifier acceptIdentifier()
+    {
+        MaybeIdentifier result;
+        if (tokenizer->getTokenType() == TokenType::IDENTIFIER) {
+            result = tokenizer->getIdentifier();
+            tokenizer->advance();
+        }
+        return result;
+    }
+
+
+    /**
+     * Return identifier or throw an exception if there is none.
+     */
+    std::string expectIdentifier()
+    {
+        if (auto result = acceptIdentifier())
+            return *result;
+        else
+            throw ParseError("Expected identifier", *tokenizer);
+    }
+
+
+    /**
+     * @grammar class = 'class' identifier '{' classVarDec* subroutineDec* '}'
+     */
+    ast::Class parseClass()
+    {
+        ast::Class result;
+
+        expectToken(TokenType::CLASS);
+        result.name = expectIdentifier();
+
+        expectToken(TokenType::BRACE_LEFT);
+        while (true) {
+            if (acceptToken(TokenType::STATIC)) {
+                parseVariableDeclaration(result.staticVariables);
+            } else if (acceptToken(TokenType::FIELD)) {
+                parseVariableDeclaration(result.fieldVariables);
+            } else {
+                break;
+            }
+        }
+        while (true) {
+            if (acceptToken(TokenType::CONSTRUCTOR)) {
+                result.subroutines.push_back(parseSubroutine(ast::Subroutine::Kind::CONSTRUCTOR));
+            } else if (acceptToken(TokenType::FUNCTION)) {
+                result.subroutines.push_back(parseSubroutine(ast::Subroutine::Kind::FUNCTION));
+            } else if (acceptToken(TokenType::METHOD)) {
+                result.subroutines.push_back(parseSubroutine(ast::Subroutine::Kind::METHOD));
+            } else {
+                break;
+            }
+        }
+        expectToken(TokenType::BRACE_RIGHT);
+        expectToken(TokenType::EOF_);
+
+        return result;
+    }
+
+
+    /**
+     * @grammar subroutineDec = ('void' | type) identifier '(' parameterList ')' '{' variableDeclaration* statements '}'
+     */
+    ast::Subroutine parseSubroutine(ast::Subroutine::Kind kind)
+    {
+        ast::Subroutine subroutine;
+        subroutine.kind = kind;
+
+        if (acceptToken(TokenType::VOID)) {
+            subroutine.returnType = nullptr;
+        } else {
+            subroutine.returnType = expectType();
+        }
+
+        subroutine.name = expectIdentifier();
+
+        parseParameterList(subroutine.arguments);
+        expectToken(TokenType::BRACE_LEFT);
+        while (acceptToken(TokenType::VAR)) {
+            parseVariableDeclaration(subroutine.variables);
+        }
+        subroutine.statements = parseStatements();
+        expectToken(TokenType::BRACE_RIGHT);
+
+        return subroutine;
+    }
+
+
+    /**
+     * @grammar variableDeclaration = type identifier (',' identifier)* ';'
+     */
+    void parseVariableDeclaration(ast::VariableDeclarationList& declarations)
+    {
+        auto type = expectType();
+
+        do {
+            ast::VariableDeclaration vd;
+            vd.name = expectIdentifier();
+            vd.type = type->clone();
+            declarations.push_back(std::move(vd));
+        } while (acceptToken(TokenType::COMMA));
+        expectToken(TokenType::SEMICOLON);
+    }
+
+
+    /**
+     * @grammar parameterList = '(' type varName (',' type varName)* ')'
+     */
+    void parseParameterList(ast::VariableDeclarationList& declarations)
+    {
+        expectToken(TokenType::PARENTHESIS_LEFT);
+        if (acceptToken(TokenType::PARENTHESIS_RIGHT))
+            return;
+
+        do {
+            ast::VariableDeclaration vd;
+            vd.type = expectType();
+            vd.name = expectIdentifier();
+
+            declarations.push_back(std::move(vd));
+        } while (acceptToken(TokenType::COMMA));
+        expectToken(TokenType::PARENTHESIS_RIGHT);
+    }
+
+
+    /**
+     * @grammar statements = (letStatement | ifStatement | whileStatement | doStatement | returnStatement)*
+     */
+    ast::StatementList parseStatements()
+    {
+        ast::StatementList statements;
+
+        while (true) {
+            if (acceptToken(TokenType::LET)) {
+                parseLetStatement(statements);
+            } else if (acceptToken(TokenType::IF)) {
+                parseIfStatement(statements);
+            } else if (acceptToken(TokenType::WHILE)) {
+                parseWhileStatement(statements);
+            } else if (acceptToken(TokenType::DO)) {
+                parseDoStatement(statements);
+            } else if (acceptToken(TokenType::RETURN)) {
+                parseReturnStatement(statements);
+            } else {
+                break;
+            }
+        }
+
+        return statements;
+    }
+
+
+    /**
+     * @grammar letStatement = identifier ('[' expression ']')? '=' expression ';'
+     */
+    void parseLetStatement(ast::StatementList& statements)
+    {
+        std::string name = expectIdentifier();
+        if (acceptToken(TokenType::BRACKET_LEFT)) {
+            auto subscript = expectExpression();
+            expectToken(TokenType::BRACKET_RIGHT);
+            expectToken(TokenType::EQUALS_SIGN);
+
+            statements.push_back(make_unique<ast::LetVector>(
+                name,
+                std::move(subscript),
+                expectExpression()
+            ));
+        } else {
+            expectToken(TokenType::EQUALS_SIGN);
+
+            statements.push_back(make_unique<ast::LetScalar>(
+                name,
+                expectExpression()
+            ));
+        }
+        expectToken(TokenType::SEMICOLON);
+    }
+
+
+    /**
+     * @grammar ifStatement = '(' expression ')' '{' statements '}' ( 'else' '{' statements '}' )?
+     */
+    void parseIfStatement(ast::StatementList& statements)
+    {
+        expectToken(TokenType::PARENTHESIS_LEFT);
+        ast::Expression condition = expectExpression();
+        expectToken(TokenType::PARENTHESIS_RIGHT);
+
+        expectToken(TokenType::BRACE_LEFT);
+        ast::StatementList positiveBranch = parseStatements();
+        ast::StatementList negativeBranch;
+        expectToken(TokenType::BRACE_RIGHT);
+        if (acceptToken(TokenType::ELSE)) {
+            expectToken(TokenType::BRACE_LEFT);
+            negativeBranch = parseStatements();
+            expectToken(TokenType::BRACE_RIGHT);
+        }
+
+        statements.push_back(make_unique<ast::IfStatement>(
+            std::move(condition),
+            std::move(positiveBranch),
+            std::move(negativeBranch)
+        ));
+    }
+
+
+    /**
+     * @grammar whileStatement = '(' expression ')' '{' statements '}'
+     */
+    void parseWhileStatement(ast::StatementList& statements)
+    {
+        expectToken(TokenType::PARENTHESIS_LEFT);
+        ast::Expression condition = expectExpression();
+        expectToken(TokenType::PARENTHESIS_RIGHT);
+
+        expectToken(TokenType::BRACE_LEFT);
+        ast::StatementList body = parseStatements();
+        expectToken(TokenType::BRACE_RIGHT);
+
+        statements.push_back(make_unique<ast::WhileStatement>(
+            std::move(condition),
+            std::move(body)
+        ));
+    }
+
+
+    /**
+     * @grammar doStatement = subroutineCall ';'
+     */
+    void parseDoStatement(ast::StatementList& statements)
+    {
+        std::string name = expectIdentifier();
+        std::string base;
+
+        if (acceptToken(TokenType::DOT)) {
+            base = name;
+            name = expectIdentifier();
+        }
+        expectToken(TokenType::PARENTHESIS_LEFT);
+        statements.push_back(make_unique<ast::DoStatement>(
+            base,
+            name,
+            parseExpressionList()
+        ));
+        expectToken(TokenType::PARENTHESIS_RIGHT);
+        expectToken(TokenType::SEMICOLON);
+    }
+
+
+    /**
+     * @grammar returnStatement = (expression)? ';'
+     */
+    void parseReturnStatement(ast::StatementList& statements)
+    {
+        statements.push_back(make_unique<ast::ReturnStatement>(
+            acceptExpression()
+        ));
+        expectToken(TokenType::SEMICOLON);
+    }
+
+
+    /**
+     * Return type or throw an exception if there is none.
+     *
+     * @grammar type = 'int' | 'char' | 'boolean' | identifier
+     */
+    ast::VariableType expectType()
+    {
+        if (auto identifier = acceptIdentifier()) {
+            return make_unique<ast::UnresolvedType>(*identifier);
+        } else if (acceptToken(TokenType::CHAR)) {
+            return make_unique<ast::CharType>();
+        } else if (acceptToken(TokenType::BOOLEAN)) {
+            return make_unique<ast::BooleanType>();
+        } else if (acceptToken(TokenType::INT)) {
+            return make_unique<ast::IntType>();
+        } else {
+            throw ParseError("Expected type", *tokenizer);
+        }
+    }
+
+
+    /**
+     * Maybe return expression.
+     *
+     * @grammar expression = term (op term)*
+     * @grammar op = '+' | '-' | '*' | '/' | '&' | '|' | '<' | '>' | '='
+     */
+    ast::Expression acceptExpression()
+    {
+        auto expression = acceptTerm();
+        if (!expression)
+            return ast::Expression();
+
+        while (true) {
+            ast::BinaryExpression::Type type;
+            if (acceptToken(TokenType::PLUS_SIGN)) {
+                type = ast::BinaryExpression::Type::ADD;
+            } else if (acceptToken(TokenType::MINUS_SIGN)) {
+                type = ast::BinaryExpression::Type::SUBSTRACT;
+            } else if (acceptToken(TokenType::ASTERISK)) {
+                type = ast::BinaryExpression::Type::MULTIPLY;
+            } else if (acceptToken(TokenType::SLASH)) {
+                type = ast::BinaryExpression::Type::DIVIDE;
+            } else if (acceptToken(TokenType::AMPERSAND)) {
+                type = ast::BinaryExpression::Type::AND;
+            } else if (acceptToken(TokenType::VERTICAL_BAR)) {
+                type = ast::BinaryExpression::Type::OR;
+            } else if (acceptToken(TokenType::LESS_THAN_SIGN)) {
+                type = ast::BinaryExpression::Type::LESSER;
+            } else if (acceptToken(TokenType::GREATER_THAN_SIGN)) {
+                type = ast::BinaryExpression::Type::GREATER;
+            } else if (acceptToken(TokenType::EQUALS_SIGN)) {
+                type = ast::BinaryExpression::Type::EQUAL;
+            } else {
+                // did not found op => finished
+                return expression;
+            }
+            // found op => expect term & next round
+            expression = make_unique<ast::BinaryExpression>(
+                type,
+                std::move(expression),
+                expectTerm()
+            );
+        }
+    }
+
+
+    /**
+     * Return expression or throw an exception if there is none.
+     */
+    ast::Expression expectExpression()
+    {
+        if (auto result = acceptExpression())
+            return result;
+        else
+            throw ParseError("Expected expression", *tokenizer);
+    }
+
+
+    /**
+     * Maybe return term.
+     *
+     * @grammar term = integerConstant | stringConstant | keywordConstant
+     *               | identifier ('[' expression ']')? | subroutineCall
+     *               | '(' expression ')' | unaryOp term
+     * @grammar subroutineCall = identifier ('.' identifier)? '(' expressionList ')'
+     * @grammar unaryOp = '-' | '~'
+     * @grammar keywordConstant = 'true' | 'false' | 'null' | 'this'
+     */
+    ast::Expression acceptTerm()
+    {
+        if (acceptToken(TokenType::TRUE)) {
+            return make_unique<ast::UnaryExpression>(
+                ast::UnaryExpression::Type::NOT,
+                make_unique<ast::IntegerConstant>(0)
+            );
+        }
+        if (acceptToken(TokenType::FALSE) || acceptToken(TokenType::NULL_)) {
+            return make_unique<ast::IntegerConstant>(0);
+        }
+        if (acceptToken(TokenType::THIS)) {
+            return make_unique<ast::ThisConstant>();
+        }
+        if (acceptToken(TokenType::MINUS_SIGN)) {
+            return make_unique<ast::UnaryExpression>(
+                ast::UnaryExpression::Type::MINUS,
+                expectTerm()
+            );
+        }
+        if (acceptToken(TokenType::TILDE)) {
+            return make_unique<ast::UnaryExpression>(
+                ast::UnaryExpression::Type::NOT,
+                expectTerm()
+            );
+        }
+        if (tokenizer->getTokenType() == TokenType::INT_CONST) {
+            auto value = tokenizer->getIntConstant();
+            tokenizer->advance();
+            return make_unique<ast::IntegerConstant>(value);
+        }
+        if (tokenizer->getTokenType() == TokenType::STRING_CONST) {
+            auto value = tokenizer->getStringConstant();
+            tokenizer->advance();
+            return make_unique<ast::StringConstant>(value);
+        }
+        if (auto identifier = acceptIdentifier()) {
+            std::string name = *identifier;
+
+            if (acceptToken(TokenType::BRACKET_LEFT)) {
+                auto subscript = expectExpression();
+                expectToken(TokenType::BRACKET_RIGHT);
+
+                return make_unique<ast::VectorVariable>(
+                    name,
+                    std::move(subscript)
+                );
+            }
+            if (acceptToken(TokenType::DOT)) {
+                std::string base = name;
+                name = expectIdentifier();
+                expectToken(TokenType::PARENTHESIS_LEFT);
+                auto arguments = parseExpressionList();
+                expectToken(TokenType::PARENTHESIS_RIGHT);
+
+                return make_unique<ast::SubroutineCall>(
+                    base,
+                    name,
+                    std::move(arguments)
+                );
+            }
+            if (acceptToken(TokenType::PARENTHESIS_LEFT)) {
+                parseExpressionList();
+                expectToken(TokenType::PARENTHESIS_RIGHT);
+                throw std::runtime_error("Unimplemented");
+            }
+            // else it is scalar variable access
+            return make_unique<ast::ScalarVariable>(name);
+        }
+        if (acceptToken(TokenType::PARENTHESIS_LEFT)) {
+            auto expression = expectExpression();
+            expectToken(TokenType::PARENTHESIS_RIGHT);
+            return expression;
+        }
+
+        return ast::Expression(); // nothing
+    }
+
+
+    /**
+     * Return term or throw an exception if there is none.
+     */
+    ast::Expression expectTerm()
+    {
+        if (auto result = acceptTerm())
+            return result;
+        else
+            throw ParseError("Expected term", *tokenizer);
+    }
+
+
+    /**
+     * Return (potentially empty) expressionList.
+     *
+     * @grammar expressionList = (expression (',' expression)* )?
+     */
+    ast::ExpressionList parseExpressionList()
+    {
+        ast::ExpressionList result;
+
+        if (auto expression = acceptExpression()) {
+            result.push_back(std::move(expression));
+            while (acceptToken(TokenType::COMMA)) {
+                result.push_back(expectExpression());
+            }
+        }
+
+        return result;
+    }
+}; // end struct Parser::Impl
+
+
+Parser::Parser()
+    : pimpl(new Impl())
+{}
+
+
+// destructor must be defined in implementation file for pimpl + unique to work
+Parser::~Parser() = default;
+
+
+// implementation
+ast::Class Parser::parse(const std::string& filename)
 {
+    std::ifstream input(filename.c_str());
+    Tokenizer tokenizer(input);
+    pimpl->tokenizer = &tokenizer;
+    pimpl->tokenizer->advance();
+    return pimpl->parseClass();
 }
 
-/*
- * shortcuts
- */
-void Parser::next()
-{
-	if (!tokenizer.hasMoreTokens())
-		throw ParseError("Unexpected end of file", tokenizer);
-
-	lastKeyword        = tokenizer.getKeyword();
-	lastSymbol         = tokenizer.getSymbol();
-	lastStringConstant = tokenizer.getStringConstant();
-	lastIdentifier     = tokenizer.getIdentifier();
-	lastIntConstant    = tokenizer.getIntConstant();
-
-	tokenizer.advance();
-}
-bool Parser::acceptKeyword(Tokenizer::Keyword k)
-{
-	if (tokenizer.getTokenType() == Tokenizer::T_KEYWORD &&
-	    tokenizer.getKeyword() == k) {
-		next();
-		return true;
-	}
-	return false;
-}
-void Parser::expectKeyword(Tokenizer::Keyword k)
-{
-	if (acceptKeyword(k))
-		return;
-
-	std::stringstream message;
-	message << "Expected keyword " << k;
-	throw ParseError(message.str(), tokenizer);
-}
-bool Parser::acceptIdentifier()
-{
-	if (tokenizer.getTokenType() == Tokenizer::T_IDENTIFIER) {
-		next();
-		return true;
-	}
-	return false;
-}
-void Parser::expectIdentifier()
-{
-	if (acceptIdentifier())
-		return;
-
-	throw ParseError("Expected identifier", tokenizer);
-}
-bool Parser::acceptSymbol(char s)
-{
-	if (tokenizer.getTokenType() == Tokenizer::T_SYMBOL &&
-	    tokenizer.getSymbol() == s) {
-		next();
-		return true;
-	}
-	return false;
-}
-void Parser::expectSymbol(char s)
-{
-	if (acceptSymbol(s))
-		return;
-
-	std::stringstream message;
-	message << "Expected symbol " << s;
-	throw ParseError(message.str(), tokenizer);
-}
-
-/*
- * grammar
- */
-void Parser::parseClass()
-{
-	expectKeyword(Tokenizer::K_CLASS);
-	expectIdentifier();
-	callback.doClass(lastIdentifier);
-
-	expectSymbol('{');
-	for (;;) { // class variables
-		if (acceptKeyword(Tokenizer::K_STATIC)) {
-			parseVariable(STATIC);
-		} else if (acceptKeyword(Tokenizer::K_FIELD)) {
-			parseVariable(FIELD);
-		} else {
-			break;
-		}
-	}
-	for (;;) { // subroutines
-		if (acceptKeyword(Tokenizer::K_CONSTRUCTOR)) {
-			parseSubroutine(CONSTRUCTOR);
-		} else if (acceptKeyword(Tokenizer::K_FUNCTION)) {
-			parseSubroutine(FUNCTION);
-		} else if (acceptKeyword(Tokenizer::K_METHOD)) {
-			parseSubroutine(METHOD);
-		} else {
-			break;
-		}
-	}
-	expectSymbol('}');
-}
-void Parser::parseVariable(VariableStorage storage)
-{
-	expectType();
-	do {
-		expectIdentifier();
-		callback.doVariableDec(storage, lastType, lastIdentifier);
-	} while (acceptSymbol(','));
-	expectSymbol(';');
-}
-void Parser::parseSubroutine(SubroutineKind kind)
-{
-	if (acceptKeyword(Tokenizer::K_VOID)) {
-		lastType.kind = VariableType::VOID;
-	} else {
-		expectType();
-	}
-	expectIdentifier();
-	callback.doSubroutineStart(kind, lastType, lastIdentifier);
-
-	parseArgumentList();
-	expectSymbol('{');
-
-	while (acceptKeyword(Tokenizer::K_VAR)) {
-		parseVariable(LOCAL);
-	}
-
-	callback.doSubroutineAfterVarDec();
-	parseStatements();
-	expectSymbol('}');
-	callback.doSubroutineEnd();
-}
-
-void Parser::parseArgumentList()
-{
-	expectSymbol('(');
-	if (acceptSymbol(')'))
-		return;
-
-	do {
-		expectType();
-		expectIdentifier();
-		callback.doVariableDec(ARGUMENT, lastType, lastIdentifier);
-	} while (acceptSymbol(','));
-	expectSymbol(')');
-}
-
-void Parser::parseStatements()
-{
-	for (;;) {
-		if (acceptKeyword(Tokenizer::K_LET)) {
-			expectIdentifier();
-			std::string name = lastIdentifier;
-			if (acceptSymbol('[')) {
-				expectExpression();
-				expectSymbol(']');
-				callback.doLetVectorStart(name);
-				expectSymbol('=');
-				expectExpression();
-				expectSymbol(';');
-				callback.doLetVectorEnd();
-			} else {
-				expectSymbol('=');
-				expectExpression();
-				expectSymbol(';');
-				callback.doLetScalar(name);
-			}
-		} else if (acceptKeyword(Tokenizer::K_IF)) {
-			expectSymbol('(');
-			expectExpression();
-			expectSymbol(')');
-
-			callback.doIf();
-			expectSymbol('{');
-			parseStatements();
-			expectSymbol('}');
-			if (acceptKeyword(Tokenizer::K_ELSE)) {
-				callback.doElse();
-				expectSymbol('{');
-				parseStatements();
-				expectSymbol('}');
-				callback.doEndif(true);
-			} else {
-				callback.doEndif(false);
-			}
-		} else if (acceptKeyword(Tokenizer::K_WHILE)) {
-			callback.doWhileExp();
-
-			expectSymbol('(');
-			expectExpression();
-			expectSymbol(')');
-			callback.doWhile();
-
-			expectSymbol('{');
-			parseStatements();
-			expectSymbol('}');
-			callback.doEndwhile();
-		} else if (acceptKeyword(Tokenizer::K_DO)) {
-			expectIdentifier();
-			std::string name = lastIdentifier;
-
-			if (acceptSymbol('(')) {
-				callback.doDoSimpleStart();
-				parseExpressionList();
-				expectSymbol(')');
-				expectSymbol(';');
-				callback.doDoSimpleEnd(name);
-			} else if (acceptSymbol('.')) {
-				callback.doDoCompoundStart(name);
-				expectIdentifier();
-				name = lastIdentifier;
-				expectSymbol('(');
-				parseExpressionList();
-				expectSymbol(')');
-				expectSymbol(';');
-				callback.doDoCompoundEnd(name);
-			} else {
-				throw ParseError("Expected subroutine call", tokenizer);
-			}
-		} else if (acceptKeyword(Tokenizer::K_RETURN)) {
-			if (acceptExpression()) {
-				callback.doReturn(true);
-			} else {
-				callback.doReturn(false);
-			}
-			expectSymbol(';');
-		} else {
-			break;
-		}
-	}
-}
-
-bool Parser::acceptType()
-{
-	if (acceptKeyword(Tokenizer::K_INT)) {
-		lastType.kind = VariableType::INT;
-		return true;
-	}
-	if (acceptKeyword(Tokenizer::K_CHAR)) {
-		lastType.kind = VariableType::CHAR;
-		return true;
-	}
-	if (acceptKeyword(Tokenizer::K_BOOLEAN)) {
-		lastType.kind = VariableType::BOOLEAN;
-		return true;
-	}
-	if (acceptIdentifier()) {
-		lastType.kind = VariableType::AGGREGATE;
-		lastType.name = lastIdentifier;
-		return true;
-	}
-	return false;
-}
-void Parser::expectType()
-{
-	if (acceptType())
-		return;
-
-	throw ParseError("Expected type", tokenizer);
-}
-
-bool Parser::acceptExpression()
-{
-	if (acceptTerm()) {
-		while (acceptSymbol('+') ||
-		       acceptSymbol('-') ||
-		       acceptSymbol('*') ||
-		       acceptSymbol('/') ||
-		       acceptSymbol('&') ||
-		       acceptSymbol('|') ||
-		       acceptSymbol('<') ||
-		       acceptSymbol('>') ||
-		       acceptSymbol('=')) {
-			char op = lastSymbol;
-			expectTerm();
-			callback.doBinary(op);
-		}
-		return true;
-	}
-	return false;
-}
-void Parser::expectExpression()
-{
-	if (acceptExpression())
-		return;
-
-	throw ParseError("Expected expression", tokenizer);
-}
-
-bool Parser::acceptTerm()
-{
-	if (acceptKeyword(Tokenizer::K_TRUE)) {
-		callback.doIntConstant(0);
-		callback.doNot();
-		return true; // keyword constant
-	}
-	if (acceptKeyword(Tokenizer::K_FALSE) ||
-	    acceptKeyword(Tokenizer::K_NULL)) {
-		callback.doIntConstant(0);
-		return true; // keyword constant
-	}
-	if (acceptKeyword(Tokenizer::K_THIS)) {
-		callback.doThis();
-		return true; // keyword constant
-	}
-	if (acceptIdentifier()) {
-		std::string name = lastIdentifier;
-
-		if (acceptSymbol('[')) {
-			expectExpression();
-			expectSymbol(']');
-			callback.doVariableVector(name);
-			return true; // array access
-		}
-		if (acceptSymbol('.')) {
-			callback.doCallCompoundStart(name);
-			expectIdentifier();
-			name = lastIdentifier;
-			expectSymbol('(');
-			parseExpressionList();
-			expectSymbol(')');
-			callback.doCallCompoundEnd(name);
-			return true; // subroutine call
-		}
-		if (acceptSymbol('(')) {
-			parseExpressionList();
-			expectSymbol(')');
-			return true; // method call
-		}
-		// else it is scalar variable access
-		callback.doVariableScalar(name);
-		return true;
-	}
-	if (acceptSymbol('(')) {
-		expectExpression();
-		expectSymbol(')');
-		return true; // expression
-	}
-	if (acceptSymbol('-')) {
-		expectTerm();
-		callback.doNeg();
-		return true; // unary minus
-	}
-	if (acceptSymbol('~')) {
-		expectTerm();
-		callback.doNot();
-		return true; // unary not
-	}
-	if (tokenizer.getTokenType() == Tokenizer::T_INT_CONST) {
-		next();
-		callback.doIntConstant(lastIntConstant);
-		return true; // integer constant
-	}
-	if (tokenizer.getTokenType() == Tokenizer::T_STRING_CONST) {
-		next();
-		callback.doStringConstant(lastStringConstant);
-		return true; // string constant
-	}
-
-	return false; // not accepted
-}
-void Parser::expectTerm()
-{
-	if (acceptTerm())
-		return;
-
-	throw ParseError("Expected term", tokenizer);
-}
-
-void Parser::parseExpressionList()
-{
-	unsigned int expressionsCount = 0;
-	if (acceptExpression()) {
-		++expressionsCount;
-		while (acceptSymbol(',')) {
-			expectExpression();
-			++expressionsCount;
-		}
-	}
-	callback.setExpressionsCount(expressionsCount);
-}
-
-/*
- * interface
- */
-void Parser::parse()
-{
-	try {
-		next();
-		parseClass();
-	} catch (ParseError &e) {
-		std::cerr << "Parse error: " << e.what() << " at " << e.line << ":" << e.column << '\n';
-	}
-}
 
 } // end namespace jack
 } // end namespace hcc

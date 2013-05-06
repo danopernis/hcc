@@ -1,37 +1,38 @@
-CXXFLAGS = -Wall -g -std=c++0x $(shell pkg-config --cflags gtk+-3.0) $(shell pkg-config --cflags glib-2.0)
+CXX=g++-4.7.2
+CXXFLAGS = -Wall -g -std=c++11 $(shell pkg-config --cflags gtk+-3.0) $(shell pkg-config --cflags glib-2.0)
 
 ASM2HACK_OBJECTS = asm2hack.o ParserAsm.o Assembler.o
 VM2HACK_OBJECTS = vm2hack.o ParserVM.o VMWriter.o VMOptimize.o Assembler.o CPU.o StageConnect.o instruction.o
 VM2ASM_OBJECTS = vm2asm.o ParserVM.o VMCommand.o VMWriter.o VMOptimize.o CPU.o StageConnect.o instruction.o
-JACK2VM_OBJECTS = jack2vm.o JackTokenizer.o JackParser.o JackParserCallback.o JackVMWriter.o SymbolTable.o
+JACK2VM_OBJECTS = jack2vm.o JackTokenizer.o JackParser.o JackVMWriter.o
 EMULATOR_OBJECTS = emulator.o CPU.o
 EMULATOR_GUI_OBJECTS = emulator-gui.o CPU.o
 
 all: asm2hack vm2asm jack2vm vm2hack emulator emulator-gui
 
 Makefile.depend:
-	g++ -MM *.cpp > Makefile.depend
+	$(CXX) -MM *.cpp > Makefile.depend
 
 asm2hack: $(ASM2HACK_OBJECTS)
-	g++ -o asm2hack $^
+	$(CXX) -o asm2hack $^
 
 vm2hack: $(VM2HACK_OBJECTS)
-	g++ -o vm2hack $^
+	$(CXX) -o vm2hack $^
 
 vm2asm: $(VM2ASM_OBJECTS)
-	g++ -o vm2asm $^
+	$(CXX) -o vm2asm $^
 
 jack2vm: $(JACK2VM_OBJECTS)
-	g++ -o jack2vm $^
+	$(CXX) -o jack2vm $^
 
 emulator: $(EMULATOR_OBJECTS)
-	g++ -o emulator $^
+	$(CXX) -o emulator $^
 
 emulator-gui: $(EMULATOR_GUI_OBJECTS)
-	g++ -o emulator-gui $^ `pkg-config --libs gtk+-3.0` `pkg-config --libs glib-2.0`
+	$(CXX) -o emulator-gui $^ `pkg-config --libs gtk+-3.0` `pkg-config --libs glib-2.0`
 
 %.o: %.cpp
-	g++ $(CXXFLAGS) -o $@ -c $<
+	$(CXX) $(CXXFLAGS) -o $@ -c $<
 
 include Makefile.depend
 

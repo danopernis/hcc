@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Dano Pernis
+ * Copyright (c) 2012-2013 Dano Pernis
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -25,56 +25,60 @@
 #pragma once
 #include <string>
 #include <stdexcept>
+#include "JackAST.h"
 #include "JackTokenizer.h"
-#include "JackParserCallback.h"
+
 
 namespace hcc {
 namespace jack {
 
-struct ParseError: public std::runtime_error {
-	unsigned int line, column;
-	ParseError(const std::string& what, const Tokenizer& tokenizer)
-		: runtime_error(what)
-		, line(tokenizer.getLine())
-		, column(tokenizer.getColumn()) {}
-	virtual ~ParseError() throw () {}
+
+/**
+ * An exception thrown when parser encounters error.
+ */
+class ParseError
+    : public std::runtime_error
+{
+public:
+    /**
+     * Construct from error message and tokenizer instance.
+     */
+    ParseError(const std::string& what, const Tokenizer& tokenizer)
+        : runtime_error(what)
+        , line(tokenizer.getLine())
+        , column(tokenizer.getColumn())
+    {}
+
+
+    virtual ~ParseError() throw () {}
+
+
+    /** a column where error occured */
+    unsigned line;
+
+
+    /** a column where error occured */
+    unsigned column;
 };
 
+
+/**
+ * A parser for Jack language.
+ */
 class Parser {
-	Tokenizer& tokenizer;
-	ParserCallback& callback;
-
-	Tokenizer::Keyword lastKeyword;
-	char lastSymbol;
-	std::string lastStringConstant, lastIdentifier;
-	int lastIntConstant;
-	VariableType lastType;
-
-	void next();
-	bool acceptKeyword(Tokenizer::Keyword keyword);
-	void expectKeyword(Tokenizer::Keyword keyword);
-	bool acceptIdentifier();
-	void expectIdentifier();
-	bool acceptSymbol(char symbol);
-	void expectSymbol(char symbol);
-
-	void parseClass();
-	void parseVariable(VariableStorage storage);
-	void parseSubroutine(SubroutineKind kind);
-	void parseArgumentList();
-	void parseStatements();
-	void parseExpressionList();
-
-	bool acceptType();
-	void expectType();
-	bool acceptExpression();
-	void expectExpression();
-	bool acceptTerm();
-	void expectTerm();
-
 public:
-	Parser(Tokenizer &tokenizer, ParserCallback &callback);
-	void parse();
+    Parser();
+    ~Parser();
+
+    /**
+     * Attempt to parse input and return AST.
+     */
+    ast::Class parse(const std::string& filename);
+
+private:
+    // private implementation
+    class Impl;
+    std::unique_ptr<Impl> pimpl;
 };
 
 } // end namespace jack

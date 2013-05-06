@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Dano Pernis
+ * Copyright (c) 2012-2013 Dano Pernis
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -22,35 +22,47 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
  * OTHER DEALINGS IN THE SOFTWARE.
  */
-#include <fstream>
+#include <sstream>
 #include <iostream>
-#include "JackTokenizer.h"
+#include <boost/algorithm/string/join.hpp>
 #include "JackParser.h"
 #include "JackVMWriter.h"
 
 using namespace hcc::jack;
 
-int main(int argc, char *argv[])
-{
-	if (argc < 2) {
-		std::cerr << "Missing input file(s)\n";
-		return 1;
-	}
+int main(int argc, char* argv[])
+try {
+    if (argc < 2) {
+        throw std::runtime_error("Missing input file(s)\n");
+    }
 
-	for (int i = 1; i<argc; ++i) {
-		std::string input(argv[i]);
-		std::cout << "Processing " << input << '\n';
+    // parse input
+    std::vector<ast::Class> classes;
+    try {
+        Parser parser;
+        for (int i = 1; i<argc; ++i) {
+            std::cout << "parsing " << argv[i] << '\n';
+            classes.push_back(parser.parse(argv[i]));
+        }
+    } catch (const ParseError& e) {
+        std::stringstream ss;
+        ss  << "Parse error: " << e.what()
+            << " at " << e.line << ":" << e.column << '\n';
+        throw std::runtime_error(ss.str());
+    }
 
-		Tokenizer tokenizer(input);
+    // TODO semantic analysis
 
-        	std::string output(input, 0, input.rfind('.'));
-	        output.append(".vm");
-		VMWriter writer(output.c_str());
+    // produce output
+    for (const auto& clazz : classes) {
+        VMWriter(clazz.name + ".vm").write(clazz);
+    }
 
-		Parser parser(tokenizer, writer);
-		parser.parse();
-	}
-
-	return 0;
+    return 0;
+} catch (const std::runtime_error& e) {
+    std::cerr
+        << "When executing "
+        << boost::algorithm::join(std::vector<std::string>(argv, argv + argc), " ")
+        << " ...\n" << e.what();
+    return 1;
 }
-

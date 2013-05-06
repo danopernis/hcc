@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Dano Pernis
+ * Copyright (c) 2012-2013 Dano Pernis
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -25,74 +25,108 @@
 #pragma once
 #include <string>
 #include <map>
-#include <fstream>
-#include <sstream>
+#include <iterator>
+#include <istream>
+#include <boost/optional.hpp>
 
 namespace hcc {
 namespace jack {
 
+enum class TokenType {
+// keyword
+    CLASS,
+    METHOD,
+    FUNCTION,
+    CONSTRUCTOR,
+    INT,
+    BOOLEAN,
+    CHAR,
+    VOID,
+    VAR,
+    STATIC,
+    FIELD,
+    LET,
+    DO,
+    IF,
+    ELSE,
+    WHILE,
+    RETURN,
+    TRUE,
+    FALSE,
+    NULL_,
+    THIS,
+// punctuation
+    AMPERSAND,
+    PARENTHESIS_LEFT,
+    PARENTHESIS_RIGHT,
+    ASTERISK,
+    PLUS_SIGN,
+    COMMA,
+    MINUS_SIGN,
+    DOT,
+    SLASH,
+    SEMICOLON,
+    LESS_THAN_SIGN,
+    EQUALS_SIGN,
+    GREATER_THAN_SIGN,
+    BRACKET_LEFT,
+    BRACKET_RIGHT,
+    BRACE_LEFT,
+    VERTICAL_BAR,
+    BRACE_RIGHT,
+    TILDE,
+// rest
+    IDENTIFIER,
+    INT_CONST,
+    STRING_CONST,
+    EOF_
+};
+
+std::ostream& operator<<(std::ostream& os, const TokenType& token);
+
 class Tokenizer {
-public:
-	typedef enum {T_NONE, T_KEYWORD, T_SYMBOL, T_IDENTIFIER, T_INT_CONST, T_STRING_CONST} TokenType;
-	typedef enum {K_CLASS, K_METHOD, K_FUNCTION, K_CONSTRUCTOR, K_INT, K_BOOLEAN,
-	              K_CHAR, K_VOID, K_VAR, K_STATIC, K_FIELD, K_LET, K_DO, K_IF,
-		      K_ELSE, K_WHILE, K_RETURN, K_TRUE, K_FALSE, K_NULL, K_THIS} Keyword;
-	typedef enum {START, SLASH, COMMENT_ONELINE, COMMENT_MULTILINE, COMMENT_MULTILINE_END,
-	              STRING, NUMBER, IDENTIFIER} State;
-
 private:
-	std::ifstream input;
-	State state;
-	typedef std::map<std::string, Keyword> KeywordMap;
-	KeywordMap keywords;
+    std::istreambuf_iterator<char> current;
+    std::istreambuf_iterator<char> last;
+    boost::optional<char> previousChar;
 
-	TokenType type;
-	Keyword keyword;
-	char symbol;
-	std::stringstream identifierStream, stringConstantStream;
-	std::string identifier, stringConstant;
-	int intConstant;
-	unsigned int line, column;
+    TokenType type;
+    std::string string;
+    int intConstant;
+    unsigned line, column;
+
+    TokenType _advance();
 
 public:
+    Tokenizer(std::basic_istream<char>& is);
 
-	Tokenizer(const std::string& filename);
-	virtual ~Tokenizer();
+    void advance() {
+        type = _advance();
+    }
 
-	bool hasMoreTokens();
-	void advance();
+    TokenType getTokenType() const {
+        return type;
+    }
 
-	TokenType getTokenType() const {
-		return type;
-	}
+    const std::string getIdentifier() const {
+        return string;
+    }
 
-	Keyword getKeyword() const {
-		return keyword;
-	}
+    const std::string getStringConstant() const {
+        return string;
+    }
 
-	char getSymbol() const {
-		return symbol;
-	}
+    int getIntConstant() const {
+        return intConstant;
+    }
 
-	const std::string getIdentifier() const {
-		return identifier;
-	}
+    unsigned getLine() const {
+        return line;
+    }
 
-	const std::string getStringConstant() const {
-		return stringConstant;
-	}
-
-	int getIntConstant() const {
-		return intConstant;
-	}
-
-	unsigned int getLine() const {
-		return line;
-	}
-
-	unsigned int getColumn() const {
-		return column;
-	}
+    unsigned getColumn() const {
+        return column;
+    }
 };
 
 } // end namespace jack

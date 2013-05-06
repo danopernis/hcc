@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 Dano Pernis
+ * Copyright (c) 2012-2013 Dano Pernis
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -24,153 +24,234 @@
  */
 #include "JackTokenizer.h"
 #include <iostream>
+#include <stdexcept>
 #include <cctype>
+
 
 namespace hcc {
 namespace jack {
 
-Tokenizer::Tokenizer(const std::string& filename)
-{
-	input.open(filename.c_str());
-	state = START;
-	line = 1;
-	column = 0;
 
-	keywords["class"]       = K_CLASS;
-	keywords["method"]      = K_METHOD;
-	keywords["function"]    = K_FUNCTION;
-	keywords["constructor"] = K_CONSTRUCTOR;
-	keywords["int"]         = K_INT;
-	keywords["boolean"]     = K_BOOLEAN;
-	keywords["char"]        = K_CHAR;
-	keywords["void"]        = K_VOID;
-	keywords["var"]         = K_VAR;
-	keywords["static"]      = K_STATIC;
-	keywords["field"]       = K_FIELD;
-	keywords["let"]         = K_LET;
-	keywords["do"]          = K_DO;
-	keywords["if"]          = K_IF;
-	keywords["else"]        = K_ELSE;
-	keywords["while"]       = K_WHILE;
-	keywords["return"]      = K_RETURN;
-	keywords["true"]        = K_TRUE;
-	keywords["false"]       = K_FALSE;
-	keywords["null"]        = K_NULL;
-	keywords["this"]        = K_THIS;
+namespace {
+const std::map<std::string, TokenType> keywordMap = {
+    {"class",       TokenType::CLASS},
+    {"method",      TokenType::METHOD},
+    {"function",    TokenType::FUNCTION},
+    {"constructor", TokenType::CONSTRUCTOR},
+    {"int",         TokenType::INT},
+    {"boolean",     TokenType::BOOLEAN},
+    {"char",        TokenType::CHAR},
+    {"void",        TokenType::VOID},
+    {"var",         TokenType::VAR},
+    {"static",      TokenType::STATIC},
+    {"field",       TokenType::FIELD},
+    {"let",         TokenType::LET},
+    {"do",          TokenType::DO},
+    {"if",          TokenType::IF},
+    {"else",        TokenType::ELSE},
+    {"while",       TokenType::WHILE},
+    {"return",      TokenType::RETURN},
+    {"true",        TokenType::TRUE},
+    {"false",       TokenType::FALSE},
+    {"null",        TokenType::NULL_},
+    {"this",        TokenType::THIS}
+};
+const std::map<char, TokenType> punctuationMap = {
+    {'&',   TokenType::AMPERSAND},
+    {'(',   TokenType::PARENTHESIS_LEFT},
+    {')',   TokenType::PARENTHESIS_RIGHT},
+    {'*',   TokenType::ASTERISK},
+    {'+',   TokenType::PLUS_SIGN},
+    {',',   TokenType::COMMA},
+    {'-',   TokenType::MINUS_SIGN},
+    {'.',   TokenType::DOT},
+    // slash is intentionally left out
+    {';',   TokenType::SEMICOLON},
+    {'<',   TokenType::LESS_THAN_SIGN},
+    {'=',   TokenType::EQUALS_SIGN},
+    {'>',   TokenType::GREATER_THAN_SIGN},
+    {'[',   TokenType::BRACKET_LEFT},
+    {']',   TokenType::BRACKET_RIGHT},
+    {'{',   TokenType::BRACE_LEFT},
+    {'|',   TokenType::VERTICAL_BAR},
+    {'}',   TokenType::BRACE_RIGHT},
+    {'~',   TokenType::TILDE}
+};
+const std::map<TokenType, std::string> tokenTypeToString = {
+    // keyword
+    {TokenType::CLASS,              "keyword 'class'"},
+    {TokenType::METHOD,             "keyword 'method'"},
+    {TokenType::FUNCTION,           "keyword 'function'"},
+    {TokenType::CONSTRUCTOR,        "keyword 'constructor'"},
+    {TokenType::INT,                "keyword 'int'"},
+    {TokenType::BOOLEAN,            "keyword 'boolean'"},
+    {TokenType::CHAR,               "keyword 'char'"},
+    {TokenType::VOID,               "keyword 'void'"},
+    {TokenType::VAR,                "keyword 'var'"},
+    {TokenType::STATIC,             "keyword 'static'"},
+    {TokenType::FIELD,              "keyword 'field'"},
+    {TokenType::LET,                "keyword 'let'"},
+    {TokenType::DO,                 "keyword 'do'"},
+    {TokenType::IF,                 "keyword 'if'"},
+    {TokenType::ELSE,               "keyword 'else'"},
+    {TokenType::WHILE,              "keyword 'while'"},
+    {TokenType::RETURN,             "keyword 'return'"},
+    {TokenType::TRUE,               "keyword 'true'"},
+    {TokenType::FALSE,              "keyword 'false'"},
+    {TokenType::NULL_,              "keyword 'null'"},
+    {TokenType::THIS,               "keyword 'this'"},
+    // punctuation
+    {TokenType::AMPERSAND,          "'&'"},
+    {TokenType::PARENTHESIS_LEFT,   "'('"},
+    {TokenType::PARENTHESIS_RIGHT,  "')'"},
+    {TokenType::ASTERISK,           "'*'"},
+    {TokenType::PLUS_SIGN,          "'+'"},
+    {TokenType::COMMA,              "','"},
+    {TokenType::MINUS_SIGN,         "'-'"},
+    {TokenType::DOT,                "'.'"},
+    {TokenType::SLASH,              "'/'"},
+    {TokenType::SEMICOLON,          "';'"},
+    {TokenType::LESS_THAN_SIGN,     "'<'"},
+    {TokenType::EQUALS_SIGN,        "'='"},
+    {TokenType::GREATER_THAN_SIGN,  "'>'"},
+    {TokenType::BRACKET_LEFT,       "'['"},
+    {TokenType::BRACKET_RIGHT,      "']'"},
+    {TokenType::BRACE_LEFT,         "'{'"},
+    {TokenType::VERTICAL_BAR,       "'|'"},
+    {TokenType::BRACE_RIGHT,        "'}'"},
+    {TokenType::TILDE,              "'~'"},
+    // rest
+    {TokenType::IDENTIFIER,         "identifier"},
+    {TokenType::INT_CONST,          "integer constant"},
+    {TokenType::STRING_CONST,       "string constant"},
+    {TokenType::EOF_,               "end of file"}
+};
+} // end anonymous namespace
+
+
+
+std::ostream& operator<<(std::ostream& os, const TokenType& tt)
+{
+    auto string = tokenTypeToString.find(tt);
+    if (string != tokenTypeToString.end()) {
+        os << string->second;
+        return os;
+    }
+    throw std::runtime_error("Assertion failed");
 }
 
-Tokenizer::~Tokenizer()
+
+Tokenizer::Tokenizer(std::basic_istream<char>& is)
+    : current(is)
+    , line(1)
+    , column(0)
+{}
+
+
+TokenType Tokenizer::_advance()
 {
+    enum class State {
+        START,
+        SLASH,
+        COMMENT_ONELINE,
+        COMMENT_MULTILINE,
+        COMMENT_MULTILINE_END,
+        STRING,
+        NUMBER,
+        IDENTIFIER
+    };
+    State state = State::START;
+
+    string = "";
+
+    while (true) {
+        char c;
+        if (previousChar) {
+            c = *previousChar;
+            previousChar.reset();
+        } else if (current != last) {
+            c = *current++;
+        } else {
+            return TokenType::EOF_;
+        }
+
+        if (c == '\n') {
+            column = 0;
+            ++line;
+        } else {
+            ++column;
+        }
+
+        switch (state) {
+        case State::START:
+            if (c == '/') {
+                state = State::SLASH;
+            } else if (c == '"') {
+                state = State::STRING;
+            } else if (isdigit(c)) {
+                intConstant = c - '0';
+                state = State::NUMBER;
+            } else if (isalpha(c)) {
+                string += c;
+                state = State::IDENTIFIER;
+            } else if (isspace(c)) {
+                // do nothing
+            } else {
+                auto punctuation = punctuationMap.find(c);
+                if (punctuation != punctuationMap.end())
+                    return punctuation->second;
+                else
+                    throw std::runtime_error(std::string("unexpected ") + c);
+            }
+            break;
+        case State::SLASH:
+            if (c == '/') {
+                state = State::COMMENT_ONELINE;
+            } else if (c == '*') {
+                state = State::COMMENT_MULTILINE;
+            } else {
+                previousChar = c;
+
+                return TokenType::SLASH;
+            }
+            break;
+        case State::COMMENT_ONELINE:
+            state = (c == '\n') ? State::START : State::COMMENT_ONELINE;
+            break;
+        case State::COMMENT_MULTILINE:
+            state = (c == '*') ? State::COMMENT_MULTILINE_END : State::COMMENT_MULTILINE;
+            break;
+        case State::COMMENT_MULTILINE_END:
+            state = (c == '/') ? State::START : State::COMMENT_MULTILINE;
+            break;
+        case State::STRING:
+            if (c == '"') {
+                return TokenType::STRING_CONST;
+            } else {
+                string += c;
+            }
+            break;
+        case State::NUMBER:
+            if (isdigit(c)) {
+                intConstant = 10*intConstant + (c - '0');
+            } else {
+                previousChar = c;
+                return TokenType::INT_CONST;
+            }
+            break;
+        case State::IDENTIFIER:
+            if (isalnum(c)) {
+                string += c;
+            } else {
+                previousChar = c;
+                auto kw = keywordMap.find(string);
+                return (kw != keywordMap.end()) ? kw->second : TokenType::IDENTIFIER;
+            }
+            break;
+        }
+    }
 }
 
-bool Tokenizer::hasMoreTokens()
-{
-	return input.good();
-}
-
-void Tokenizer::advance()
-{
-	type = T_NONE;
-
-	while (type == T_NONE) {
-		char c = (char)input.get();
-		if (c == '\n') {
-			column = 0;
-			++line;
-		} else {
-			++column;
-		}
-
-		switch (state) {
-		case START:
-			if (c == '/') {
-				state = SLASH;
-			} else if (c == '"') {
-				stringConstantStream.str("");
-				state = STRING;
-			} else if (isdigit(c)) {
-				intConstant = c - '0';
-				state = NUMBER;
-			} else if (isalpha(c)) {
-				identifierStream.str("");
-				identifierStream << c;
-				state = IDENTIFIER;
-			} else if (isspace(c)) {
-				// do nothing
-			} else {
-				type = T_SYMBOL;
-				symbol = c;
-			}
-			break;
-		case SLASH:
-			if (c == '/') {
-				state = COMMENT_ONELINE;
-			} else if (c == '*') {
-				state = COMMENT_MULTILINE;
-			} else {
-				type = T_SYMBOL;
-				symbol = '/';
-
-				input.putback(c);
-				state = START;
-			}
-			break;
-		case COMMENT_ONELINE:
-			if (c == '\n') {
-				state = START;
-			}
-			break;
-		case COMMENT_MULTILINE:
-			if (c == '*') {
-				state = COMMENT_MULTILINE_END;
-			}
-			break;
-		case COMMENT_MULTILINE_END:
-			if (c == '/') {
-				state = START;
-			} else {
-				state = COMMENT_MULTILINE;
-			}
-			break;
-		case STRING:
-			if (c == '"') {
-				type = T_STRING_CONST;
-				stringConstant = stringConstantStream.str();
-
-				state = START;
-			} else {
-				stringConstantStream << c;
-			}
-			break;
-		case NUMBER:
-			if (isdigit(c)) {
-				intConstant = 10*intConstant + (c - '0');
-			} else {
-				type = T_INT_CONST;
-
-				input.putback(c);
-				state = START;
-			}
-			break;
-		case IDENTIFIER:
-			if (isalnum(c)) {
-				identifierStream << c;
-			} else {
-				identifier = identifierStream.str();
-				KeywordMap::iterator kw = keywords.find(identifier);
-				if (kw == keywords.end()) {
-					type = T_IDENTIFIER;
-				} else {
-					type = T_KEYWORD;
-					keyword = kw->second;
-				}
-				input.putback(c);
-				state = START;
-			}
-			break;
-		}
-	}
-}
 
 } // end namespace jack
 } // end namespace hcc
