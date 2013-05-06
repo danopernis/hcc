@@ -23,65 +23,19 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 #pragma once
-#include "JackParserCallback.h"
-#include <fstream>
-#include <stack>
-#include "SymbolTable.h"
+#include "JackParser.h"
 
 namespace hcc {
 namespace jack {
 
-class VMWriter : public ParserCallback {
-	// flow control
-	unsigned int whileCounter, ifCounter, expressionsCount, argumentOffset;
-	std::stack<unsigned int> whileStack, ifStack;
-
-	// variable scoping
-	SymbolTable symbols;
-	unsigned int staticVarsCount, fieldVarsCount, argumentVarsCount, localVarsCount;
-
-	bool doMethod, callMethod;
-	std::string className, subroutineName, doCompoundStart, callCompoundStart;
-	SubroutineKind subroutineKind;
-	std::ofstream output;
+class VMWriter {
 public:
-	VMWriter(const char *file);
-	virtual void setExpressionsCount(unsigned int count) {
-		expressionsCount = count;
-	}
-
-	virtual void doClass(const std::string name);
-	virtual void doVariableDec(VariableStorage storage, VariableType &type, const std::string name);
-	virtual void doSubroutineStart(SubroutineKind kind, VariableType &returnType, const std::string name);
-	virtual void doSubroutineAfterVarDec();
-	virtual void doSubroutineEnd();
-
-	virtual void doIf();
-	virtual void doElse();
-	virtual void doEndif(bool hasElse);
-	virtual void doWhileExp();
-	virtual void doWhile();
-	virtual void doEndwhile();
-	virtual void doReturn(bool nonVoid);
-
-	virtual void doDoSimpleStart();
-	virtual void doDoSimpleEnd(const std::string name);
-	virtual void doDoCompoundStart(const std::string name);
-	virtual void doDoCompoundEnd(const std::string name);
-	virtual void doCallCompoundStart(const std::string name);
-	virtual void doCallCompoundEnd(const std::string name);
-	virtual void doLetScalar(const std::string name);
-	virtual void doLetVectorStart(const std::string name);
-	virtual void doLetVectorEnd();
-
-	virtual void doVariableVector(const std::string name);
-	virtual void doVariableScalar(const std::string name);
-	virtual void doBinary(char op);
-	virtual void doNeg();
-	virtual void doNot();
-	virtual void doThis();
-	virtual void doIntConstant(int i);
-	virtual void doStringConstant(const std::string s);
+    VMWriter(const std::string& filename);
+    ~VMWriter();
+    void write(const ast::Class& clazz);
+private:
+    class Impl;
+    std::unique_ptr<Impl> pimpl;
 };
 
 } // end namespace jack

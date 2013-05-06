@@ -19,7 +19,7 @@ usage()
 store()
 {
     rm -rf lib/*.vm ${STOREDIR}
-    ./src/jack2vm lib/*.jack
+    (cd lib; ../src/jack2vm *.jack)
     mkdir -p ${STOREDIR}
     mv lib/*.vm ${STOREDIR}
 }
@@ -27,11 +27,11 @@ store()
 check()
 {
     rm -rf lib/*.vm
-    ./src/jack2vm lib/*.jack
+    (cd lib; ../src/jack2vm *.jack)
 
     for file in ${STOREDIR}/*; do
         bfile=`basename ${file}`
-        if diff "${STOREDIR}/${bfile}" "lib/${bfile}"; then
+        if diff "${STOREDIR}/${bfile}" "lib/${bfile}" -y; then
             : #noop
         else
             echo "${bfile} is not OK"
