@@ -79,7 +79,8 @@ enum class TokenType {
     IDENTIFIER,
     INT_CONST,
     STRING_CONST,
-    EOF_
+    EOF_,
+    STRAY_CHARACTER
 };
 
 std::ostream& operator<<(std::ostream& os, const TokenType& token);

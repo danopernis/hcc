@@ -124,7 +124,8 @@ const std::map<TokenType, std::string> tokenTypeToString = {
     {TokenType::IDENTIFIER,         "identifier"},
     {TokenType::INT_CONST,          "integer constant"},
     {TokenType::STRING_CONST,       "string constant"},
-    {TokenType::EOF_,               "end of file"}
+    {TokenType::EOF_,               "end of file"},
+    {TokenType::STRAY_CHARACTER,    "stray character"}
 };
 } // end anonymous namespace
 
@@ -197,11 +198,8 @@ TokenType Tokenizer::_advance()
             } else if (isspace(c)) {
                 // do nothing
             } else {
-                auto punctuation = punctuationMap.find(c);
-                if (punctuation != punctuationMap.end())
-                    return punctuation->second;
-                else
-                    throw std::runtime_error(std::string("unexpected ") + c);
+                auto it = punctuationMap.find(c);
+                return (it != punctuationMap.end()) ? it->second : TokenType::STRAY_CHARACTER;
             }
             break;
         case State::SLASH:
