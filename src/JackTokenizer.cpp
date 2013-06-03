@@ -192,7 +192,7 @@ TokenType Tokenizer::_advance()
             } else if (isdigit(c)) {
                 intConstant = c - '0';
                 state = State::NUMBER;
-            } else if (isalpha(c)) {
+            } else if (isalpha(c) || c == '_') {
                 string += c;
                 state = State::IDENTIFIER;
             } else if (isspace(c)) {
@@ -238,7 +238,7 @@ TokenType Tokenizer::_advance()
             }
             break;
         case State::IDENTIFIER:
-            if (isalnum(c)) {
+            if (isalnum(c) || c == '_') {
                 string += c;
             } else {
                 previousChar = c;
