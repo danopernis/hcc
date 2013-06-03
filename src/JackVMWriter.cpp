@@ -273,6 +273,9 @@ struct VMWriter::Impl
             callCompoundStart = dynamic_cast<jack::ast::UnresolvedType*>(symbol.type->clone().get())->name;
         } else {
             callCompoundStart = subroutineCall->base;
+            if (callCompoundStart == "") {
+                callCompoundStart = className;
+            }
         }
 
         for (const auto& expression : subroutineCall->arguments) {

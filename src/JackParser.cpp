@@ -485,9 +485,13 @@ struct Parser::Impl {
                 );
             }
             if (acceptToken(TokenType::PARENTHESIS_LEFT)) {
-                parseExpressionList();
+                auto arguments = parseExpressionList();
                 expectToken(TokenType::PARENTHESIS_RIGHT);
-                throw std::runtime_error("Unimplemented");
+                return make_unique<ast::SubroutineCall>(
+                    "",
+                    name,
+                    std::move(arguments)
+                );
             }
             // else it is scalar variable access
             return make_unique<ast::ScalarVariable>(name);
