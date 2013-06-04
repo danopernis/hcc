@@ -1,99 +1,75 @@
-/*
- * Copyright (c) 2012 Dano Pernis
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- * OTHER DEALINGS IN THE SOFTWARE.
- */
+// Copyright (c) 2012-2014 Dano Pernis
+// See LICENSE for details
 
-/**
- * Memory operations library.
- */
+/** Memory operations library. */
 class Memory {
-	static int memory;
+    static int memory;
 
-	/** Initializes memory parameters. */
-	function void init() {
-		let memory = 0;
-		let memory[2048] = 14334;
-		let memory[2049] = 2050;
-		return;
-	}
+    /** Initializes memory parameters. */
+    function void init() {
+        let memory = 0;
+        let memory[2048] = 14334;
+        let memory[2049] = 2050;
+        return;
+    }
 
-	/** Returns the value of the main memory at this address. */
-	function int peek(int address) {
-		return memory[address];
-	}
+    /** Returns the value of the main memory at this address. */
+    function int peek(int address) {
+        return memory[address];
+    }
 
-	/** Sets the value of the main memory at this address
-	 *  to the given value. */
-	function void poke(int address, int value) {
-		let memory[address] = value;
-		return;
-	}
+    /** Sets the value of the main memory at this address
+     *  to the given value. */
+    function void poke(int address, int value) {
+        let memory[address] = value;
+        return;
+    }
 
-	/** finds and allocates from the heap a memory block of the
-	 *  specified size and returns a reference to its base address. */
-	function int alloc(int size) {
-		var int i;
+    /** finds and allocates from the heap a memory block of the
+     *  specified size and returns a reference to its base address. */
+    function int alloc(int size) {
+        var int i;
 
-		if (size < 1) {
-			do Sys.error(5);
-		}
-		let i = 2048;
-		while (i[0]<size) {
-			let i = i[1];
-		}
-		if ((i+size)>16379) {
-			do Sys.error(6);
-		}
-		if (i[0]>(size+2)) {
-			let i[size+2] = i[0] - size - 2;
-			if (i[1]=(i+2)) {
-				let i[size+3] = i+size+4;
-			} else {
-				let i[size+3] = i[1];
-			}
-			let i[1] = i + size + 2;
-		}
-		let i[0] = 0;
-		return i+2;
-	}
+        if (size < 1) {
+            do Sys.error(5);
+        }
+        let i = 2048;
+        while (i[0]<size) {
+            let i = i[1];
+        }
+        if ((i+size)>16379) {
+            do Sys.error(6);
+        }
+        if (i[0]>(size+2)) {
+            let i[size+2] = i[0] - size - 2;
+            if (i[1]=(i+2)) {
+                let i[size+3] = i+size+4;
+            } else {
+                let i[size+3] = i[1];
+            }
+            let i[1] = i + size + 2;
+        }
+        let i[0] = 0;
+        return i+2;
+    }
 
-	/** De-allocates the given object and frees its space. */
-	function void deAlloc(int object) {
-                var int i, j;
-                let i = object - 2;
-                let j = i[1];
+    /** De-allocates the given object and frees its space. */
+    function void deAlloc(int object) {
+        var int i, j;
+        let i = object - 2;
+        let j = i[1];
 
-                if (j[0] = 0) {
-                        let i[0] = i[1] - i - 2;
-                } else {
-                        let i[0] = i[1] - i + j[0];
+        if (j[0] = 0) {
+            let i[0] = i[1] - i - 2;
+        } else {
+            let i[0] = i[1] - i + j[0];
 
-                        if (j[1] = (j + 2)) {
-                                let i[1] = i + 2;
-                        } else {
-                                let i[1] = j[1];
-                        }
-                }
-		return;
-	}	
+            if (j[1] = (j + 2)) {
+                let i[1] = i + 2;
+            } else {
+                let i[1] = j[1];
+            }
+        }
+        return;
+    }
 }
