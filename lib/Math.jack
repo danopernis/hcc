@@ -1,164 +1,140 @@
-/*
- * Copyright (c) 2012 Dano Pernis
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- * OTHER DEALINGS IN THE SOFTWARE.
- */
+// Copyright (c) 2012-2014 Dano Pernis
+// See LICENSE for details
 
-/**
- * A basic math library.
- */
+/** A basic math library. */
 class Math {
 
-	// twoToThe[i] = 1 << i;
-	static Array twoToThe;
+    /** twoToThe[i] = 1 << i; */
+    static Array twoToThe;
 
-	// array for reccursion in Math.divide
-	static Array arr;
+    /* Array for reccursion in Math.divide */
+    static Array arr;
 
-	/** Initializes the library. */
-	function void init() {
-		var int i;
+    /** Initializes the library. */
+    function void init() {
+        var int i;
 
-		let arr = Array.new(16);
-		let twoToThe = Array.new(16);
+        let arr = Array.new(16);
+        let twoToThe = Array.new(16);
 
-		let twoToThe[0] = 1;
-		while (i < 15) {
-			let i = i + 1;
-			let twoToThe[i] = twoToThe[i-1] + twoToThe[i-1];
-		}
-		return;
-	}
+        let twoToThe[0] = 1;
+        while (i < 15) {
+            let i = i + 1;
+            let twoToThe[i] = twoToThe[i-1] + twoToThe[i-1];
+        }
+        return;
+    }
 
-	/** Returns the absolute value of x. */
-	function int abs(int x) {
-		if (x < 0) {
-			let x = -x;
-		}
-		return x;
-	}
+    /** Returns the absolute value of x. */
+    function int abs(int x) {
+        if (x < 0) {
+            let x = -x;
+        }
+        return x;
+    }
 
-	/** Returns the product of x and y. */
-	function int multiply(int x, int y) {
-		var int sum, tmp, bit, i;
-		var boolean negative;
+    /** Returns the product of x and y. */
+    function int multiply(int x, int y) {
+        var int sum, tmp, bit, i;
+        var boolean negative;
 
-		let negative = ((x<0)&(y>0))|((x>0)&(y<0));
-		let x = Math.abs(x);
-		let y = Math.abs(y);
+        let negative = ((x<0)&(y>0))|((x>0)&(y<0));
+        let x = Math.abs(x);
+        let y = Math.abs(y);
 
-		if (x < y) {
-			let tmp = x;
-			let x = y;
-			let y = tmp;
-		}
+        if (x < y) {
+            let tmp = x;
+            let x = y;
+            let y = tmp;
+        }
 
-		while (bit < y) {
-			if ((twoToThe[i]&y) > 0) {
-				let sum = sum + x;
-				let bit = bit + twoToThe[i];
-			}
-			let x = x + x;
-			let i = i + 1;
-		}
+        while (bit < y) {
+            if ((twoToThe[i]&y) > 0) {
+                let sum = sum + x;
+                let bit = bit + twoToThe[i];
+            }
+            let x = x + x;
+            let i = i + 1;
+        }
 
-		if (negative) {
-			let sum = -sum;
-		}
-		return sum;
-	}
+        if (negative) {
+            let sum = -sum;
+        }
+        return sum;
+    }
 
-	/** Returns the integer part of x/y. */
-	function int divide(int x, int y) {
-		var int j, res;
-		var boolean negative, v3;
+    /** Returns the integer part of x/y. */
+    function int divide(int x, int y) {
+        var int j, res;
+        var boolean negative, v3;
 
-		if (y = 0) {
-			do Sys.error(3);
-		}
+        if (y = 0) {
+            do Sys.error(3);
+        }
 
-		let negative = ((x<0)&(y>0))|((x>0)&(y<0));
+        let negative = ((x<0)&(y>0))|((x>0)&(y<0));
 
-		let arr[0] = Math.abs(y);
-		let x = Math.abs(x);
+        let arr[0] = Math.abs(y);
+        let x = Math.abs(x);
 
-		while (~v3) {
-			let v3 = (32767 - arr[j]) < arr[j];
-			if (~v3) {
-				let arr[j+1] = arr[j] + arr[j];
-				let v3 = arr[j+1] > x;
-				if (~v3) {
-					let j = j + 1;
-				}
-			}
+        while (~v3) {
+            let v3 = (32767 - arr[j]) < arr[j];
+            if (~v3) {
+                let arr[j+1] = arr[j] + arr[j];
+                let v3 = arr[j+1] > x;
+                if (~v3) {
+                    let j = j + 1;
+                }
+            }
 
-		}
-		while (j>-1) {
-			if (~(arr[j] > x)) {
-				let res = res + twoToThe[j];
-				let x = x - arr[j];
-			}
-			let j = j - 1;
-		}
+        }
+        while (j>-1) {
+            if (~(arr[j] > x)) {
+                let res = res + twoToThe[j];
+                let x = x - arr[j];
+            }
+            let j = j - 1;
+        }
 
-		if (negative) {
-			let res = -res;
-		}
-		return res;
-	}
+        if (negative) {
+            let res = -res;
+        }
+        return res;
+    }
 
-	/** Returns the integer part of the square root of x. */
-	function int sqrt(int x) {
-		var int j, tmp1, tmp2, y;
+    /** Returns the integer part of the square root of x. */
+    function int sqrt(int x) {
+        var int j, tmp1, tmp2, y;
 
-		if (x < 0) {
-			do Sys.error(4);
-		}
+        if (x < 0) {
+            do Sys.error(4);
+        }
 
-		let j = 7;
-		while (j > -1) {
-			let tmp1 = y + twoToThe[j];
-			let tmp2 = tmp1*tmp1;
-			if ((~(tmp2 > x)) & (~(tmp2 < 0))) {
-				let y = tmp1;
-			}
-			let j = j - 1;
-		}
-		return y;
-	}
+        let j = 7;
+        while (j > -1) {
+            let tmp1 = y + twoToThe[j];
+            let tmp2 = tmp1*tmp1;
+            if ((~(tmp2 > x)) & (~(tmp2 < 0))) {
+                let y = tmp1;
+            }
+            let j = j - 1;
+        }
+        return y;
+    }
 
-	/** Returns the greater number. */
-	function int max(int a, int b) {
-		if (a > b) {
-			let b = a;
-		}
-		return b;
-	}
+    /** Returns the greater number. */
+    function int max(int a, int b) {
+        if (a > b) {
+            let b = a;
+        }
+        return b;
+    }
 
-	/** Returns the smaller number. */
-	function int min(int a, int b) {
-		if (a < b) {
-			let b = a;
-		}
-		return b;
-	}
+    /** Returns the smaller number. */
+    function int min(int a, int b) {
+        if (a < b) {
+            let b = a;
+        }
+        return b;
+    }
 }
