@@ -1,0 +1,34 @@
+class Sys {
+    static int a;
+    static int b;
+    static int c;
+    static int d;
+    static int e;
+    static int f;
+    static int g;
+    static int h;
+    static int i;
+    static int j;
+    static int k;
+    static int l;
+    static int m;
+    static int n;
+    function void init()
+    {
+        let a = 6;
+        let b = 4;
+        let c = -a;
+        let d = ~a;
+        let e = a + b;
+        let f = a - b;
+        let g = a & b;
+        let h = a | b;
+        let i = a > b;
+        let j = b > a;
+        let k = a < b;
+        let l = b < a;
+        let m = a = a;
+        let n = a = b;
+        return 0;
+    }
+}

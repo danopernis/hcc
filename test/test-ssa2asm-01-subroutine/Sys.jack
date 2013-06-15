@@ -1,0 +1,12 @@
+class Sys {
+    static int a;
+    function void init()
+    {
+        let a = Sys.return42();
+        return 0;
+    }
+    function int return42()
+    {
+        return 42;
+    }
+}

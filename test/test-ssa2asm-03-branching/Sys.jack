@@ -1,0 +1,16 @@
+class Sys {
+    static int a;
+    function void init()
+    {
+        while (true) {
+            if (false) {
+                let a = 0;
+                return 0;
+            } else {
+                let a = 42;
+                return 0;
+            }
+        }
+        return 0;
+    }
+}

@@ -3,7 +3,9 @@ src/Makefile.depend
 src/asm2hack
 src/emulator
 src/emulator-gui
+src/jack2ssa
 src/jack2vm
+src/ssa2asm
 src/vm2asm
 src/vm2hack
 .teststore/

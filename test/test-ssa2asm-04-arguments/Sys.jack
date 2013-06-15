@@ -1,0 +1,12 @@
+class Sys {
+    static int a;
+    function void init()
+    {
+        let a = Sys.identity(42);
+        return 0;
+    }
+    function int identity(int x)
+    {
+        return x;
+    }
+}
