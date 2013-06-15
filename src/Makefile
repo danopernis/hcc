@@ -3,6 +3,13 @@ CXXFLAGS = -Wall -g -O2 -std=c++11
 
 OBJECTS = \
     instruction.o \
+    ssa.o \
+    ssa_adhoc.o \
+    ssa_construction.o \
+    ssa_copy_propagation.o \
+    ssa_dead_code_elimination.o \
+    ssa_deconstruction.o \
+    ssa_register_allocation.o \
     Assembler.o \
     CPU.o \
     JackParser.o \
@@ -15,7 +22,7 @@ OBJECTS = \
     VMWriter.o \
     VMCommand.o
 
-BIN = asm2hack vm2asm jack2vm vm2hack emulator emulator-gui
+BIN = asm2hack vm2asm jack2vm vm2hack emulator emulator-gui jack2ssa ssa2asm
 
 all: $(BIN)
 
@@ -39,6 +46,12 @@ emulator: emulator.o $(OBJECTS)
 
 emulator-gui: emulator-gui.o $(OBJECTS)
 	$(CXX) -o $@ $^ `pkg-config --libs gtk+-3.0` `pkg-config --libs glib-2.0`
+
+jack2ssa: jack2ssa.o $(OBJECTS)
+	$(CXX) -o $@ $^
+
+ssa2asm: ssa2asm.o $(OBJECTS)
+	$(CXX) -o $@ $^
 
 emulator-gui.o: emulator-gui.cpp
 	$(CXX) -o $@ -c $< $(CXXFLAGS) $(shell pkg-config --cflags gtk+-3.0) $(shell pkg-config --cflags glib-2.0)
