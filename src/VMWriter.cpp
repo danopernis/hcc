@@ -11,7 +11,7 @@ namespace hcc {
 
 using namespace instruction;
 
-VMWriter::VMWriter(VMOutput &out)
+VMWriter::VMWriter(asm_program &out)
 	: out(out)
 {
 	compareCounter = 0;
@@ -624,8 +624,11 @@ void VMWriter::writeBootstrap()
 	out.emitC	(DEST_A | COMP_M | JMP);// goto R15
 }
 
-void VMWriter::write(VMCommand &c)
+void VMWriter::write(const VMCommand &c)
 {
+
+	// TODO emit comment
+	// output.stream << c;
 	switch (c.type) {
 	case VMCommand::CONSTANT:
 		writeConstant(c.in, c.fin, c.int1);

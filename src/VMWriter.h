@@ -3,7 +3,7 @@
 
 #pragma once
 #include "ParserVM.h"
-#include "StageConnect.h"
+#include "asm.h"
 #include <list>
 #include <string>
 
@@ -14,7 +14,7 @@ class VMWriter
 	int compareCounter, returnCounter;
 	std::string filename, function;
 	std::list<int> argStubs;
-	VMOutput &out;
+	asm_program &out;
 
 	void push();
 	void pop();
@@ -40,14 +40,14 @@ class VMWriter
 	void writeCall(const std::string name, int argc);
 	void writeReturn();
 public:
-	VMWriter(VMOutput& out);
+	VMWriter(asm_program& out);
 	virtual ~VMWriter();
 
 	void setFilename(std::string& filename) {
 		this->filename.assign(filename);
 	}
 	void writeBootstrap();
-	void write(VMCommand &c);
+	void write(const VMCommand &c);
 
 };
 

@@ -2,7 +2,7 @@ CXX=g++
 CXXFLAGS = -Wall -g -O2 -std=c++11
 
 OBJECTS = \
-    instruction.o \
+    asm.o \
     ssa.o \
     ssa_adhoc.o \
     ssa_construction.o \
@@ -10,24 +10,21 @@ OBJECTS = \
     ssa_dead_code_elimination.o \
     ssa_deconstruction.o \
     ssa_register_allocation.o \
-    Assembler.o \
     CPU.o \
     JackParser.o \
     JackTokenizer.o \
     JackVMWriter.o \
-    ParserAsm.o \
     ParserVM.o \
-    StageConnect.o \
     VMOptimize.o \
     VMWriter.o \
     VMCommand.o
 
 BIN = asm2hack vm2asm jack2vm vm2hack emulator emulator-gui jack2ssa ssa2asm
 
-all: $(BIN)
+all: Makefile.depend $(BIN)
 
-Makefile.depend:
-	$(CXX) -MM *.cpp > $@
+Makefile.depend: *.cpp *.cc *.h
+	$(CXX) $(CXXFLAGS) -MM *.cpp *.cc > $@
 
 asm2hack: asm2hack.o $(OBJECTS)
 	$(CXX) -o $@ $^
