@@ -3,7 +3,7 @@
 
 #include "ssa_register_allocation.h"
 #include "ssa_adhoc.h"
-#include "StageConnect.h"
+#include "asm.h"
 #include "instruction.h"
 #include <boost/algorithm/string/join.hpp>
 #include <iostream>
@@ -21,7 +21,7 @@ const std::string reg_stack_pointer = "R13";
 const std::string reg_tmp           = "R14";
 const std::string reg_return        = "R15";
 
-inline void push(hcc::VMOutput& out, const std::string& reg)
+inline void push(hcc::asm_program& out, const std::string& reg)
 {
     out.emitA(reg);
     out.emitC(DEST_D | COMP_M);
@@ -30,7 +30,7 @@ inline void push(hcc::VMOutput& out, const std::string& reg)
     out.emitC(DEST_M | COMP_D);
 }
 
-void generate_code(instruction_list& instructions, hcc::VMOutput& out, const std::string& prefix)
+void generate_code(instruction_list& instructions, hcc::asm_program& out, const std::string& prefix)
 {
     int available_register = 0;
     std::map<std::string, std::string> registers;
@@ -285,7 +285,7 @@ try {
         u.load(input);
     }
 
-    hcc::VMFileOutput out("output.asm");
+    hcc::asm_program out;
 
     const std::vector<std::string> regs = {
         "R0",
@@ -363,6 +363,7 @@ try {
         allocate_registers(subroutine_entry.second);
         generate_code(subroutine_entry.second, out, subroutine_entry.first);
     }
+    out.saveAsm("output.asm");
     return 0;
 } catch (const std::runtime_error& e) {
     std::cerr

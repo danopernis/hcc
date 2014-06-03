@@ -8,8 +8,6 @@ namespace hcc {
 
 namespace instruction {
 
-std::string instructionToString(unsigned short instr);
-
 // instruction (de)coding
 static const unsigned short COMPUTE   = 1 << 15;
 static const unsigned short RESERVED  = 1 << 14
