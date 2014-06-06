@@ -26,10 +26,9 @@ struct asm_program {
     asm_program() = default;
     asm_program(std::istream&);
 
-    void saveAsm(const std::string& filename) const;
+    void save(const std::string& filename) const;
 
-    void assemble();
-    void saveHACK(const std::string& filename) const;
+    std::vector<uint16_t> assemble() const;
 
     void emitA(const std::string symbol)
     {
@@ -70,5 +69,7 @@ struct asm_program {
 private:
     std::vector<asm_instruction> instructions;
 };
+
+void saveHACK(const std::string& filename, std::vector<uint16_t>);
 
 } // namespace hcc

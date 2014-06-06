@@ -43,8 +43,7 @@ int main(int argc, char* argv[])
     }
     hcc::o_stat_print();
 
-    prog.assemble();
-    prog.saveHACK("output.hack");
+    hcc::saveHACK("output.hack", prog.assemble());
 
     return 0;
 }

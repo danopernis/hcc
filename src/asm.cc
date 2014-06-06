@@ -208,7 +208,7 @@ void instructionToString(
 
 namespace hcc {
 
-void asm_program::assemble()
+std::vector<uint16_t> asm_program::assemble() const
 {
     // built-in symbols
     std::map<std::string, int> table = {
@@ -257,6 +257,7 @@ void asm_program::assemble()
 
     // second pass
     int variable = 0x10;
+    std::vector<uint16_t> result;
     for (auto& c : instructions) {
         switch (c.type) {
         case asm_instruction_type::LABEL:
@@ -266,12 +267,14 @@ void asm_program::assemble()
             if (table.find(c.symbol) == table.end()) {
                 table[c.symbol] = variable++;
             }
-            c.instr = table[c.symbol];
+            result.push_back(table[c.symbol]);
             break;
         case asm_instruction_type::VERBATIM:
+            result.push_back(c.instr);
             break;
         }
     }
+    return result;
 }
 
 asm_program::asm_program(std::istream& input)
@@ -327,7 +330,7 @@ asm_program::asm_program(std::istream& input)
     }
 }
 
-void asm_program::saveAsm(const std::string& filename) const
+void asm_program::save(const std::string& filename) const
 {
     std::ofstream out(filename);
     for (const auto& i : instructions) {
@@ -346,18 +349,15 @@ void asm_program::saveAsm(const std::string& filename) const
     }
 }
 
-void asm_program::saveHACK(const std::string& filename) const
+void saveHACK(const std::string& filename, std::vector<uint16_t> instructions)
 {
     std::ofstream out(filename.c_str());
-    for (const auto& i : instructions) {
-        if (i.type != asm_instruction_type::LABEL) {
-            auto instr = i.instr;
-            for (int j = 0; j<16; ++j) {
-                out << (instr & (1<<15) ? '1' : '0');
-                instr <<= 1;
-            }
-            out << '\n';
+    for (auto instr : instructions) {
+        for (int j = 0; j<16; ++j) {
+            out << (instr & (1<<15) ? '1' : '0');
+            instr <<= 1;
         }
+        out << '\n';
     }
 }
 
