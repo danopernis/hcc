@@ -68,6 +68,6 @@ public:
 
 typedef std::list<VMCommand> VMCommandList;
 
-std::ostream& operator<<(std::ostream &out, VMCommand &c);
+std::ostream& operator<<(std::ostream &out, const VMCommand &c);
 
 } // end namespace
