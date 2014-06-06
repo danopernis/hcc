@@ -18,9 +18,7 @@ int main(int argc, char* argv[])
 
     std::ifstream input_stream { input };
     hcc::asm_program prog { input_stream };
-
-    prog.assemble();
-    prog.saveHACK(output);
+    hcc::saveHACK(output, prog.assemble());
 
     return 0;
 }

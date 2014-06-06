@@ -363,7 +363,7 @@ try {
         allocate_registers(subroutine_entry.second);
         generate_code(subroutine_entry.second, out, subroutine_entry.first);
     }
-    out.saveAsm("output.asm");
+    out.save("output.asm");
     return 0;
 } catch (const std::runtime_error& e) {
     std::cerr

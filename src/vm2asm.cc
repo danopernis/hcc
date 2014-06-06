@@ -43,7 +43,7 @@ int main(int argc, char* argv[])
     }
     hcc::o_stat_print();
 
-    prog.saveAsm("output.asm");
+    prog.save("output.asm");
 
     return 0;
 }
