@@ -116,6 +116,11 @@ void generate_code(instruction_list& instructions, hcc::asm_program& out, const 
 
     out.emitL(prefix);
     for (const auto& instruction : instructions) {
+        {
+            std::stringstream ss;
+            ss << instruction;
+            out.emitComment(ss.str());
+        }
         switch (instruction.type) {
         // basic block boundary handling
         case instruction_type::LABEL:

@@ -14,6 +14,7 @@ enum class asm_instruction_type {
     LOAD,
     VERBATIM,
     LABEL,
+    COMMENT,
 };
 
 struct asm_instruction {
@@ -63,6 +64,13 @@ struct asm_program {
         asm_instruction i;
         i.type = asm_instruction_type::LABEL;
         i.symbol = label;
+        instructions.push_back(std::move(i));
+    }
+    void emitComment(std::string s)
+    {
+        asm_instruction i;
+        i.type = asm_instruction_type::COMMENT;
+        i.symbol = std::move(s);
         instructions.push_back(std::move(i));
     }
 

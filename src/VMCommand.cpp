@@ -7,7 +7,7 @@
 
 namespace hcc {
 
-std::ostream& operator<<(std::ostream &out, VMCommand &c)
+std::ostream& operator<<(std::ostream &out, const VMCommand &c)
 {
 	std::map<Segment, std::string> segmentVMNames;
 	segmentVMNames[STATIC]   = "static";

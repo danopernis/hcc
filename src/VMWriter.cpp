@@ -626,9 +626,11 @@ void VMWriter::writeBootstrap()
 
 void VMWriter::write(const VMCommand &c)
 {
-
-	// TODO emit comment
-	// output.stream << c;
+    {
+        std::stringstream ss;
+        ss << c;
+        out.emitComment(ss.str());
+    }
 	switch (c.type) {
 	case VMCommand::CONSTANT:
 		writeConstant(c.in, c.fin, c.int1);

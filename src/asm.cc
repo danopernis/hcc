@@ -252,6 +252,8 @@ std::vector<uint16_t> asm_program::assemble() const
             // maintain address
             ++address;
             break;
+        case asm_instruction_type::COMMENT:
+            break;
         }
     }
 
@@ -261,6 +263,7 @@ std::vector<uint16_t> asm_program::assemble() const
     for (auto& c : instructions) {
         switch (c.type) {
         case asm_instruction_type::LABEL:
+        case asm_instruction_type::COMMENT:
             // ignore
             break;
         case asm_instruction_type::LOAD:
@@ -281,13 +284,16 @@ asm_program::asm_program(std::istream& input)
 {
     std::string line;
     while (std::getline(input, line)) {
-        // ignore blank lines and comments
-        if (line.empty() || line.find("//") == 0) {
+        // ignore blank lines
+        if (line.empty()) {
             continue;
         }
 
         asm_instruction i;
-        if (line.at(0) == '@') {
+        if (line.find("//") == 0) {
+            i.type = asm_instruction_type::COMMENT;
+            i.symbol = line.substr(2, line.length());
+        } else if (line.at(0) == '@') {
             std::string symbol = line.substr(1, line.length()-1);
             if (isdigit(symbol.at(0))) {
                 i.type = asm_instruction_type::VERBATIM;
@@ -344,6 +350,9 @@ void asm_program::save(const std::string& filename) const
             break;
         case asm_instruction_type::LABEL:
             out << '(' << i.symbol << ")\n";
+            break;
+        case asm_instruction_type::COMMENT:
+            out << "//" << i.symbol << "\n";
             break;
         }
     }
