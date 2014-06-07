@@ -74,6 +74,8 @@ struct asm_program {
         instructions.push_back(std::move(i));
     }
 
+    void local_optimization();
+
 private:
     std::vector<asm_instruction> instructions;
 };
