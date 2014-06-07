@@ -2,6 +2,7 @@
 // See LICENSE for details
 
 #pragma once
+#include <tuple>
 #include <vector>
 #include <string>
 #include <fstream>
@@ -22,6 +23,12 @@ struct asm_instruction {
     std::string symbol;
     unsigned short instr;
 };
+
+inline bool operator==(const asm_instruction& a, const asm_instruction& b)
+{
+    return std::tie(a.type, a.symbol, a.instr) ==
+           std::tie(b.type, b.symbol, b.instr);
+}
 
 struct asm_program {
     asm_program() = default;
@@ -73,6 +80,8 @@ struct asm_program {
         i.symbol = std::move(s);
         instructions.push_back(std::move(i));
     }
+
+    void local_optimization();
 
 private:
     std::vector<asm_instruction> instructions;

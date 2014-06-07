@@ -3,6 +3,7 @@ CXXFLAGS = -Wall -g -O2 -std=c++11
 
 OBJECTS = \
     asm.o \
+    asm_local.o \
     ssa.o \
     ssa_adhoc.o \
     ssa_construction.o \
