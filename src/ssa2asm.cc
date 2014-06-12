@@ -30,6 +30,15 @@ inline void push(hcc::asm_program& out, const std::string& reg)
     out.emitC(DEST_M | COMP_D);
 }
 
+// Symmetric binary operations yield the same result despite argument order.
+// Local asssembler optimizations sometimes perform better if we swap arguments.
+void adjust_symmetric_operation(instruction &i)
+{
+    if (i.arguments[1] == i.arguments[0]) {
+        std::swap(i.arguments[1], i.arguments[2]);
+    }
+}
+
 void generate_code(instruction_list& instructions, hcc::asm_program& out, const std::string& prefix)
 {
     int available_register = 0;
@@ -115,7 +124,7 @@ void generate_code(instruction_list& instructions, hcc::asm_program& out, const 
     };
 
     out.emitL(prefix);
-    for (const auto& instruction : instructions) {
+    for (auto instruction : instructions) {
         {
             std::stringstream ss;
             ss << instruction;
@@ -179,6 +188,7 @@ void generate_code(instruction_list& instructions, hcc::asm_program& out, const 
             } break;
         // arithmetic instructions
         case instruction_type::ADD:
+            adjust_symmetric_operation(instruction);
             handle(instruction.arguments[1], COMP_M, COMP_A);
             handle(instruction.arguments[2], COMP_D_PLUS_M, COMP_D_PLUS_A);
             reg_store(instruction.arguments[0]);
@@ -189,11 +199,13 @@ void generate_code(instruction_list& instructions, hcc::asm_program& out, const 
             reg_store(instruction.arguments[0]);
             break;
         case instruction_type::AND:
+            adjust_symmetric_operation(instruction);
             handle(instruction.arguments[1], COMP_M, COMP_A);
             handle(instruction.arguments[2], COMP_D_AND_M, COMP_D_AND_A);
             reg_store(instruction.arguments[0]);
             break;
         case instruction_type::OR:
+            adjust_symmetric_operation(instruction);
             handle(instruction.arguments[1], COMP_M, COMP_A);
             handle(instruction.arguments[2], COMP_D_OR_M, COMP_D_OR_A);
             reg_store(instruction.arguments[0]);
