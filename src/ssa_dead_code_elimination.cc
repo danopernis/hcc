@@ -26,12 +26,12 @@ void dead_code_elimination(instruction_list& instructions)
 {
     control_flow_graph cfg(instructions);
 
-    std::vector<instruction_list::iterator> live;
     std::stack<std::pair<instruction_list::iterator, int>> worklist; // instruction and it's block
     for (auto node = 0; node < static_cast<int>(cfg.nodes.size()); ++node) {
         for (auto instruction = cfg.nodes[node].begin(), e = cfg.nodes[node].end(); instruction != e; ++instruction) {
+            instruction->mark = false;
             if (prelive(*instruction)) {
-                live.push_back(instruction);
+                instruction->mark = true;
                 worklist.push(std::make_pair(instruction, node));
             }
         }
@@ -52,8 +52,8 @@ void dead_code_elimination(instruction_list& instructions)
                     instruction->def_apply([&] (std::string& s) { assigned = assigned || (s == v); });
                     if (assigned) {
                         //... maybe set live and append to worklist
-                        if (std::find(live.begin(), live.end(), instruction) == live.end()) { // TODO faster!
-                            live.push_back(instruction);
+                        if (!instruction->mark) {
+                            instruction->mark = true;;
                             worklist.push(std::make_pair(instruction, node));
                         }
                     }
@@ -65,8 +65,8 @@ void dead_code_elimination(instruction_list& instructions)
         // for each y in r_dfs(x)
         for (int b : cfg.reverse_dominance().dfs[p.second]) {
             auto last = --cfg.nodes[b].end();
-            if (std::find(live.begin(), live.end(), last) == live.end()) { // TODO faster!
-                live.push_back(last);
+            if (!last->mark) {
+                last->mark = true;
                 worklist.push(std::make_pair(last, b));
             }
         }
@@ -74,7 +74,7 @@ void dead_code_elimination(instruction_list& instructions)
 
     // sweep
     for (auto i = instructions.begin(), e = instructions.end(); i != e;) {
-        if (i->type != instruction_type::LABEL && std::find(live.begin(), live.end(), i) == live.end()) { // TODO faster!
+        if (i->type != instruction_type::LABEL && !i->mark) {
             i = instructions.erase(i);
         } else {
             ++i;

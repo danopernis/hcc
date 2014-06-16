@@ -48,6 +48,7 @@ struct instruction {
 
     instruction_type type;
     std::vector<std::string> arguments;
+    bool mark;
 
     void use_apply(std::function<void(std::string&)>);
     void def_apply(std::function<void(std::string&)>);
