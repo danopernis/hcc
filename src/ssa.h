@@ -66,7 +66,19 @@ std::ostream& operator<<(std::ostream& os, const instruction& instr);
 
 using instruction_list = std::list<instruction>;
 
-using subroutine_map = std::map<std::string, instruction_list>;
+struct subroutine {
+    instruction_list instructions;
+
+    void construct_minimal_ssa();
+    void dead_code_elimination();
+    void copy_propagation();
+    void ssa_deconstruct();
+    void allocate_registers();
+    void prettify_names(unsigned& var_counter, unsigned& label_counter);
+    void clean_cfg();
+};
+
+using subroutine_map = std::map<std::string, subroutine>;
 
 struct unit {
     subroutine_map subroutines;
@@ -78,7 +90,7 @@ struct unit {
         if (it != subroutines.end())
             throw std::runtime_error("unit::insert_subroutine");
         else
-            return subroutines.insert(it, std::make_pair(name, instruction_list()));
+            return subroutines.insert(it, std::make_pair(name, subroutine()));
     }
 
     void load(std::istream& input);

@@ -1,8 +1,7 @@
 // Copyright (c) 2013 Dano Pernis
 // See LICENSE.txt
 
-#include "ssa_register_allocation.h"
-#include "ssa_adhoc.h"
+#include "ssa.h"
 #include "control_flow_graph.h"
 
 namespace hcc { namespace ssa {
@@ -106,7 +105,7 @@ std::map<std::string, int> color(
 }
 
 
-void allocate_registers(instruction_list& instructions)
+void subroutine::allocate_registers()
 {
     bool did_spill;
     do {

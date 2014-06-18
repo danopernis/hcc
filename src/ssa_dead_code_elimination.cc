@@ -2,7 +2,7 @@
 // See LICENSE for details
 
 #include <algorithm>
-#include "ssa_dead_code_elimination.h"
+#include "ssa.h"
 #include "control_flow_graph.h"
 
 namespace hcc { namespace ssa {
@@ -22,7 +22,7 @@ bool prelive(const instruction& instr)
     }
 }
 
-void dead_code_elimination(instruction_list& instructions)
+void subroutine::dead_code_elimination()
 {
     control_flow_graph cfg(instructions);
 

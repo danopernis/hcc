@@ -2,13 +2,13 @@
 // See LICENSE for details
 
 #include <map>
-#include "ssa_adhoc.h"
+#include "ssa.h"
 #include "control_flow_graph.h"
 
 namespace hcc { namespace ssa {
 
 
-void prettify_names(instruction_list& instructions, unsigned& var_counter, unsigned& label_counter)
+void subroutine::prettify_names(unsigned& var_counter, unsigned& label_counter)
 {
     std::map<std::string, unsigned> var_replacement;
     auto var_collector = [&] (std::string& s) {
@@ -54,7 +54,7 @@ void prettify_names(instruction_list& instructions, unsigned& var_counter, unsig
 
 
 // clean cfg program with materialized PHI nodes
-void clean_cfg(instruction_list& instructions)
+void subroutine::clean_cfg()
 {
     struct block_info {
         bool discovered = false;

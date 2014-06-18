@@ -1,8 +1,7 @@
 // Copyright (c) 2014 Dano Pernis
 // See LICENSE for details
 
-#include "ssa_deconstruction.h"
-#include "ssa_adhoc.h"
+#include "ssa.h"
 #include "control_flow_graph.h"
 #include <sstream>
 
@@ -145,7 +144,7 @@ bool interfere(std::string a, std::string b, instruction_list& instructions, con
 
 // Inspired by paper
 // "Revisiting Out-of-SSA Translation for Correctness, Code Quality, and Efficiency"
-void ssa_deconstruct(instruction_list &instructions)
+void subroutine::ssa_deconstruct()
 {
     const control_flow_graph cfg(instructions);
 
@@ -196,11 +195,6 @@ void ssa_deconstruct(instruction_list &instructions)
             }
         }
     }
-
-    unsigned int c1 = 0;
-    unsigned int c2 = 0;
-    prettify_names(instructions, c1, c2);
-    clean_cfg(instructions);
 }
 
 }} // namespace hcc::ssa
