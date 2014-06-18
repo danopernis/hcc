@@ -5,8 +5,7 @@
 #include <string>
 #include "control_flow_graph.h"
 #include "graph_dominance.h"
-#include "ssa_construction.h"
-#include "ssa_dead_code_elimination.h"
+#include "ssa.h"
 
 namespace hcc { namespace ssa {
 
@@ -139,7 +138,7 @@ private:
 } // anonymous namespace
 
 // algorithm is due to Cytron et al.
-void construct_minimal_ssa(instruction_list& instructions)
+void subroutine::construct_minimal_ssa()
 {
     // collect all the referenced variables
     std::set<std::string> variables;
@@ -152,7 +151,7 @@ void construct_minimal_ssa(instruction_list& instructions)
     control_flow_graph cfg(instructions);
     insert_temp_phi(variables, cfg, instructions);
     search_and_replace(variables).search(cfg.entry_node(), cfg);
-    dead_code_elimination(instructions);
+    dead_code_elimination();
 }
 
 }} // namespace hcc::ssa

@@ -3,10 +3,6 @@
 
 #include "JackParser.h"
 #include "ssa.h"
-#include "ssa_construction.h"
-#include "ssa_copy_propagation.h"
-#include "ssa_dead_code_elimination.h"
-#include "ssa_deconstruction.h"
 #include <stack>
 #include <map>
 #include <cassert>
@@ -52,7 +48,7 @@ struct Writer
     { appendToCurrentBB(type, std::vector<std::string>(il)); }
 
     void appendToCurrentBB(instruction_type type, std::vector<std::string> args)
-    { currentSubroutine->second.emplace_back(type, args); }
+    { currentSubroutine->second.instructions.emplace_back(type, args); }
 
     void outputBranch(const std::string& branch)
     { appendToCurrentBB(instruction_type::JUMP, {branch}); }
@@ -467,7 +463,6 @@ struct Writer
         for (const auto& statement : subroutine.statements) {
             statement->accept(this);
         }
-        construct_minimal_ssa(currentSubroutine->second);
     }
 
     void write(const ast::Class& class_)
@@ -537,9 +532,15 @@ try {
     // optimize
     for (auto& subroutine_entry : writer.res.subroutines) {
         auto& subroutine = subroutine_entry.second;
-        copy_propagation(subroutine);
-        dead_code_elimination(subroutine);
-        ssa_deconstruct(subroutine);
+        subroutine.construct_minimal_ssa();
+        subroutine.copy_propagation();
+        subroutine.dead_code_elimination();
+        subroutine.ssa_deconstruct();
+
+        unsigned int c1 = 0;
+        unsigned int c2 = 0;
+        subroutine.prettify_names(c1, c2);
+        subroutine.clean_cfg();
     }
 
     // output

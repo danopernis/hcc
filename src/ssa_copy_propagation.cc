@@ -3,11 +3,11 @@
 
 #include <map>
 #include <string>
-#include "ssa_copy_propagation.h"
+#include "ssa.h"
 
 namespace hcc { namespace ssa {
 
-void copy_propagation(instruction_list& instructions)
+void subroutine::copy_propagation()
 {
     struct replacer_algorithm {
         void insert(const std::string& from, const std::string& to)

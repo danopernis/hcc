@@ -16,7 +16,7 @@ std::ostream& operator<<(std::ostream& os, const unit& u)
     }
     for (const auto& subroutine : u.subroutines) {
         os << "define " << subroutine.first << "\n";
-        for (const auto& instr : subroutine.second) {
+        for (const auto& instr : subroutine.second.instructions) {
             if (instr.type != instruction_type::LABEL)
                 os << "\t";
 
@@ -48,8 +48,7 @@ void unit::load(std::istream& input)
             continue;
         } else if (token == "define") {
             line_stream >> token;
-            current_subroutine = subroutines.insert(
-                std::make_pair(token, instruction_list())).first;
+            current_subroutine = insert_subroutine(token);
             continue;
         }
 
@@ -108,7 +107,7 @@ void unit::load(std::istream& input)
 
             args.push_back(std::move(token));
         }
-        current_subroutine->second.emplace_back(type, args);
+        current_subroutine->second.instructions.emplace_back(type, args);
     }
 }
 

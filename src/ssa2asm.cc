@@ -1,10 +1,9 @@
 // Copyright (c) 2013 Dano Pernis
 // See LICENSE.txt
 
-#include "ssa_register_allocation.h"
-#include "ssa_adhoc.h"
 #include "asm.h"
 #include "instruction.h"
+#include "ssa.h"
 #include <boost/algorithm/string/join.hpp>
 #include <iostream>
 #include <fstream>
@@ -377,8 +376,8 @@ try {
     }
 
     for (auto& subroutine_entry : u.subroutines) {
-        allocate_registers(subroutine_entry.second);
-        generate_code(subroutine_entry.second, out, subroutine_entry.first);
+        subroutine_entry.second.allocate_registers();
+        generate_code(subroutine_entry.second.instructions, out, subroutine_entry.first);
     }
     out.local_optimization();
     out.save("output.asm");
