@@ -93,9 +93,9 @@ struct unit {
             return subroutines.insert(it, std::make_pair(name, subroutine()));
     }
 
-    void load(std::istream& input);
+    void load(std::istream&);
+    void save(std::ostream&) const;
 };
-std::ostream& operator<<(std::ostream& os, const unit& u);
 
 }} // namespace hcc::ssa
 
