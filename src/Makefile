@@ -10,7 +10,9 @@ OBJECTS = \
     ssa_copy_propagation.o \
     ssa_dead_code_elimination.o \
     ssa_deconstruction.o \
+    ssa_reader.o \
     ssa_register_allocation.o \
+    ssa_writer.o \
     CPU.o \
     JackParser.o \
     JackTokenizer.o \

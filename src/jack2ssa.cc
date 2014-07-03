@@ -544,7 +544,7 @@ try {
     }
 
     // output
-    std::cout << writer.res;
+    writer.res.save(std::cout);
 
     return 0;
 } catch (const std::runtime_error& e) {
