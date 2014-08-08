@@ -3,7 +3,6 @@
 
 #include <algorithm>
 #include "ssa.h"
-#include "control_flow_graph.h"
 
 namespace hcc { namespace ssa {
 
@@ -24,11 +23,11 @@ bool prelive(const instruction& instr)
 
 void subroutine::dead_code_elimination()
 {
-    control_flow_graph cfg(instructions);
+    recompute_control_flow_graph();
 
     std::stack<std::pair<instruction_list::iterator, int>> worklist; // instruction and it's block
-    for (auto node = 0; node < static_cast<int>(cfg.nodes.size()); ++node) {
-        for (auto instruction = cfg.nodes[node].begin(), e = cfg.nodes[node].end(); instruction != e; ++instruction) {
+    for (auto node = 0; node < static_cast<int>(nodes.size()); ++node) {
+        for (auto instruction = nodes[node].begin(), e = nodes[node].end(); instruction != e; ++instruction) {
             instruction->mark = false;
             if (prelive(*instruction)) {
                 instruction->mark = true;
@@ -46,8 +45,8 @@ void subroutine::dead_code_elimination()
         std::set<std::string> used_variables;
         o->use_apply([&](std::string& s) { used_variables.insert(s); });
         for (const auto& v : used_variables) {
-            for (auto node = 0; node < static_cast<int>(cfg.nodes.size()); ++node) {
-                for (auto instruction = cfg.nodes[node].begin(), e = cfg.nodes[node].end(); instruction != e; ++instruction) {
+            for (auto node = 0; node < static_cast<int>(nodes.size()); ++node) {
+                for (auto instruction = nodes[node].begin(), e = nodes[node].end(); instruction != e; ++instruction) {
                     bool assigned = false;
                     instruction->def_apply([&] (std::string& s) { assigned = assigned || (s == v); });
                     if (assigned) {
@@ -63,8 +62,8 @@ void subroutine::dead_code_elimination()
 
 
         // for each y in r_dfs(x)
-        for (int b : cfg.reverse_dominance().dfs[p.second]) {
-            auto last = --cfg.nodes[b].end();
+        for (int b : reverse_dominance->dfs[p.second]) {
+            auto last = --nodes[b].end();
             if (!last->mark) {
                 last->mark = true;
                 worklist.push(std::make_pair(last, b));

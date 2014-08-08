@@ -1,11 +1,9 @@
 // Copyright (c) 2014 Dano Pernis
 // See LICENSE for details
 
+#include "ssa.h"
 #include <set>
 #include <string>
-#include "control_flow_graph.h"
-#include "graph_dominance.h"
-#include "ssa.h"
 
 namespace hcc { namespace ssa {
 
@@ -14,10 +12,9 @@ namespace {
 /** Use dominance frontier set to find where phi-functions are needed */
 void insert_temp_phi(
     const std::set<std::string>& variables,
-    const control_flow_graph& cfg,
-    instruction_list& instructions)
+    subroutine& s)
 {
-    const int node_count = cfg.g.node_count();
+    const int node_count = s.g.node_count();
     int iteration = 0;
     std::vector<int> has_already(node_count, iteration);
     std::vector<int> work(node_count, iteration);
@@ -26,10 +23,10 @@ void insert_temp_phi(
     for (const auto& variable : variables) {
         ++iteration;
 
-        for (size_t block = 0; block < cfg.nodes.size(); ++block) {
+        for (size_t block = 0; block < s.nodes.size(); ++block) {
             // is variable assigned in this block?
             bool assigned = false;
-            for (auto& instruction : cfg.nodes[block]) {
+            for (auto& instruction : s.nodes[block]) {
                 instruction.def_apply([&] (std::string& s) { assigned = assigned || (s == variable); });
             }
 
@@ -45,10 +42,10 @@ void insert_temp_phi(
             w.erase(w.begin());
 
             // for each y in dfs(x)
-            for (int y : cfg.dominance().dfs[x]) {
+            for (int y : s.dominance->dfs[x]) {
                 if (has_already[y] < iteration) {
                     // place PHI after LABEL
-                    instructions.emplace(++cfg.nodes[y].begin(), instruction(instruction_type::PHI, {variable}));
+                    s.instructions.emplace(++s.nodes[y].begin(), instruction(instruction_type::PHI, {variable}));
 
                     has_already[y] = iteration;
                     if (work[y] < iteration) {
@@ -73,11 +70,11 @@ public:
         }
     }
 
-    void search(const int x, const control_flow_graph& cfg)
+    void search(const int x, const subroutine& s)
     {
         std::vector<std::string> oldlhs;
 
-        for (auto& instr : cfg.nodes[x]) {
+        for (auto& instr : s.nodes[x]) {
             // rename uses
             if (instr.type != instruction_type::PHI) {
                 instr.use_apply([&] (std::string& s) {
@@ -98,10 +95,10 @@ public:
         }
 
         // for each successor y of x
-        for (int y : cfg.successors()[x]) {
-            std::string whichpred = cfg.index_to_name.at(x);
+        for (int y : s.g.successors()[x]) {
+            std::string whichpred = s.nodes.at(x).name;
 
-            for (auto& instr : cfg.nodes[y]) {
+            for (auto& instr : s.nodes[y]) {
                 if (instr.type == instruction_type::PHI) {
                     instr.arguments.push_back(whichpred);
                     instr.arguments.push_back(strip(instr.arguments[0])); //TODO fugly
@@ -111,12 +108,12 @@ public:
         }
 
         // for each child y of x
-        for (int i : cfg.dominance().tree.successors()[x]) {
-            search(i, cfg);
+        for (int i : s.dominance->tree.successors()[x]) {
+            search(i, s);
         }
 
         // clean up
-        for (auto& instr : cfg.nodes[x]) {
+        for (auto& instr : s.nodes[x]) {
             instr.def_apply([&] (std::string& s) {
                 S.at(strip(s)).pop();
             });
@@ -148,9 +145,9 @@ void subroutine::construct_minimal_ssa()
         instruction.def_apply(inserter);
     }
 
-    control_flow_graph cfg(instructions);
-    insert_temp_phi(variables, cfg, instructions);
-    search_and_replace(variables).search(cfg.entry_node(), cfg);
+    recompute_control_flow_graph();
+    insert_temp_phi(variables, *this);
+    search_and_replace(variables).search(entry_node, *this);
     dead_code_elimination();
 }
 
