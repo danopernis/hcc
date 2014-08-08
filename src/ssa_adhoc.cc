@@ -1,9 +1,8 @@
 // Copyright (c) 2014 Dano Pernis
 // See LICENSE for details
 
-#include <map>
 #include "ssa.h"
-#include "control_flow_graph.h"
+#include <map>
 
 namespace hcc { namespace ssa {
 

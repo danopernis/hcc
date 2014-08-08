@@ -2,7 +2,6 @@
 // See LICENSE.txt
 
 #include "ssa.h"
-#include "control_flow_graph.h"
 
 namespace hcc { namespace ssa {
 

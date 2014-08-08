@@ -2,7 +2,6 @@
 // See LICENSE for details
 
 #include "ssa.h"
-#include "control_flow_graph.h"
 #include <sstream>
 
 
@@ -92,7 +91,7 @@ void naive_copy_insertion(instruction_list& instructions, congruence_classes& cc
 // V(x) ... V(b) = V(a) if b <- a
 //          V(b) = b    otherwise
 // a interfere b ... live(a) intersects live(b) and V(a) != V(b)
-bool interfere(std::string a, std::string b, instruction_list& instructions, const control_flow_graph& cfg)
+bool interfere(std::string a, std::string b, subroutine& s)
 {
     bool def_a_in_live_b = false;
     bool def_b_in_live_a = false;
@@ -104,9 +103,9 @@ bool interfere(std::string a, std::string b, instruction_list& instructions, con
     // TODO live ranges are probably overestimated at the end
 
     // preorder of domtree
-    depth_first_search dfs(cfg.dominance().tree.successors(), cfg.dominance().root);
+    depth_first_search dfs(s.dominance->tree.successors(), s.dominance->root);
     for (int node : dfs.preorder()) {
-        for (auto& instr: cfg.nodes.at(node)) {
+        for (auto& instr: s.nodes.at(node)) {
             // live ranges
             instr.def_apply([&] (std::string& def) {
                 if (def == a) {
@@ -146,7 +145,7 @@ bool interfere(std::string a, std::string b, instruction_list& instructions, con
 // "Revisiting Out-of-SSA Translation for Correctness, Code Quality, and Efficiency"
 void subroutine::ssa_deconstruct()
 {
-    const control_flow_graph cfg(instructions);
+    recompute_control_flow_graph();
 
     congruence_classes cc;
     naive_copy_insertion(instructions, cc);
@@ -162,7 +161,7 @@ void subroutine::ssa_deconstruct()
                 continue;
 
             if (!src.empty() && src[0] == '%' && !dest.empty() && dest[0] == '%') {
-                if (!interfere(src, dest, instructions, cfg)) {
+                if (!interfere(src, dest, *this)) {
                     if (!has_src_class && !has_dest_class) {
                         cc.classes.emplace(src, cc.last_class);
                         cc.classes.emplace(dest, cc.last_class);

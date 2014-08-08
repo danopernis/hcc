@@ -4,7 +4,12 @@
 #ifndef SSA_H
 #define SSA_H
 
+#include "ssa.h"
+#include "graph.h"
+#include "graph_dominance.h"
+#include <cassert>
 #include <map>
+#include <memory>
 #include <set>
 #include <stdexcept>
 #include <string>
@@ -66,9 +71,36 @@ std::ostream& operator<<(std::ostream& os, const instruction& instr);
 
 using instruction_list = std::list<instruction>;
 
-struct subroutine {
-    instruction_list instructions;
+// Represents a range of instructions
+// Iterators are inclusive on construction; however end() iterator points just
+// behind the range.
+struct basic_block {
+    instruction_list::iterator begin() const
+    { return first; }
 
+    instruction_list::iterator end() const
+    { return ++instruction_list::iterator(last); }
+
+    std::string name;
+
+private:
+    instruction_list::iterator first;
+    instruction_list::iterator last;
+
+friend class subroutine;
+};
+
+struct subroutine {
+    /** Intermediate representation */
+    instruction_list instructions;
+    std::vector<basic_block> nodes;
+    graph g;
+    std::unique_ptr<graph_dominance> dominance;
+    std::unique_ptr<graph_dominance> reverse_dominance;
+    int entry_node;
+    int exit_node;
+
+    /** Transformations */
     void construct_minimal_ssa();
     void dead_code_elimination();
     void copy_propagation();
@@ -76,6 +108,10 @@ struct subroutine {
     void allocate_registers();
     void prettify_names(unsigned& var_counter, unsigned& label_counter);
     void clean_cfg();
+
+private:
+    void recompute_control_flow_graph();
+    instruction_list exit_node_instructions;
 };
 
 using subroutine_map = std::map<std::string, subroutine>;
