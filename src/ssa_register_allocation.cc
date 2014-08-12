@@ -137,16 +137,7 @@ void subroutine::allocate_registers()
         }
 
         // find a coloring
-        std::set<std::string> names;
-        for (auto& instruction : instructions) {
-            instruction.use_apply([&] (const std::string& x) {
-                names.insert(x);
-            });
-            instruction.def_apply([&] (const std::string& x) {
-                names.insert(x);
-            });
-        }
-
+        const auto names = collect_variable_names();
         auto colors = color(names, interference);
 
         // spill

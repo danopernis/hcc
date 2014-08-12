@@ -268,4 +268,15 @@ void subroutine::recompute_liveness()
     }
 }
 
+std::set<std::string> subroutine::collect_variable_names()
+{
+    std::set<std::string> result;
+    auto inserter = [&] (std::string& s) { result.insert(s); };
+    for (auto& instruction : instructions) {
+        instruction.use_apply(inserter);
+        instruction.def_apply(inserter);
+    }
+    return result;
+}
+
 }} // end namespace hcc::ssa
