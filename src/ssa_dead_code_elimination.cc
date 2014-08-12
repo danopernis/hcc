@@ -25,7 +25,7 @@ void subroutine::dead_code_elimination()
 {
     recompute_control_flow_graph();
 
-    std::stack<std::pair<instruction_list::iterator, int>> worklist; // instruction and it's block
+    std::stack<std::pair<instruction_list::iterator, int>> worklist; // instruction and its block
     for (auto node = 0; node < static_cast<int>(nodes.size()); ++node) {
         for (auto instruction = nodes[node].begin(), e = nodes[node].end(); instruction != e; ++instruction) {
             instruction->mark = false;
@@ -37,32 +37,27 @@ void subroutine::dead_code_elimination()
     }
 
     while (!worklist.empty()) {
-        auto p = worklist.top();
-        auto o = p.first;
+        auto w = worklist.top();
         worklist.pop();
 
-        // for each definer...
-        std::set<std::string> used_variables;
-        o->use_apply([&](std::string& s) { used_variables.insert(s); });
-        for (const auto& v : used_variables) {
+        // for each use...
+        w.first->use_apply([&] (std::string& use) {
+            // ...find the definer...
             for (auto node = 0; node < static_cast<int>(nodes.size()); ++node) {
                 for (auto instruction = nodes[node].begin(), e = nodes[node].end(); instruction != e; ++instruction) {
-                    bool assigned = false;
-                    instruction->def_apply([&] (std::string& s) { assigned = assigned || (s == v); });
-                    if (assigned) {
-                        //... maybe set live and append to worklist
-                        if (!instruction->mark) {
+                    instruction->def_apply([&] (std::string& def) {
+                        if (def == use && !instruction->mark) {
+                            // ... mark and append to worklist
                             instruction->mark = true;;
                             worklist.push(std::make_pair(instruction, node));
                         }
-                    }
+                    });
                 }
             }
-        }
-
+        });
 
         // for each y in r_dfs(x)
-        for (int b : reverse_dominance->dfs[p.second]) {
+        for (int b : reverse_dominance->dfs[w.second]) {
             auto last = --nodes[b].end();
             if (!last->mark) {
                 last->mark = true;
