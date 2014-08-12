@@ -179,29 +179,38 @@ void subroutine::recompute_control_flow_graph()
             current_node = add_node(i->arguments[0]);
             current_node_start = i;
             break;
-        case instruction_type::JUMP:
+        case instruction_type::JUMP: {
             assert (i->arguments.size() == 1);
 
-            g.add_edge(current_node, add_node(i->arguments[0]));
+            auto dest = add_node(i->arguments[0]);
+
+            g.add_edge(current_node, dest);
 
             assert (0 <= current_node && current_node < static_cast<int>(nodes.size()));
             nodes[current_node].first = current_node_start;
             nodes[current_node].last = i;
-            break;
-        case instruction_type::BRANCH:
+            nodes[current_node].successors.insert(dest);
+            } break;
+        case instruction_type::BRANCH: {
             assert (i->arguments.size() == 3);
 
-            g.add_edge(current_node, add_node(i->arguments[1]));
-            g.add_edge(current_node, add_node(i->arguments[2]));
+            auto positive = add_node(i->arguments[1]);
+            auto negative = add_node(i->arguments[2]);
+
+            g.add_edge(current_node, positive);
+            g.add_edge(current_node, negative);
 
             assert (0 <= current_node && current_node < static_cast<int>(nodes.size()));
             nodes[current_node].first = current_node_start;
             nodes[current_node].last = i;
-            break;
+            nodes[current_node].successors.insert(positive);
+            nodes[current_node].successors.insert(negative);
+            } break;
         case instruction_type::RETURN:
             assert (0 <= current_node && current_node < static_cast<int>(nodes.size()));
             nodes[current_node].first = current_node_start;
             nodes[current_node].last = i;
+            nodes[current_node].successors.insert(exit_node);
             g.add_edge(current_node, exit_node);
             break;
         default:
@@ -212,6 +221,51 @@ void subroutine::recompute_control_flow_graph()
 
     dominance.reset(new graph_dominance(g, entry_node));
     reverse_dominance.reset(new graph_dominance(g.reverse(), exit_node));
+}
+
+void subroutine::recompute_liveness()
+{
+    // init
+    for (auto& block : nodes) {
+        block.uevar.clear();
+        block.varkill.clear();
+        block.liveout.clear();
+        for (auto& instruction : block) {
+            instruction.use_apply([&block] (const std::string& x) {
+                if (!block.varkill.count(x))
+                    block.uevar.insert(x);
+            });
+            instruction.def_apply([&block] (const std::string& x) {
+                block.varkill.insert(x);
+            });
+        }
+    }
+
+    // iterate
+    bool changed = true;
+    while (changed) {
+        changed = false;
+        for (auto& block : nodes) {
+            auto old_liveout = block.liveout;
+
+            std::set<std::string> new_liveout;
+            for (const auto& successor: block.successors) {
+                const auto& uevar = nodes[successor].uevar;
+                const auto& varkill = nodes[successor].varkill;
+                const auto& liveout = nodes[successor].liveout;
+                std::copy(uevar.begin(), uevar.end(), std::inserter(new_liveout, new_liveout.begin()));
+                for (const auto& x : liveout) {
+                    if (varkill.count(x) == 0)
+                        new_liveout.insert(x);
+                }
+            }
+            block.liveout = new_liveout;
+
+            if (block.liveout != old_liveout) {
+                changed = true;
+            }
+        }
+    }
 }
 
 }} // end namespace hcc::ssa
