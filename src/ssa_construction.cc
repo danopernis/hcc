@@ -137,13 +137,7 @@ private:
 // algorithm is due to Cytron et al.
 void subroutine::construct_minimal_ssa()
 {
-    // collect all the referenced variables
-    std::set<std::string> variables;
-    auto inserter = [&] (std::string& s) { variables.insert(s); };
-    for (auto& instruction : instructions) {
-        instruction.use_apply(inserter);
-        instruction.def_apply(inserter);
-    }
+    const auto variables = collect_variable_names();
 
     recompute_control_flow_graph();
     insert_temp_phi(variables, *this);

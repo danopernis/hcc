@@ -116,6 +116,7 @@ struct subroutine {
 private:
     void recompute_control_flow_graph();
     void recompute_liveness();
+    std::set<std::string> collect_variable_names();
     instruction_list exit_node_instructions;
 };
 
