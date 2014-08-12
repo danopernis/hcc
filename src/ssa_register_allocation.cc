@@ -106,80 +106,19 @@ std::map<std::string, int> color(
 
 void subroutine::allocate_registers()
 {
+    // register allocation doesn't change CFG
+    recompute_control_flow_graph();
+
     bool did_spill;
     do {
-        struct block_info {
-            // TODO replace set with bitset
-            std::set<std::string> uevar;
-            std::set<std::string> varkill;
-            std::set<std::string> liveout;
-            std::set<std::string> successors;
-            instruction_list::iterator first;
-            instruction_list::iterator last;
-        };
-        std::map<std::string, block_info> blocks;
-        std::map<std::string, block_info>::iterator current_block = blocks.end();
-
-        // init
-        for (auto i = instructions.begin(), e = instructions.end(); i != e; ++i) {
-            auto& instruction = *i;
-            if (instruction.type == instruction_type::LABEL) {
-                current_block = blocks.emplace(instruction.arguments[0], block_info()).first;
-                current_block->second.first = i;
-            } else {
-                auto& block = current_block->second;
-                instruction.use_apply([&block] (const std::string& x) {
-                    if (!block.varkill.count(x))
-                        block.uevar.insert(x);
-                });
-                instruction.def_apply([&block] (const std::string& x) {
-                    block.varkill.insert(x);
-                });
-                if (instruction.type == instruction_type::BRANCH ||
-                    instruction.type == instruction_type::JUMP ||
-                    instruction.type == instruction_type::RETURN)
-                {
-                    instruction.label_apply([&block] (const std::string& x) {
-                        block.successors.insert(x);
-                    });
-                    block.last = i;
-                }
-            }
-        }
-
-        // find live ranges
-        bool changed = true;
-        while (changed) {
-            changed = false;
-            for (auto& kv : blocks) {
-                auto& block = kv.second;
-                auto old_liveout = block.liveout;
-
-                std::set<std::string> new_liveout;
-                for (const auto& successor: block.successors) {
-                    const auto& uevar = blocks[successor].uevar;
-                    const auto& varkill = blocks[successor].varkill;
-                    const auto& liveout = blocks[successor].liveout;
-                    std::copy(uevar.begin(), uevar.end(), std::inserter(new_liveout, new_liveout.begin()));
-                    for (const auto& x : liveout) {
-                        if (varkill.count(x) == 0)
-                            new_liveout.insert(x);
-                    }
-                }
-                block.liveout = new_liveout;
-
-                if (block.liveout != old_liveout) {
-                    changed = true;
-                }
-            }
-        }
+        recompute_liveness();
 
         // build interference graph
         std::set<std::pair<std::string, std::string>> interference;
-        for (const auto& kv : blocks) {
-            auto livenow = kv.second.liveout;
+        for (const auto& kv : nodes) {
+            auto livenow = kv.liveout;
             // walk basic block backwards
-            for (auto i = kv.second.last, e = kv.second.first; i != e; --i) {
+            for (auto i = kv.last, e = kv.first; i != e; --i) {
                 i->def_apply([&] (std::string& x) {
                     for (const auto& y : livenow) {
                         if (x != y) {

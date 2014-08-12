@@ -82,6 +82,10 @@ struct basic_block {
     { return ++instruction_list::iterator(last); }
 
     std::string name;
+    std::set<std::string> uevar;
+    std::set<std::string> varkill;
+    std::set<std::string> liveout;
+    std::set<int> successors;
 
 private:
     instruction_list::iterator first;
@@ -111,6 +115,7 @@ struct subroutine {
 
 private:
     void recompute_control_flow_graph();
+    void recompute_liveness();
     instruction_list exit_node_instructions;
 };
 
