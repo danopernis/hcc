@@ -82,10 +82,16 @@ struct basic_block {
     { return ++instruction_list::iterator(last); }
 
     std::string name;
+    int index;
+
     std::set<std::string> uevar;
     std::set<std::string> varkill;
     std::set<std::string> liveout;
     std::set<int> successors;
+
+    // subroutine::construct_minimal_ssa()
+    int work;
+    int has_already;
 
 private:
     instruction_list::iterator first;
@@ -103,6 +109,22 @@ struct subroutine {
     std::unique_ptr<graph_dominance> reverse_dominance;
     int entry_node;
     int exit_node;
+
+    template<typename F>
+    void for_each_domtree_successor(int index, F&& f)
+    {
+        for (int i : dominance->tree.successors()[index]) {
+            f(nodes[i]);
+        }
+    }
+
+    template<typename F>
+    void for_each_cfg_successor(int index, F&& f)
+    {
+        for (int i : nodes[index].successors) {
+            f(nodes[i]);
+        }
+    }
 
     /** Transformations */
     void construct_minimal_ssa();

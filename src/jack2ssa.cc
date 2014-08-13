@@ -533,6 +533,7 @@ try {
     for (auto& subroutine_entry : writer.res.subroutines) {
         auto& subroutine = subroutine_entry.second;
         subroutine.construct_minimal_ssa();
+        subroutine.dead_code_elimination();
         subroutine.copy_propagation();
         subroutine.dead_code_elimination();
         subroutine.ssa_deconstruct();

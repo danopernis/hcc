@@ -5,6 +5,12 @@
 #include <set>
 #include <string>
 
+// TODO do not directly acces these member variables:
+// subroutine::instructions
+// subroutine::nodes;
+// subroutine::dominance
+// subroutine::entry_node
+
 namespace hcc { namespace ssa {
 
 namespace {
@@ -14,26 +20,26 @@ void insert_temp_phi(
     const std::set<std::string>& variables,
     subroutine& s)
 {
-    const int node_count = s.g.node_count();
+    // init
     int iteration = 0;
-    std::vector<int> has_already(node_count, iteration);
-    std::vector<int> work(node_count, iteration);
+    for (auto& block : s.nodes) {
+        block.has_already = iteration;
+        block.work = iteration;
+    }
 
     std::set<int> w; // worklist of CFG nodes being processed
     for (const auto& variable : variables) {
         ++iteration;
 
-        for (size_t block = 0; block < s.nodes.size(); ++block) {
-            // is variable assigned in this block?
-            bool assigned = false;
-            for (auto& instruction : s.nodes[block]) {
-                instruction.def_apply([&] (std::string& s) { assigned = assigned || (s == variable); });
-            }
-
-            // add to worklist
-            if (assigned) {
-                work[block] = iteration;
-                w.emplace(block);
+        for (auto& block : s.nodes) {
+            for (auto& instruction : block) {
+                instruction.def_apply([&] (std::string& def) {
+                    if (def == variable) {
+                        // add to worklist
+                        block.work = iteration;
+                        w.emplace(block.index);
+                    }
+                });
             }
         }
 
@@ -43,14 +49,15 @@ void insert_temp_phi(
 
             // for each y in dfs(x)
             for (int y : s.dominance->dfs[x]) {
-                if (has_already[y] < iteration) {
+                auto& block = s.nodes[y];
+                if (block.has_already < iteration) {
                     // place PHI after LABEL
-                    s.instructions.emplace(++s.nodes[y].begin(), instruction(instruction_type::PHI, {variable}));
+                    s.instructions.emplace(++block.begin(), instruction(instruction_type::PHI, {variable}));
 
-                    has_already[y] = iteration;
-                    if (work[y] < iteration) {
-                        work[y] = iteration;
-                        w.emplace(y);
+                    block.has_already = iteration;
+                    if (block.work < iteration) {
+                        block.work = iteration;
+                        w.emplace(block.index);
                     }
                 }
             }
@@ -58,78 +65,39 @@ void insert_temp_phi(
     }
 }
 
-
-/** Replace variables and complete phi functions */
-class search_and_replace {
-public:
-    search_and_replace(const std::set<std::string>& variables)
+struct name_manager {
+    name_manager(const std::set<std::string>& variables)
     {
         for (const auto& v : variables) {
-            C[v] = 0;
-            S[v].push(0);
+            counter[v] = 0;
+            stack[v].push(0);
         }
     }
 
-    void search(const int x, const subroutine& s)
+    void rename_to_current(std::string& name)
     {
-        std::vector<std::string> oldlhs;
+        name += "_" + std::to_string(stack[name].top());
+    }
 
-        for (auto& instr : s.nodes[x]) {
-            // rename uses
-            if (instr.type != instruction_type::PHI) {
-                instr.use_apply([&] (std::string& s) {
-                    s = strip(s);
-                    add_subscript(s, S.at(s).top());
-                });
-            }
+    void rename_to_new(std::string& name)
+    {
+        stack[name].push(counter[name]++);
+        rename_to_current(name);
+    }
 
-            // rename definitions
-            instr.def_apply([&] (std::string& s) {
-                const std::string name = s;
-                oldlhs.push_back(name);
-                int i = C[name];
-                add_subscript(s, i);
-                S[name].push(i);
-                ++C[name];
-            });
-        }
+    void pop(const std::string& name)
+    {
+        stack.at(strip(name)).pop();
+    }
 
-        // for each successor y of x
-        for (int y : s.g.successors()[x]) {
-            std::string whichpred = s.nodes.at(x).name;
-
-            for (auto& instr : s.nodes[y]) {
-                if (instr.type == instruction_type::PHI) {
-                    instr.arguments.push_back(whichpred);
-                    instr.arguments.push_back(strip(instr.arguments[0])); //TODO fugly
-                    add_subscript(instr.arguments.back(), S.at(instr.arguments.back()).top());
-                }
-            }
-        }
-
-        // for each child y of x
-        for (int i : s.dominance->tree.successors()[x]) {
-            search(i, s);
-        }
-
-        // clean up
-        for (auto& instr : s.nodes[x]) {
-            instr.def_apply([&] (std::string& s) {
-                S.at(strip(s)).pop();
-            });
-        }
+    std::string strip(std::string name) const
+    {
+        return name.substr(0, name.rfind('_'));
     }
 
 private:
-    std::map<std::string, std::stack<int>> S;
-    std::map<std::string, int> C;
-
-    void add_subscript(std::string& s, int i) const
-    {
-        s += "_" + std::to_string(i);
-    }
-
-    std::string strip(std::string s) { return s.substr(0, s.rfind('_')); }
+    std::map<std::string, std::stack<int>> stack;
+    std::map<std::string, int> counter;
 };
 
 } // anonymous namespace
@@ -137,12 +105,51 @@ private:
 // algorithm is due to Cytron et al.
 void subroutine::construct_minimal_ssa()
 {
+    // Initialization
     const auto variables = collect_variable_names();
-
     recompute_control_flow_graph();
+
+    // Step 1: insert (incomplete) phi-functions
     insert_temp_phi(variables, *this);
-    search_and_replace(variables).search(entry_node, *this);
-    dead_code_elimination();
+
+    // Step 2: append indices to variable names
+    name_manager names(variables);
+    std::function<void(basic_block&)> rename = [&] (basic_block& x)
+    {
+        // Rewrite variable names according to this table:
+        //
+        //         |     use           def
+        // --------+--------------------------
+        // regular | current name    new name
+        // phi     |     skip        new name
+        //
+        for (auto& instr : x) {
+            if (instr.type != instruction_type::PHI) {
+                instr.use_apply([&] (std::string& def) { names.rename_to_current(def); });
+            }
+            instr.def_apply([&] (std::string& def) { names.rename_to_new(def); });
+        }
+
+        // Complete uses in temporary phi-function using current names
+        for_each_cfg_successor(x.index, [&] (basic_block& y) {
+            for (auto& instr : y) {
+                if (instr.type == instruction_type::PHI) {
+                    instr.arguments.push_back(x.name);
+                    instr.arguments.push_back(names.strip(instr.arguments[0]));
+                    names.rename_to_current(instr.arguments.back());
+                }
+            }
+        });
+
+        // Recursive call
+        for_each_domtree_successor(x.index, rename);
+
+        // Cleanup
+        for (auto& instr : x) {
+            instr.def_apply([&] (std::string& def) { names.pop(def); });
+        }
+    };
+    rename(nodes[entry_node]);
 }
 
 }} // namespace hcc::ssa
