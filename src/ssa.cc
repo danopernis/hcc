@@ -150,6 +150,7 @@ void subroutine::recompute_control_flow_graph()
             name_to_index.emplace(name, index);
             nodes.emplace_back();
             nodes.back().name = name;
+            nodes.back().index = index;
             return index;
         } else {
             return it->second;
