@@ -161,7 +161,7 @@ void subroutine_ir::recompute_control_flow_graph()
     assert (!instructions.empty());
     assert (instructions.front().type == instruction_type::LABEL);
     assert (instructions.front().arguments.size()  == 1);
-    entry_node = add_node(instructions.front().arguments[0]);
+    entry_node_ = add_node(instructions.front().arguments[0]);
 
     // exit node is invented
     exit_node = add_node("EXIT");
@@ -220,7 +220,7 @@ void subroutine_ir::recompute_control_flow_graph()
         }
     }
 
-    dominance.reset(new graph_dominance(g, entry_node));
+    dominance.reset(new graph_dominance(g, entry_node_));
     reverse_dominance.reset(new graph_dominance(g.reverse(), exit_node));
 }
 
