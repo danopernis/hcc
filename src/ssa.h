@@ -93,21 +93,20 @@ struct basic_block {
     int work;
     int has_already;
 
-private:
+//private:
     instruction_list::iterator first;
     instruction_list::iterator last;
 
-friend class subroutine;
+friend class subroutine_ir;
 };
 
-struct subroutine {
-    /** Intermediate representation */
+/** Intermediate representation */
+struct subroutine_ir {
+    // TODO privatise these variables
     instruction_list instructions;
     std::vector<basic_block> nodes;
-    graph g;
     std::unique_ptr<graph_dominance> dominance;
     int entry_node;
-    int exit_node;
 
     template<typename F>
     void for_each_domtree_successor(int index, F&& f)
@@ -133,7 +132,19 @@ struct subroutine {
         }
     }
 
-    /** Transformations */
+    void recompute_control_flow_graph();
+    void recompute_liveness();
+    std::set<std::string> collect_variable_names();
+
+private:
+    graph g;
+    int exit_node;
+    instruction_list exit_node_instructions;
+    std::unique_ptr<graph_dominance> reverse_dominance;
+};
+
+/** Transformations */
+struct subroutine : public subroutine_ir {
     void construct_minimal_ssa();
     void dead_code_elimination();
     void copy_propagation();
@@ -141,13 +152,6 @@ struct subroutine {
     void allocate_registers();
     void prettify_names(unsigned& var_counter, unsigned& label_counter);
     void clean_cfg();
-
-private:
-    void recompute_control_flow_graph();
-    void recompute_liveness();
-    std::set<std::string> collect_variable_names();
-    instruction_list exit_node_instructions;
-    std::unique_ptr<graph_dominance> reverse_dominance;
 };
 
 using subroutine_map = std::map<std::string, subroutine>;

@@ -5,12 +5,6 @@
 #include <set>
 #include <string>
 
-// TODO do not directly acces these member variables:
-// subroutine::instructions
-// subroutine::nodes;
-// subroutine::dominance
-// subroutine::entry_node
-
 namespace hcc { namespace ssa {
 
 namespace {

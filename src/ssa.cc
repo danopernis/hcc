@@ -136,7 +136,7 @@ void instruction::label_apply(std::function<void(std::string&)> f)
     }
 }
 
-void subroutine::recompute_control_flow_graph()
+void subroutine_ir::recompute_control_flow_graph()
 {
     nodes.clear();
     std::map<std::string, int> name_to_index;
@@ -224,7 +224,7 @@ void subroutine::recompute_control_flow_graph()
     reverse_dominance.reset(new graph_dominance(g.reverse(), exit_node));
 }
 
-void subroutine::recompute_liveness()
+void subroutine_ir::recompute_liveness()
 {
     // init
     for (auto& block : nodes) {
@@ -269,7 +269,7 @@ void subroutine::recompute_liveness()
     }
 }
 
-std::set<std::string> subroutine::collect_variable_names()
+std::set<std::string> subroutine_ir::collect_variable_names()
 {
     std::set<std::string> result;
     auto inserter = [&] (std::string& s) { result.insert(s); };
