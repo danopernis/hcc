@@ -124,7 +124,7 @@ struct subroutine_ir {
     }
 
     template<typename F>
-    void for_each_dfs(int index, F&& f)
+    void for_each_reverse_dfs(int index, F&& f)
     {
         for (int i : reverse_dominance->dfs[index]) {
             f(nodes[i]);
