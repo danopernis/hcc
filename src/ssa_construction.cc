@@ -143,7 +143,7 @@ void subroutine::construct_minimal_ssa()
             instr.def_apply([&] (std::string& def) { names.pop(def); });
         }
     };
-    rename(nodes[entry_node]);
+    rename(entry_node());
 }
 
 }} // namespace hcc::ssa
