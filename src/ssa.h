@@ -106,7 +106,6 @@ struct subroutine {
     std::vector<basic_block> nodes;
     graph g;
     std::unique_ptr<graph_dominance> dominance;
-    std::unique_ptr<graph_dominance> reverse_dominance;
     int entry_node;
     int exit_node;
 
@@ -126,6 +125,14 @@ struct subroutine {
         }
     }
 
+    template<typename F>
+    void for_each_dfs(int index, F&& f)
+    {
+        for (int i : reverse_dominance->dfs[index]) {
+            f(nodes[i]);
+        }
+    }
+
     /** Transformations */
     void construct_minimal_ssa();
     void dead_code_elimination();
@@ -140,6 +147,7 @@ private:
     void recompute_liveness();
     std::set<std::string> collect_variable_names();
     instruction_list exit_node_instructions;
+    std::unique_ptr<graph_dominance> reverse_dominance;
 };
 
 using subroutine_map = std::map<std::string, subroutine>;

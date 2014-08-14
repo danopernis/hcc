@@ -4,34 +4,31 @@
 #include <algorithm>
 #include "ssa.h"
 
-namespace hcc { namespace ssa {
+// TODO do not directly acces these member variables:
+// subroutine::instructions
+// subroutine::nodes
 
-bool prelive(const instruction& instr)
-{
-    switch (instr.type) {
-    case instruction_type::JUMP:
-    case instruction_type::BRANCH:
-    case instruction_type::CALL:
-    case instruction_type::RETURN:
-    case instruction_type::LOAD:
-    case instruction_type::STORE:
-        return true;
-    default:
-        return false;
-    }
-}
+namespace hcc { namespace ssa {
 
 void subroutine::dead_code_elimination()
 {
     recompute_control_flow_graph();
 
     std::stack<std::pair<instruction_list::iterator, int>> worklist; // instruction and its block
-    for (auto node = 0; node < static_cast<int>(nodes.size()); ++node) {
-        for (auto instruction = nodes[node].begin(), e = nodes[node].end(); instruction != e; ++instruction) {
-            instruction->mark = false;
-            if (prelive(*instruction)) {
-                instruction->mark = true;
-                worklist.push(std::make_pair(instruction, node));
+    for (auto& block : nodes) {
+        for (auto i = block.begin(), e = block.end(); i != e; ++i) {
+            switch (i->type) {
+            case instruction_type::JUMP:
+            case instruction_type::BRANCH:
+            case instruction_type::CALL:
+            case instruction_type::RETURN:
+            case instruction_type::LOAD:
+            case instruction_type::STORE:
+                i->mark = true;
+                worklist.emplace(i, block.index);
+                break;
+            default:
+                i->mark = false;
             }
         }
     }
@@ -43,13 +40,13 @@ void subroutine::dead_code_elimination()
         // for each use...
         w.first->use_apply([&] (std::string& use) {
             // ...find the definer...
-            for (auto node = 0; node < static_cast<int>(nodes.size()); ++node) {
-                for (auto instruction = nodes[node].begin(), e = nodes[node].end(); instruction != e; ++instruction) {
-                    instruction->def_apply([&] (std::string& def) {
-                        if (def == use && !instruction->mark) {
+            for (auto& block : nodes) {
+                for (auto i = block.begin(), e = block.end(); i != e; ++i) {
+                    i->def_apply([&] (std::string& def) {
+                        if (def == use && !i->mark) {
                             // ... mark and append to worklist
-                            instruction->mark = true;;
-                            worklist.push(std::make_pair(instruction, node));
+                            i->mark = true;;
+                            worklist.emplace(i, block.index);
                         }
                     });
                 }
@@ -57,13 +54,13 @@ void subroutine::dead_code_elimination()
         });
 
         // for each y in r_dfs(x)
-        for (int b : reverse_dominance->dfs[w.second]) {
-            auto last = --nodes[b].end();
-            if (!last->mark) {
-                last->mark = true;
-                worklist.push(std::make_pair(last, b));
+        for_each_dfs(w.second, [&] (basic_block& block) {
+            auto i = block.end();
+            if (!i->mark) {
+                i->mark = true;
+                worklist.emplace(i, block.index);
             }
-        }
+        });
     }
 
     // sweep
