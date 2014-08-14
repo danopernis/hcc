@@ -49,8 +49,7 @@ void subroutine::dead_code_elimination()
             }
         });
 
-        // for each y in r_dfs(x)
-        for_each_dfs(w.second, [&] (basic_block& block) {
+        for_each_reverse_dfs(w.second, [&] (basic_block& block) {
             auto i = block.end();
             if (!i->mark) {
                 i->mark = true;
