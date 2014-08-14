@@ -4,10 +4,6 @@
 #include <algorithm>
 #include "ssa.h"
 
-// TODO do not directly acces these member variables:
-// subroutine::instructions
-// subroutine::nodes
-
 namespace hcc { namespace ssa {
 
 void subroutine::dead_code_elimination()
