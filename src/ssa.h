@@ -81,6 +81,14 @@ struct basic_block {
     instruction_list::iterator end() const
     { return ++instruction_list::iterator(last); }
 
+    template<typename F>
+    void for_each_instruction_reverse(F&& f)
+    {
+        for (auto i = last, e = first; i != e; --i) {
+            f(*i);
+        }
+    }
+
     std::string name;
     int index;
 
@@ -93,7 +101,7 @@ struct basic_block {
     int work;
     int has_already;
 
-//private:
+private:
     instruction_list::iterator first;
     instruction_list::iterator last;
 
