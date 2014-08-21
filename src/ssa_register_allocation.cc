@@ -115,11 +115,10 @@ void subroutine::allocate_registers()
 
         // build interference graph
         std::set<std::pair<std::string, std::string>> interference;
-        for (const auto& kv : nodes) {
-            auto livenow = kv.liveout;
-            // walk basic block backwards
-            for (auto i = kv.last, e = kv.first; i != e; --i) {
-                i->def_apply([&] (std::string& x) {
+        for (auto& block : nodes) {
+            auto livenow = block.liveout;
+            block.for_each_instruction_reverse([&] (instruction& i) {
+                i.def_apply([&] (std::string& x) {
                     for (const auto& y : livenow) {
                         if (x != y) {
                             interference.emplace(
@@ -130,10 +129,10 @@ void subroutine::allocate_registers()
                     }
                     livenow.erase(x);
                 });
-                i->use_apply([&] (std::string& x) {
+                i.use_apply([&] (std::string& x) {
                     livenow.insert(x);
                 });
-            }
+            });
         }
 
         // find a coloring
