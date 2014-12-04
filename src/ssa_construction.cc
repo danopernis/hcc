@@ -41,9 +41,7 @@ void insert_temp_phi(
             int x = *w.begin();
             w.erase(w.begin());
 
-            // for each y in dfs(x)
-            for (int y : s.dominance->dfs[x]) {
-                auto& block = s.nodes[y];
+            s.for_each_bb_in_dfs(x, [&] (basic_block& block) {
                 if (block.has_already < iteration) {
                     // place PHI after LABEL
                     s.instructions.emplace(++block.begin(), instruction(instruction_type::PHI, {variable}));
@@ -54,7 +52,7 @@ void insert_temp_phi(
                         w.emplace(block.index);
                     }
                 }
-            }
+            });
         }
     }
 }

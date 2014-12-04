@@ -102,10 +102,8 @@ bool interfere(std::string a, std::string b, subroutine& s)
     // TODO investigate if domtree is really needed
     // TODO live ranges are probably overestimated at the end
 
-    // preorder of domtree
-    depth_first_search dfs(s.dominance->tree.successors(), s.dominance->root);
-    for (int node : dfs.preorder()) {
-        for (auto& instr: s.nodes.at(node)) {
+    s.for_each_bb_in_domtree_preorder([&] (basic_block& block) {
+        for (auto& instr: block) {
             // live ranges
             instr.def_apply([&] (std::string& def) {
                 if (def == a) {
@@ -130,7 +128,7 @@ bool interfere(std::string a, std::string b, subroutine& s)
                 });
             }
         }
-    }
+    });
 
     const bool intersect = def_a_in_live_b || def_b_in_live_a;
     const bool differ_in_value = V.at(a) != V.at(b);
