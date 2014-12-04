@@ -16,16 +16,16 @@ void insert_temp_phi(
 {
     // init
     int iteration = 0;
-    for (auto& block : s.nodes) {
+    s.for_each_bb([&] (basic_block& block) {
         block.has_already = iteration;
         block.work = iteration;
-    }
+    });
 
     std::set<int> w; // worklist of CFG nodes being processed
     for (const auto& variable : variables) {
         ++iteration;
 
-        for (auto& block : s.nodes) {
+        s.for_each_bb([&] (basic_block& block) {
             for (auto& instruction : block) {
                 instruction.def_apply([&] (std::string& def) {
                     if (def == variable) {
@@ -35,7 +35,7 @@ void insert_temp_phi(
                     }
                 });
             }
-        }
+        });
 
         while (!w.empty()) {
             int x = *w.begin();

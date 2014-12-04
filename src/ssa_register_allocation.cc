@@ -115,7 +115,7 @@ void subroutine::allocate_registers()
 
         // build interference graph
         std::set<std::pair<std::string, std::string>> interference;
-        for (auto& block : nodes) {
+        for_each_bb([&] (basic_block& block) {
             auto livenow = block.liveout;
             block.for_each_instruction_reverse([&] (instruction& i) {
                 i.def_apply([&] (std::string& x) {
@@ -133,7 +133,7 @@ void subroutine::allocate_registers()
                     livenow.insert(x);
                 });
             });
-        }
+        });
 
         // find a coloring
         const auto names = collect_variable_names();

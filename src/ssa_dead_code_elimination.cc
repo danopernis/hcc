@@ -11,7 +11,7 @@ void subroutine::dead_code_elimination()
     recompute_control_flow_graph();
 
     std::stack<std::pair<instruction_list::iterator, int>> worklist; // instruction and its block
-    for (auto& block : nodes) {
+    for_each_bb([&] (basic_block& block) {
         for (auto i = block.begin(), e = block.end(); i != e; ++i) {
             switch (i->type) {
             case instruction_type::JUMP:
@@ -27,7 +27,7 @@ void subroutine::dead_code_elimination()
                 i->mark = false;
             }
         }
-    }
+    });
 
     while (!worklist.empty()) {
         auto w = worklist.top();
@@ -36,7 +36,7 @@ void subroutine::dead_code_elimination()
         // for each use...
         w.first->use_apply([&] (std::string& use) {
             // ...find the definer...
-            for (auto& block : nodes) {
+            for_each_bb([&] (basic_block& block) {
                 for (auto i = block.begin(), e = block.end(); i != e; ++i) {
                     i->def_apply([&] (std::string& def) {
                         if (def == use && !i->mark) {
@@ -46,7 +46,7 @@ void subroutine::dead_code_elimination()
                         }
                     });
                 }
-            }
+            });
         });
 
         for_each_reverse_dfs(w.second, [&] (basic_block& block) {
