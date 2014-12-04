@@ -112,7 +112,6 @@ friend class subroutine_ir;
 struct subroutine_ir {
     // TODO privatise these variables
     instruction_list instructions;
-    std::vector<basic_block> nodes;
 
     template<typename F>
     void for_each_domtree_successor(int index, F&& f)
@@ -155,6 +154,14 @@ struct subroutine_ir {
         }
     }
 
+    template<typename F>
+    void for_each_bb(F&& f)
+    {
+        for (auto& block : nodes) {
+            f(block);
+        }
+    }
+
     void recompute_control_flow_graph();
     void recompute_liveness();
     std::set<std::string> collect_variable_names();
@@ -167,6 +174,7 @@ private:
     int exit_node;
     int entry_node_;
     instruction_list exit_node_instructions;
+    std::vector<basic_block> nodes;
     std::unique_ptr<graph_dominance> reverse_dominance;
     std::unique_ptr<graph_dominance> dominance;
 };
