@@ -179,8 +179,10 @@ void subroutine_ir::recompute_control_flow_graph()
 
             current_node = add_node(i->arguments[0]);
             current_node_start = i;
+            i->basic_block = current_node;
             break;
         case instruction_type::JUMP: {
+            i->basic_block = current_node;
             assert (i->arguments.size() == 1);
 
             auto dest = add_node(i->arguments[0]);
@@ -193,6 +195,7 @@ void subroutine_ir::recompute_control_flow_graph()
             nodes[current_node].successors.insert(dest);
             } break;
         case instruction_type::BRANCH: {
+            i->basic_block = current_node;
             assert (i->arguments.size() == 3);
 
             auto positive = add_node(i->arguments[1]);
@@ -208,6 +211,7 @@ void subroutine_ir::recompute_control_flow_graph()
             nodes[current_node].successors.insert(negative);
             } break;
         case instruction_type::RETURN:
+            i->basic_block = current_node;
             assert (0 <= current_node && current_node < static_cast<int>(nodes.size()));
             nodes[current_node].first = current_node_start;
             nodes[current_node].last = i;
@@ -215,7 +219,7 @@ void subroutine_ir::recompute_control_flow_graph()
             g.add_edge(current_node, exit_node);
             break;
         default:
-            // nothing to do here
+            i->basic_block = current_node;
             break;
         }
     }

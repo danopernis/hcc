@@ -53,7 +53,12 @@ struct instruction {
 
     instruction_type type;
     std::vector<std::string> arguments;
+
+    // see subroutine::dead_code_elimination()
     bool mark;
+
+    // see subroutine_ir::recompute_control_flow_graph()
+    int basic_block;
 
     void use_apply(std::function<void(std::string&)>);
     void def_apply(std::function<void(std::string&)>);
