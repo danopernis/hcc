@@ -33,14 +33,14 @@ struct congruence_classes {
 // Implements "Method I" from paper by Sreedhar et al.
 // "Translating Out of Static Single Assignment Form"
 // FIXME copies are not parallel
-void naive_copy_insertion(instruction_list& instructions, congruence_classes& cc)
+void naive_copy_insertion(subroutine& s, congruence_classes& cc)
 {
     // worklist of MOV instructions to be inserted at the end of basic block,
     // indexed by basic block
-    std::map<std::string, std::set<instruction>> worklist;
+    std::map<std::string, instruction_list> worklist;
 
     // pass 1: fill worklist and insert primed copy
-    for (auto i = instructions.begin(), e = instructions.end(); i != e; ++i) {
+    for (auto i = s.instructions.begin(), e = s.instructions.end(); i != e; ++i) {
         if (i->type != instruction_type::PHI)
             continue;
 
@@ -50,7 +50,7 @@ void naive_copy_insertion(instruction_list& instructions, congruence_classes& cc
         const std::string base = *arg + "'";
 
         // insert MOV after PHI
-        instructions.emplace(++decltype(i)(i), instruction_type::MOV, std::vector<std::string>({*arg, base}));
+        s.instructions.emplace(++decltype(i)(i), instruction_type::MOV, std::vector<std::string>({*arg, base}));
         cc.insert(*arg);
         cc.insert(base);
 
@@ -64,7 +64,7 @@ void naive_copy_insertion(instruction_list& instructions, congruence_classes& cc
             const std::string name = base + label; // unique name
 
             // insert MOV into worklist
-            worklist[label].emplace(instruction_type::MOV, std::vector<std::string>({name, value}));
+            worklist[label].emplace_back(instruction_type::MOV, std::vector<std::string>({name, value}));
             cc.insert(name);
 
             // rename PHI's src
@@ -74,15 +74,9 @@ void naive_copy_insertion(instruction_list& instructions, congruence_classes& cc
     }
 
     // pass 2: paste instructions from worklist at the end of respective basic block
-    std::string last_label;
-    for (auto i = instructions.begin(), e = instructions.end(); i != e; ++i) {
-        if (i->type == instruction_type::LABEL) {
-            last_label = i->arguments[0];
-        } else if (i->type == instruction_type::BRANCH || i->type == instruction_type::JUMP) {
-            for (auto& mov : worklist[last_label])
-                instructions.emplace(i, mov);
-        }
-    }
+    s.for_each_bb([&] (basic_block& bb) {
+        s.instructions.splice(--bb.end(), worklist[bb.name]);
+    });
 }
 
 
@@ -146,7 +140,7 @@ void subroutine::ssa_deconstruct()
     recompute_control_flow_graph();
 
     congruence_classes cc;
-    naive_copy_insertion(instructions, cc);
+    naive_copy_insertion(*this, cc);
 
     // incidental classes, rising from the code
     for (auto& instr: instructions) {
