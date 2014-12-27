@@ -541,7 +541,6 @@ try {
         unsigned int c1 = 0;
         unsigned int c2 = 0;
         subroutine.prettify_names(c1, c2);
-        subroutine.clean_cfg();
     }
 
     // output
