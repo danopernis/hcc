@@ -26,7 +26,7 @@ void insert_temp_phi(
         ++iteration;
 
         s.for_each_bb([&] (basic_block& block) {
-            for (auto& instruction : block) {
+            for (auto& instruction : block.instructions) {
                 instruction.def_apply([&] (std::string& def) {
                     if (def == variable) {
                         // add to worklist
@@ -44,7 +44,9 @@ void insert_temp_phi(
             s.for_each_bb_in_dfs(x, [&] (basic_block& block) {
                 if (block.has_already < iteration) {
                     // place PHI after LABEL
-                    s.instructions.emplace(++block.begin(), instruction(instruction_type::PHI, {variable}));
+                    block.instructions.insert(
+                        ++block.instructions.begin(),
+                        instruction(instruction_type::PHI, {variable}));
 
                     block.has_already = iteration;
                     if (block.work < iteration) {
@@ -115,7 +117,7 @@ void subroutine::construct_minimal_ssa()
         // regular | current name    new name
         // phi     |     skip        new name
         //
-        for (auto& instr : x) {
+        for (auto& instr : x.instructions) {
             if (instr.type != instruction_type::PHI) {
                 instr.use_apply([&] (std::string& def) { names.rename_to_current(def); });
             }
@@ -124,7 +126,7 @@ void subroutine::construct_minimal_ssa()
 
         // Complete uses in temporary phi-function using current names
         for_each_cfg_successor(x.index, [&] (basic_block& y) {
-            for (auto& instr : y) {
+            for (auto& instr : y.instructions) {
                 if (instr.type == instruction_type::PHI) {
                     instr.arguments.push_back(x.name);
                     instr.arguments.push_back(names.strip(instr.arguments[0]));
@@ -137,7 +139,7 @@ void subroutine::construct_minimal_ssa()
         for_each_domtree_successor(x.index, rename);
 
         // Cleanup
-        for (auto& instr : x) {
+        for (auto& instr : x.instructions) {
             instr.def_apply([&] (std::string& def) { names.pop(def); });
         }
     };

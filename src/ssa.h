@@ -76,23 +76,44 @@ std::ostream& operator<<(std::ostream& os, const instruction& instr);
 
 using instruction_list = std::list<instruction>;
 
+struct subroutine_ir;
+
 // Represents a range of instructions
 // Iterators are inclusive on construction; however end() iterator points just
 // behind the range.
 struct basic_block {
-    instruction_list::iterator begin() const
-    { return first; }
+    basic_block(subroutine_ir& s) : instructions(s) { }
 
-    instruction_list::iterator end() const
-    { return ++instruction_list::iterator(last); }
+    struct proxy {
+        proxy(subroutine_ir& s) : s(s) { }
 
-    template<typename F>
-    void for_each_instruction_reverse(F&& f)
-    {
-        for (auto i = last, e = first; i != e; --i) {
-            f(*i);
+        instruction_list::iterator begin() const
+        { return first; }
+
+        instruction_list::iterator end() const
+        { return ++instruction_list::iterator(last); }
+
+        template<typename F>
+        void for_each_reverse(F&& f)
+        {
+            for (auto i = last, e = first; i != e; --i) {
+                f(*i);
+            }
         }
-    }
+
+        instruction_list::iterator insert(instruction_list::iterator, const instruction&);
+        instruction_list::iterator erase(instruction_list::iterator);
+        void splice(instruction_list::iterator, instruction_list&);
+
+    private:
+        instruction_list::iterator first;
+        instruction_list::iterator last;
+        subroutine_ir& s;
+
+    friend class subroutine_ir;
+    };
+
+    proxy instructions;
 
     std::string name;
     int index;
@@ -105,19 +126,10 @@ struct basic_block {
     // subroutine::construct_minimal_ssa()
     int work;
     int has_already;
-
-private:
-    instruction_list::iterator first;
-    instruction_list::iterator last;
-
-friend class subroutine_ir;
 };
 
 /** Intermediate representation */
 struct subroutine_ir {
-    // TODO privatise these variables
-    instruction_list instructions;
-
     template<typename F>
     void for_each_domtree_successor(int index, F&& f)
     {
@@ -182,6 +194,10 @@ private:
     std::vector<basic_block> nodes;
     std::unique_ptr<graph_dominance> reverse_dominance;
     std::unique_ptr<graph_dominance> dominance;
+    instruction_list instructions;
+
+friend struct basic_block::proxy;
+friend struct unit;
 };
 
 /** Transformations */
@@ -200,13 +216,18 @@ struct unit {
     subroutine_map subroutines;
     std::set<std::string> globals;
 
-    subroutine_map::iterator insert_subroutine(const std::string& name)
+    subroutine_map::iterator insert_subroutine(
+        const std::string& name,
+        const instruction_list& instructions = instruction_list())
     {
         auto it = subroutines.find(name);
-        if (it != subroutines.end())
+        if (it != subroutines.end()) {
             throw std::runtime_error("unit::insert_subroutine");
-        else
-            return subroutines.insert(it, std::make_pair(name, subroutine()));
+        } else {
+            subroutine s;
+            s.instructions = instructions;
+            return subroutines.insert(it, std::make_pair(name, std::move(s)));
+        }
     }
 
     void load(std::istream&);

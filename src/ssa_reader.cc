@@ -180,9 +180,10 @@ private:
             return false;
         }
 
-        auto& instructions =
-            u.insert_subroutine(std::move(arguments[0]))->second.instructions;
+        const auto name = arguments[0];
+        instruction_list instructions;
         while (accept_block(instructions)) { }
+        u.insert_subroutine(name, instructions);
         return true;
     }
 

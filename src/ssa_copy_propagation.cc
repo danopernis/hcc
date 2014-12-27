@@ -33,20 +33,24 @@ void subroutine::copy_propagation()
     } replacer;
 
     // pass 1: find MOVs and make replacement list
-    for (auto& instruction : instructions) {
+    for_each_bb([&] (basic_block& bb) {
+    for (auto& instruction : bb.instructions) {
         if (instruction.type == instruction_type::MOV) {
             replacer.insert(instruction.arguments[1], instruction.arguments[0]);
         }
     }
+    });
 
     // pass 2: apply the replacement
-    for (auto& instruction : instructions) {
+    for_each_bb([&] (basic_block& bb) {
+    for (auto& instruction : bb.instructions) {
 //        if (instruction.type == instruction_type::PHI) {
             // TODO relax, dont propagate constant but do propagate variables
 //        } else {
             instruction.use_apply(replacer);
 //        }
     }
+    });
 }
 
 }} // namespace hcc::ssa
