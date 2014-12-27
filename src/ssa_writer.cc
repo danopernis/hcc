@@ -28,19 +28,37 @@ const std::map<instruction_type, std::string> type_to_string = {
     { instruction_type::LABEL,      "block " }
 };
 
-void unit::save(std::ostream& output) const
+void unit::save(std::ostream& output)
 {
     for (const auto& global : globals) {
         output << "global " << global << "\n";
     }
-    for (const auto& subroutine : subroutines) {
+    for (auto& subroutine : subroutines) {
         output << "define " << subroutine.first << "\n";
-        for (const auto& instr : subroutine.second.instructions) {
-            if (instr.type != instruction_type::LABEL)
-                output << "\t";
-
-            output << instr << "\n";
+        auto& entry_block = subroutine.second.entry_node();
+        auto& exit_block = subroutine.second.exit_node();
+        for (const auto& instr : entry_block.instructions) {
+            if (instr.type == instruction_type::LABEL) {
+                continue;
+            }
+            output << "\t" << instr << "\n";
         }
+        subroutine.second.for_each_bb([&] (const basic_block& bb) {
+            if (bb.index == entry_block.index ||
+                bb.index == exit_block.index ||
+                bb.instructions.empty())
+            {
+                return;
+            }
+
+            output << "block " << bb.name << "\n";
+            for (const auto& instr : bb.instructions) {
+                if (instr.type == instruction_type::LABEL) {
+                    continue;
+                }
+                output << "\t" << instr << "\n";
+            }
+        });
     }
 }
 

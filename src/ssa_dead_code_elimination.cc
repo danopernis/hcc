@@ -8,11 +8,12 @@ namespace hcc { namespace ssa {
 
 void subroutine::dead_code_elimination()
 {
-    recompute_control_flow_graph();
+    recompute_dominance();
 
     std::stack<instruction_list::iterator> worklist;
     for_each_bb([&] (basic_block& bb) {
     for (auto i = bb.instructions.begin(), e = bb.instructions.end(); i != e; ++i) {
+        i->basic_block = bb.index;
         switch (i->type) {
         case instruction_type::JUMP:
         case instruction_type::BRANCH:
@@ -50,7 +51,10 @@ void subroutine::dead_code_elimination()
         });
 
         for_each_reverse_dfs(w->basic_block, [&] (basic_block& block) {
-            auto i = block.instructions.end();
+            if (block.instructions.empty()) {
+                return;
+            }
+            auto i = --block.instructions.end();
             if (!i->mark) {
                 i->mark = true;
                 worklist.emplace(i);

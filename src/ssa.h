@@ -56,8 +56,6 @@ struct instruction {
 
     // see subroutine::dead_code_elimination()
     bool mark;
-
-    // see subroutine_ir::recompute_control_flow_graph()
     int basic_block;
 
     void use_apply(std::function<void(std::string&)>);
@@ -76,44 +74,8 @@ std::ostream& operator<<(std::ostream& os, const instruction& instr);
 
 using instruction_list = std::list<instruction>;
 
-struct subroutine_ir;
-
-// Represents a range of instructions
-// Iterators are inclusive on construction; however end() iterator points just
-// behind the range.
 struct basic_block {
-    basic_block(subroutine_ir& s) : instructions(s) { }
-
-    struct proxy {
-        proxy(subroutine_ir& s) : s(s) { }
-
-        instruction_list::iterator begin() const
-        { return first; }
-
-        instruction_list::iterator end() const
-        { return ++instruction_list::iterator(last); }
-
-        template<typename F>
-        void for_each_reverse(F&& f)
-        {
-            for (auto i = last, e = first; i != e; --i) {
-                f(*i);
-            }
-        }
-
-        instruction_list::iterator insert(instruction_list::iterator, const instruction&);
-        instruction_list::iterator erase(instruction_list::iterator);
-        void splice(instruction_list::iterator, instruction_list&);
-
-    private:
-        instruction_list::iterator first;
-        instruction_list::iterator last;
-        subroutine_ir& s;
-
-    friend class subroutine_ir;
-    };
-
-    proxy instructions;
+    instruction_list instructions;
 
     std::string name;
     int index;
@@ -130,19 +92,21 @@ struct basic_block {
 
 /** Intermediate representation */
 struct subroutine_ir {
+    subroutine_ir();
+
     template<typename F>
     void for_each_domtree_successor(int index, F&& f)
     {
         for (int i : dominance->tree.successors()[index]) {
-            f(nodes[i]);
+            f(basic_blocks.at(i));
         }
     }
 
     template<typename F>
     void for_each_cfg_successor(int index, F&& f)
     {
-        for (int i : nodes[index].successors) {
-            f(nodes[i]);
+        for (int i : basic_blocks.at(index).successors) {
+            f(basic_blocks.at(i));
         }
     }
 
@@ -150,7 +114,7 @@ struct subroutine_ir {
     void for_each_reverse_dfs(int index, F&& f)
     {
         for (int i : reverse_dominance->dfs[index]) {
-            f(nodes[i]);
+            f(basic_blocks.at(i));
         }
     }
 
@@ -158,7 +122,7 @@ struct subroutine_ir {
     void for_each_bb_in_dfs(int index, F&& f)
     {
         for (int i : dominance->dfs[index]) {
-            f(nodes[i]);
+            f(basic_blocks.at(i));
         }
     }
 
@@ -167,37 +131,62 @@ struct subroutine_ir {
     {
         depth_first_search dfs(dominance->tree.successors(), dominance->root);
         for (int i : dfs.preorder()) {
-            f(nodes[i]);
+            f(basic_blocks.at(i));
         }
     }
 
     template<typename F>
     void for_each_bb(F&& f)
     {
-        for (auto& block : nodes) {
-            f(block);
+        for (auto& block : basic_blocks) {
+            f(block.second);
         }
     }
 
-    void recompute_control_flow_graph();
+    template<typename F>
+    void for_each_bb(F&& f) const { for_each_bb(std::forward<F>(f)); }
+
+    void recompute_dominance();
     void recompute_liveness();
     std::set<std::string> collect_variable_names();
 
     basic_block& entry_node()
-    { return nodes[entry_node_]; }
+    { return basic_blocks.at(entry_node_); }
+
+    basic_block& exit_node()
+    { return basic_blocks.at(exit_node_); }
+
+    basic_block& add_bb(const std::string& name)
+    {
+        auto it = name_to_index.find(name);
+        if (it == name_to_index.end()) {
+            int index = g.add_node();
+            name_to_index.emplace(name, index);
+            auto& node = basic_blocks[index];
+            node.name = name;
+            node.index = index;
+            node.instructions.push_back(
+                instruction(instruction_type::LABEL, {name}));
+            return node;
+        } else {
+            return basic_blocks.at(it->second);
+        }
+    }
+
+    void add_cfg_edge(basic_block& from, basic_block& to)
+    {
+        g.add_edge(from.index, to.index);
+        from.successors.insert(to.index);
+    }
 
 private:
     graph g;
-    int exit_node;
+    int exit_node_;
     int entry_node_;
-    instruction_list exit_node_instructions;
-    std::vector<basic_block> nodes;
+    std::map<int, basic_block> basic_blocks;
     std::unique_ptr<graph_dominance> reverse_dominance;
     std::unique_ptr<graph_dominance> dominance;
-    instruction_list instructions;
-
-friend struct basic_block::proxy;
-friend struct unit;
+    std::map<std::string, int> name_to_index;
 };
 
 /** Transformations */
@@ -216,22 +205,18 @@ struct unit {
     subroutine_map subroutines;
     std::set<std::string> globals;
 
-    subroutine_map::iterator insert_subroutine(
-        const std::string& name,
-        const instruction_list& instructions = instruction_list())
+    subroutine_map::iterator insert_subroutine(const std::string& name)
     {
         auto it = subroutines.find(name);
         if (it != subroutines.end()) {
             throw std::runtime_error("unit::insert_subroutine");
         } else {
-            subroutine s;
-            s.instructions = instructions;
-            return subroutines.insert(it, std::make_pair(name, std::move(s)));
+            return subroutines.insert(it, std::make_pair(name, subroutine()));
         }
     }
 
     void load(std::istream&);
-    void save(std::ostream&) const;
+    void save(std::ostream&);
 };
 
 }} // namespace hcc::ssa

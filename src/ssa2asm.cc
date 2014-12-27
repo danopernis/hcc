@@ -127,6 +127,9 @@ void generate_code(subroutine& s, hcc::asm_program& out, const std::string& pref
     };
 
     out.emitL(prefix);
+    out.emitA(prefix + "." + s.entry_node().name);
+    out.emitC(COMP_ZERO | JMP);
+
     s.for_each_bb([&] (basic_block& bb) {
     for (auto instruction : bb.instructions) {
         {

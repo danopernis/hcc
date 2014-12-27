@@ -139,7 +139,7 @@ bool interfere(std::string a, std::string b, subroutine& s)
 // "Revisiting Out-of-SSA Translation for Correctness, Code Quality, and Efficiency"
 void subroutine::ssa_deconstruct()
 {
-    recompute_control_flow_graph();
+    recompute_dominance();
 
     congruence_classes cc;
     naive_copy_insertion(*this, cc);
