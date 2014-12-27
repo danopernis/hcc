@@ -148,7 +148,7 @@ void subroutine_ir::recompute_control_flow_graph()
         if (it == name_to_index.end()) {
             int index = g.add_node();
             name_to_index.emplace(name, index);
-            nodes.emplace_back();
+            nodes.emplace_back(*this);
             nodes.back().name = name;
             nodes.back().index = index;
             return index;
@@ -166,8 +166,8 @@ void subroutine_ir::recompute_control_flow_graph()
     // exit node is invented
     exit_node = add_node("EXIT");
     exit_node_instructions.emplace_back(instruction_type::LABEL, std::vector<std::string>({"EXIT"}));
-    nodes[exit_node].first = exit_node_instructions.begin();
-    nodes[exit_node].last = exit_node_instructions.begin();
+    nodes[exit_node].instructions.first = exit_node_instructions.begin();
+    nodes[exit_node].instructions.last = exit_node_instructions.begin();
 
     int current_node = -1;
     instruction_list::iterator current_node_start;
@@ -190,8 +190,8 @@ void subroutine_ir::recompute_control_flow_graph()
             g.add_edge(current_node, dest);
 
             assert (0 <= current_node && current_node < static_cast<int>(nodes.size()));
-            nodes[current_node].first = current_node_start;
-            nodes[current_node].last = i;
+            nodes[current_node].instructions.first = current_node_start;
+            nodes[current_node].instructions.last = i;
             nodes[current_node].successors.insert(dest);
             } break;
         case instruction_type::BRANCH: {
@@ -205,16 +205,16 @@ void subroutine_ir::recompute_control_flow_graph()
             g.add_edge(current_node, negative);
 
             assert (0 <= current_node && current_node < static_cast<int>(nodes.size()));
-            nodes[current_node].first = current_node_start;
-            nodes[current_node].last = i;
+            nodes[current_node].instructions.first = current_node_start;
+            nodes[current_node].instructions.last = i;
             nodes[current_node].successors.insert(positive);
             nodes[current_node].successors.insert(negative);
             } break;
         case instruction_type::RETURN:
             i->basic_block = current_node;
             assert (0 <= current_node && current_node < static_cast<int>(nodes.size()));
-            nodes[current_node].first = current_node_start;
-            nodes[current_node].last = i;
+            nodes[current_node].instructions.first = current_node_start;
+            nodes[current_node].instructions.last = i;
             nodes[current_node].successors.insert(exit_node);
             g.add_edge(current_node, exit_node);
             break;
@@ -235,7 +235,7 @@ void subroutine_ir::recompute_liveness()
         block.uevar.clear();
         block.varkill.clear();
         block.liveout.clear();
-        for (auto& instruction : block) {
+        for (auto& instruction : block.instructions) {
             instruction.use_apply([&block] (const std::string& x) {
                 if (!block.varkill.count(x))
                     block.uevar.insert(x);
@@ -283,5 +283,14 @@ std::set<std::string> subroutine_ir::collect_variable_names()
     }
     return result;
 }
+
+instruction_list::iterator basic_block::proxy::insert(instruction_list::iterator it, const instruction& i)
+{ return s.instructions.insert(it, i); }
+
+instruction_list::iterator basic_block::proxy::erase(instruction_list::iterator it)
+{ return s.instructions.erase(it); }
+
+void basic_block::proxy::splice(instruction_list::iterator it, instruction_list& x)
+{ s.instructions.splice(it, x); }
 
 }} // end namespace hcc::ssa

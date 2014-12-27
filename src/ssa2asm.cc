@@ -38,7 +38,7 @@ void adjust_symmetric_operation(instruction &i)
     }
 }
 
-void generate_code(instruction_list& instructions, hcc::asm_program& out, const std::string& prefix)
+void generate_code(subroutine& s, hcc::asm_program& out, const std::string& prefix)
 {
     int available_register = 0;
     std::map<std::string, std::string> registers;
@@ -59,7 +59,9 @@ void generate_code(instruction_list& instructions, hcc::asm_program& out, const 
             }
         }
     };
-    for (auto& instruction : instructions) {
+
+    s.for_each_bb([&] (basic_block& bb) {
+    for (auto& instruction : bb.instructions) {
         instruction.def_apply(f);
         instruction.use_apply(f);
         if (instruction.type == instruction_type::STORE) {
@@ -69,6 +71,8 @@ void generate_code(instruction_list& instructions, hcc::asm_program& out, const 
             f(instruction.arguments[1]);
         }
     }
+    });
+
     std::vector<std::pair<std::string, int>> locals_tmp;
     for (const auto& kv : locals_counts) {
         locals_tmp.emplace_back(kv.first, kv.second);
@@ -123,7 +127,8 @@ void generate_code(instruction_list& instructions, hcc::asm_program& out, const 
     };
 
     out.emitL(prefix);
-    for (auto instruction : instructions) {
+    s.for_each_bb([&] (basic_block& bb) {
+    for (auto instruction : bb.instructions) {
         {
             std::stringstream ss;
             ss << instruction;
@@ -287,6 +292,7 @@ void generate_code(instruction_list& instructions, hcc::asm_program& out, const 
             assert(false);
         }
     }
+    });
 }
 
 
@@ -377,7 +383,7 @@ try {
 
     for (auto& subroutine_entry : u.subroutines) {
         subroutine_entry.second.allocate_registers();
-        generate_code(subroutine_entry.second.instructions, out, subroutine_entry.first);
+        generate_code(subroutine_entry.second, out, subroutine_entry.first);
     }
     out.local_optimization();
     out.save("output.asm");

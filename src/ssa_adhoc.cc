@@ -39,16 +39,20 @@ void subroutine::prettify_names(unsigned& var_counter, unsigned& label_counter)
         }
     };
 
-    for (auto& instruction : instructions) {
+    for_each_bb([&] (basic_block& bb) {
+    for (auto& instruction : bb.instructions) {
         instruction.use_apply(var_collector);
         instruction.def_apply(var_collector);
         instruction.label_apply(label_collector);
     }
-    for (auto& instruction : instructions) {
+    });
+    for_each_bb([&] (basic_block& bb) {
+    for (auto& instruction : bb.instructions) {
         instruction.use_apply(var_replacer);
         instruction.def_apply(var_replacer);
         instruction.label_apply(label_replacer);
     }
+    });
 }
 
 

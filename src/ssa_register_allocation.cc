@@ -117,7 +117,7 @@ void subroutine::allocate_registers()
         std::set<std::pair<std::string, std::string>> interference;
         for_each_bb([&] (basic_block& block) {
             auto livenow = block.liveout;
-            block.for_each_instruction_reverse([&] (instruction& i) {
+            block.instructions.for_each_reverse([&] (instruction& i) {
                 i.def_apply([&] (std::string& x) {
                     for (const auto& y : livenow) {
                         if (x != y) {
@@ -142,7 +142,8 @@ void subroutine::allocate_registers()
         // spill
         int spill_counter = 0;
         did_spill = false;
-        for (auto i = instructions.begin(), e = instructions.end(); i != e;) {
+        for_each_bb([&] (basic_block& bb) {
+        for (auto i = bb.instructions.begin(), e = bb.instructions.end(); i != e;) {
             auto& instruction = *i;
             ++spill_counter;
             std::pair<std::string, std::string> load_spill;
@@ -170,7 +171,9 @@ void subroutine::allocate_registers()
                 }
             });
             if (!load_spill.first.empty()) {
-                instructions.emplace(i, instruction_type::LOAD, std::vector<std::string>{load_spill.second, load_spill.first} );
+                bb.instructions.insert(i, hcc::ssa::instruction(
+                    instruction_type::LOAD,
+                    {load_spill.second, load_spill.first}));
             }
             // meh
             if (!store_spill.first.empty()) {
@@ -180,14 +183,19 @@ void subroutine::allocate_registers()
                     ++i;
                 } else {
                     ++i;
-                    instructions.emplace(i, instruction_type::STORE, std::vector<std::string>{store_spill.first, store_spill.second} );
+                    bb.instructions.insert(i, hcc::ssa::instruction(
+                        instruction_type::STORE,
+                        {store_spill.first, store_spill.second}));
                 }
             } else {
                 ++i;
             }
         }
+        });
+
         if (!did_spill) {
-            for (auto i = instructions.begin(), e = instructions.end(); i != e;) {
+            for_each_bb([&] (basic_block& bb) {
+            for (auto i = bb.instructions.begin(), e = bb.instructions.end(); i != e;) {
                 auto& instruction = *i;
                 instruction.use_apply([&] (std::string& x) {
                     if (colors.count(x)) {
@@ -204,11 +212,12 @@ void subroutine::allocate_registers()
                     }
                 });
                 if (instruction.type == instruction_type::MOV && instruction.arguments[0] == instruction.arguments[1]) {
-                    i = instructions.erase(i);
+                    i = bb.instructions.erase(i);
                 } else {
                     ++i;
                 }
             }
+            });
         }
     } while(did_spill);
 }

@@ -11,7 +11,8 @@ void subroutine::dead_code_elimination()
     recompute_control_flow_graph();
 
     std::stack<instruction_list::iterator> worklist;
-    for (auto i = instructions.begin(), e = instructions.end(); i != e; ++i) {
+    for_each_bb([&] (basic_block& bb) {
+    for (auto i = bb.instructions.begin(), e = bb.instructions.end(); i != e; ++i) {
         switch (i->type) {
         case instruction_type::JUMP:
         case instruction_type::BRANCH:
@@ -26,6 +27,7 @@ void subroutine::dead_code_elimination()
             i->mark = false;
         }
     }
+    });
 
     while (!worklist.empty()) {
         auto w = worklist.top();
@@ -34,7 +36,8 @@ void subroutine::dead_code_elimination()
         // for each use...
         w->use_apply([&] (std::string& use) {
             // ...find the definer...
-            for (auto i = instructions.begin(), e = instructions.end(); i != e; ++i) {
+            for_each_bb([&] (basic_block& bb) {
+            for (auto i = bb.instructions.begin(), e = bb.instructions.end(); i != e; ++i) {
                 i->def_apply([&] (std::string& def) {
                     if (def == use && !i->mark) {
                         // ... mark and append to worklist
@@ -43,10 +46,11 @@ void subroutine::dead_code_elimination()
                     }
                 });
             }
+            });
         });
 
         for_each_reverse_dfs(w->basic_block, [&] (basic_block& block) {
-            auto i = block.end();
+            auto i = block.instructions.end();
             if (!i->mark) {
                 i->mark = true;
                 worklist.emplace(i);
@@ -55,13 +59,15 @@ void subroutine::dead_code_elimination()
     }
 
     // sweep
-    for (auto i = instructions.begin(), e = instructions.end(); i != e;) {
+    for_each_bb([&] (basic_block& bb) {
+    for (auto i = bb.instructions.begin(), e = bb.instructions.end(); i != e;) {
         if (i->type != instruction_type::LABEL && !i->mark) {
-            i = instructions.erase(i);
+            i = bb.instructions.erase(i);
         } else {
             ++i;
         }
     }
+    });
 }
 
 }} // namespace hcc::ssa

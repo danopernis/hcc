@@ -48,7 +48,7 @@ struct Writer
     { appendToCurrentBB(type, std::vector<std::string>(il)); }
 
     void appendToCurrentBB(instruction_type type, std::vector<std::string> args)
-    { currentSubroutine->second.instructions.emplace_back(type, args); }
+    { instructions.emplace_back(type, args); }
 
     void outputBranch(const std::string& branch)
     { appendToCurrentBB(instruction_type::JUMP, {branch}); }
@@ -424,12 +424,10 @@ struct Writer
     void writeSubroutine(const ast::Subroutine& subroutine)
     {
         subroutineScope.clear();
+        instructions.clear();
         ifCounter = 0;
         whileCounter = 0;
         tmpCounter = 0;
-
-        currentSubroutine = res.insert_subroutine(
-            className + "." + subroutine.name);
 
         beginBB("ENTRY");
 
@@ -463,6 +461,8 @@ struct Writer
         for (const auto& statement : subroutine.statements) {
             statement->accept(this);
         }
+
+        res.insert_subroutine(className + "." + subroutine.name, instructions);
     }
 
     void write(const ast::Class& class_)
@@ -500,6 +500,7 @@ struct Writer
     unsigned fieldVarsCount;
     std::stack<std::string> ssaStack;
     subroutine_map::iterator currentSubroutine;
+    instruction_list instructions;
 };
 
 

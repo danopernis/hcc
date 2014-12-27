@@ -40,7 +40,8 @@ void naive_copy_insertion(subroutine& s, congruence_classes& cc)
     std::map<std::string, instruction_list> worklist;
 
     // pass 1: fill worklist and insert primed copy
-    for (auto i = s.instructions.begin(), e = s.instructions.end(); i != e; ++i) {
+    s.for_each_bb([&] (basic_block& bb) {
+    for (auto i = bb.instructions.begin(), e = bb.instructions.end(); i != e; ++i) {
         if (i->type != instruction_type::PHI)
             continue;
 
@@ -50,7 +51,7 @@ void naive_copy_insertion(subroutine& s, congruence_classes& cc)
         const std::string base = *arg + "'";
 
         // insert MOV after PHI
-        s.instructions.emplace(++decltype(i)(i), instruction_type::MOV, std::vector<std::string>({*arg, base}));
+        bb.instructions.insert(++decltype(i)(i), instruction(instruction_type::MOV, {*arg, base}));
         cc.insert(*arg);
         cc.insert(base);
 
@@ -72,10 +73,11 @@ void naive_copy_insertion(subroutine& s, congruence_classes& cc)
         }
         ++cc.last_class;
     }
+    });
 
     // pass 2: paste instructions from worklist at the end of respective basic block
     s.for_each_bb([&] (basic_block& bb) {
-        s.instructions.splice(--bb.end(), worklist[bb.name]);
+        bb.instructions.splice(--bb.instructions.end(), worklist[bb.name]);
     });
 }
 
@@ -97,7 +99,7 @@ bool interfere(std::string a, std::string b, subroutine& s)
     // TODO live ranges are probably overestimated at the end
 
     s.for_each_bb_in_domtree_preorder([&] (basic_block& block) {
-        for (auto& instr: block) {
+        for (auto& instr: block.instructions) {
             // live ranges
             instr.def_apply([&] (std::string& def) {
                 if (def == a) {
@@ -143,7 +145,8 @@ void subroutine::ssa_deconstruct()
     naive_copy_insertion(*this, cc);
 
     // incidental classes, rising from the code
-    for (auto& instr: instructions) {
+    for_each_bb([&] (basic_block& bb) {
+    for (auto& instr: bb.instructions) {
         if (instr.type == instruction_type::MOV) {
             auto &dest = instr.arguments[0];
             auto &src = instr.arguments[1];
@@ -170,22 +173,25 @@ void subroutine::ssa_deconstruct()
             }
         }
     }
+    });
 
     // pass 2: remove phis, replace names, remove nop moves
     // FIXME materialize parallel moves here, do not add them in the first place
-    for (auto i = instructions.begin(), e = instructions.end(); i != e;) {
+    for_each_bb([&] (basic_block& bb) {
+    for (auto i = bb.instructions.begin(), e = bb.instructions.end(); i != e;) {
         if (i->type == instruction_type::PHI) {
-            i = instructions.erase(i);
+            i = bb.instructions.erase(i);
         } else {
             i->def_apply(cc.replacer());
             i->use_apply(cc.replacer());
             if (i->type == instruction_type::MOV && i->arguments[0] == i->arguments[1]) {
-                i = instructions.erase(i);
+                i = bb.instructions.erase(i);
             } else {
                 ++i;
             }
         }
     }
+    });
 }
 
 }} // namespace hcc::ssa
