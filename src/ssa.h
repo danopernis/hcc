@@ -192,7 +192,6 @@ struct subroutine : public subroutine_ir {
     void ssa_deconstruct();
     void allocate_registers();
     void prettify_names(unsigned& var_counter, unsigned& label_counter);
-    void clean_cfg();
 };
 
 using subroutine_map = std::map<std::string, subroutine>;
