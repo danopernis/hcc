@@ -42,19 +42,35 @@ struct Writer
     , public ast::ExpressionVisitor
 {
     void beginBB(const std::string& label)
-    { appendToCurrentBB(instruction_type::LABEL, {label}); }
+    { bb = &currentSubroutine->second.add_bb(label); }
 
     void appendToCurrentBB(instruction_type type, std::initializer_list<std::string> il)
     { appendToCurrentBB(type, std::vector<std::string>(il)); }
 
     void appendToCurrentBB(instruction_type type, std::vector<std::string> args)
-    { instructions.emplace_back(type, args); }
+    { bb->instructions.emplace_back(type, args); }
 
     void outputBranch(const std::string& branch)
-    { appendToCurrentBB(instruction_type::JUMP, {branch}); }
+    {
+        auto& s = currentSubroutine->second;
+        s.add_cfg_edge(*bb, s.add_bb(branch));
+        appendToCurrentBB(instruction_type::JUMP, {branch});
+    }
 
     void outputBranch(const std::string& variable, const std::string& positive, const std::string& negative)
-    { appendToCurrentBB(instruction_type::BRANCH, {variable, positive, negative}); }
+    {
+        auto& s = currentSubroutine->second;
+        s.add_cfg_edge(*bb, s.add_bb(positive));
+        s.add_cfg_edge(*bb, s.add_bb(negative));
+        appendToCurrentBB(instruction_type::BRANCH, {variable, positive, negative});
+    }
+
+    void outputReturn(const std::string& variable)
+    {
+        auto& s = currentSubroutine->second;
+        s.add_cfg_edge(*bb, s.exit_node());
+        appendToCurrentBB(instruction_type::RETURN, {variable});
+    }
 
     std::string ssaStackTopPop()
     {
@@ -179,11 +195,14 @@ struct Writer
         if (returnStatement->value) {
             returnStatement->value->accept(this);
             auto last = ssaStackTopPop();
-            appendToCurrentBB(instruction_type::RETURN, {last});
+            outputReturn(last);
         } else {
             /* Subroutine always returns. */
-            appendToCurrentBB(instruction_type::RETURN, {"0"});
+            outputReturn("0");
         }
+        // Each block must end with exactly one terminator, so we have to create
+        // another block.
+        beginBB("DUMMY" + std::to_string(dummyCounter++));
     }
 
     /** expression visitor */
@@ -424,12 +443,13 @@ struct Writer
     void writeSubroutine(const ast::Subroutine& subroutine)
     {
         subroutineScope.clear();
-        instructions.clear();
         ifCounter = 0;
         whileCounter = 0;
         tmpCounter = 0;
+        dummyCounter = 0;
 
-        beginBB("ENTRY");
+        currentSubroutine = res.insert_subroutine(className + "." + subroutine.name);
+        bb = &currentSubroutine->second.entry_node();
 
         // arguments
         unsigned argument_counter = 0;
@@ -462,7 +482,9 @@ struct Writer
             statement->accept(this);
         }
 
-        res.insert_subroutine(className + "." + subroutine.name, instructions);
+        // Each block must end with exactly one terminator, so we have to
+        // insert terminator here.
+        outputReturn("0");
     }
 
     void write(const ast::Class& class_)
@@ -497,10 +519,11 @@ struct Writer
     unsigned ifCounter;
     unsigned whileCounter;
     unsigned tmpCounter;
+    unsigned dummyCounter;
     unsigned fieldVarsCount;
     std::stack<std::string> ssaStack;
     subroutine_map::iterator currentSubroutine;
-    instruction_list instructions;
+    basic_block* bb;
 };
 
 
@@ -539,9 +562,11 @@ try {
         subroutine.dead_code_elimination();
         subroutine.ssa_deconstruct();
 
+        /*
         unsigned int c1 = 0;
         unsigned int c2 = 0;
         subroutine.prettify_names(c1, c2);
+        */
     }
 
     // output

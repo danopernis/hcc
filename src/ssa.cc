@@ -136,102 +136,37 @@ void instruction::label_apply(std::function<void(std::string&)> f)
     }
 }
 
-void subroutine_ir::recompute_control_flow_graph()
+subroutine_ir::subroutine_ir()
 {
-    nodes.clear();
-    std::map<std::string, int> name_to_index;
-    g = graph();
+    exit_node_ = add_bb("EXIT").index;
+    basic_blocks[exit_node_].instructions.push_back(instruction(instruction_type::RETURN, {"0"}));
 
-    auto add_node = [&] (const std::string& name)
-    {
-        auto it = name_to_index.find(name);
-        if (it == name_to_index.end()) {
-            int index = g.add_node();
-            name_to_index.emplace(name, index);
-            nodes.emplace_back(*this);
-            nodes.back().name = name;
-            nodes.back().index = index;
-            return index;
-        } else {
-            return it->second;
-        }
-    };
+    entry_node_ = add_bb("ENTRY").index;
+}
 
-    // entry node is the first node there is
-    assert (!instructions.empty());
-    assert (instructions.front().type == instruction_type::LABEL);
-    assert (instructions.front().arguments.size()  == 1);
-    entry_node_ = add_node(instructions.front().arguments[0]);
-
-    // exit node is invented
-    exit_node = add_node("EXIT");
-    exit_node_instructions.emplace_back(instruction_type::LABEL, std::vector<std::string>({"EXIT"}));
-    nodes[exit_node].instructions.first = exit_node_instructions.begin();
-    nodes[exit_node].instructions.last = exit_node_instructions.begin();
-
-    int current_node = -1;
-    instruction_list::iterator current_node_start;
-
-    for (auto i = instructions.begin(), e = instructions.end(); i != e; ++i) {
-        switch (i->type) {
-        case instruction_type::LABEL:
-            assert (i->arguments.size() == 1);
-
-            current_node = add_node(i->arguments[0]);
-            current_node_start = i;
-            i->basic_block = current_node;
-            break;
-        case instruction_type::JUMP: {
-            i->basic_block = current_node;
-            assert (i->arguments.size() == 1);
-
-            auto dest = add_node(i->arguments[0]);
-
-            g.add_edge(current_node, dest);
-
-            assert (0 <= current_node && current_node < static_cast<int>(nodes.size()));
-            nodes[current_node].instructions.first = current_node_start;
-            nodes[current_node].instructions.last = i;
-            nodes[current_node].successors.insert(dest);
-            } break;
-        case instruction_type::BRANCH: {
-            i->basic_block = current_node;
-            assert (i->arguments.size() == 3);
-
-            auto positive = add_node(i->arguments[1]);
-            auto negative = add_node(i->arguments[2]);
-
-            g.add_edge(current_node, positive);
-            g.add_edge(current_node, negative);
-
-            assert (0 <= current_node && current_node < static_cast<int>(nodes.size()));
-            nodes[current_node].instructions.first = current_node_start;
-            nodes[current_node].instructions.last = i;
-            nodes[current_node].successors.insert(positive);
-            nodes[current_node].successors.insert(negative);
-            } break;
-        case instruction_type::RETURN:
-            i->basic_block = current_node;
-            assert (0 <= current_node && current_node < static_cast<int>(nodes.size()));
-            nodes[current_node].instructions.first = current_node_start;
-            nodes[current_node].instructions.last = i;
-            nodes[current_node].successors.insert(exit_node);
-            g.add_edge(current_node, exit_node);
-            break;
-        default:
-            i->basic_block = current_node;
-            break;
+void subroutine_ir::recompute_dominance()
+{
+    // hack: graph_dominance can't handle blocks that are not target of jump
+    depth_first_search dfs(g.successors(), entry_node_);
+    for (auto& node : basic_blocks) {
+        const auto& from = node.first;
+        if (!dfs.visited()[from]) {
+            for (const auto& to : g.successors()[from]) {
+                g.remove_edge(from, to);
+                basic_blocks[from].instructions.clear();
+            }
         }
     }
 
     dominance.reset(new graph_dominance(g, entry_node_));
-    reverse_dominance.reset(new graph_dominance(g.reverse(), exit_node));
+    reverse_dominance.reset(new graph_dominance(g.reverse(), exit_node_));
 }
 
 void subroutine_ir::recompute_liveness()
 {
     // init
-    for (auto& block : nodes) {
+    for (auto& kv : basic_blocks) {
+        auto& block = kv.second;
         block.uevar.clear();
         block.varkill.clear();
         block.liveout.clear();
@@ -250,14 +185,15 @@ void subroutine_ir::recompute_liveness()
     bool changed = true;
     while (changed) {
         changed = false;
-        for (auto& block : nodes) {
+        for (auto& kv : basic_blocks) {
+            auto& block = kv.second;
             auto old_liveout = block.liveout;
 
             std::set<std::string> new_liveout;
             for (const auto& successor: block.successors) {
-                const auto& uevar = nodes[successor].uevar;
-                const auto& varkill = nodes[successor].varkill;
-                const auto& liveout = nodes[successor].liveout;
+                const auto& uevar = basic_blocks[successor].uevar;
+                const auto& varkill = basic_blocks[successor].varkill;
+                const auto& liveout = basic_blocks[successor].liveout;
                 std::copy(uevar.begin(), uevar.end(), std::inserter(new_liveout, new_liveout.begin()));
                 for (const auto& x : liveout) {
                     if (varkill.count(x) == 0)
@@ -277,20 +213,13 @@ std::set<std::string> subroutine_ir::collect_variable_names()
 {
     std::set<std::string> result;
     auto inserter = [&] (std::string& s) { result.insert(s); };
-    for (auto& instruction : instructions) {
+    for_each_bb([&] (basic_block& bb) {
+    for (auto& instruction : bb.instructions) {
         instruction.use_apply(inserter);
         instruction.def_apply(inserter);
     }
+    });
     return result;
 }
-
-instruction_list::iterator basic_block::proxy::insert(instruction_list::iterator it, const instruction& i)
-{ return s.instructions.insert(it, i); }
-
-instruction_list::iterator basic_block::proxy::erase(instruction_list::iterator it)
-{ return s.instructions.erase(it); }
-
-void basic_block::proxy::splice(instruction_list::iterator it, instruction_list& x)
-{ s.instructions.splice(it, x); }
 
 }} // end namespace hcc::ssa

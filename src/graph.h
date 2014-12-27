@@ -42,6 +42,20 @@ struct graph {
     }
 
     /**
+     * Remove an edge from graph.
+     *
+     * @precondition from and to are valid node indices
+     */
+    void remove_edge(const int from, const int to)
+    {
+        assert (0 <= from && from < node_count_);
+        assert (0 <= to   && to   < node_count_);
+
+        successors_[from].erase(to);
+        predecessors_[to].erase(from);
+    }
+
+    /**
      * Get a graph with reversed edge directions.
      */
     graph reverse() const

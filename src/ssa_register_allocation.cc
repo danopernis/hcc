@@ -106,9 +106,6 @@ std::map<std::string, int> color(
 
 void subroutine::allocate_registers()
 {
-    // register allocation doesn't change CFG
-    recompute_control_flow_graph();
-
     bool did_spill;
     do {
         recompute_liveness();
@@ -117,7 +114,7 @@ void subroutine::allocate_registers()
         std::set<std::pair<std::string, std::string>> interference;
         for_each_bb([&] (basic_block& block) {
             auto livenow = block.liveout;
-            block.instructions.for_each_reverse([&] (instruction& i) {
+            std::for_each(block.instructions.rbegin(), block.instructions.rend(), [&] (instruction& i) {
                 i.def_apply([&] (std::string& x) {
                     for (const auto& y : livenow) {
                         if (x != y) {
