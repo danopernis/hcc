@@ -7,7 +7,7 @@
 namespace hcc { namespace ssa {
 
 
-void subroutine::prettify_names(unsigned& var_counter, unsigned& label_counter)
+void subroutine::prettify_names(unsigned& var_counter)
 {
     std::map<std::string, unsigned> var_replacement;
     auto var_collector = [&] (std::string& s) {
@@ -24,33 +24,16 @@ void subroutine::prettify_names(unsigned& var_counter, unsigned& label_counter)
         }
     };
 
-    std::map<std::string, unsigned> label_replacement;
-    auto label_collector = [&] (std::string& s) {
-        auto it = label_replacement.find(s);
-        if (it == label_replacement.end()) {
-            label_replacement.emplace(s, label_counter++);
-        }
-    };
-    auto label_replacer = [&] (std::string& s) {
-        auto it = label_replacement.find(s);
-        if (it != label_replacement.end()) {
-            auto olds = s;
-            s = "L" + std::to_string(it->second);
-        }
-    };
-
     for_each_bb([&] (basic_block& bb) {
     for (auto& instruction : bb.instructions) {
         instruction.use_apply(var_collector);
         instruction.def_apply(var_collector);
-        instruction.label_apply(label_collector);
     }
     });
     for_each_bb([&] (basic_block& bb) {
     for (auto& instruction : bb.instructions) {
         instruction.use_apply(var_replacer);
         instruction.def_apply(var_replacer);
-        instruction.label_apply(label_replacer);
     }
     });
 }

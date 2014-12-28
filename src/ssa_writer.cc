@@ -25,7 +25,6 @@ const std::map<instruction_type, std::string> type_to_string = {
     { instruction_type::NEG,        "neg " },
     { instruction_type::NOT,        "not " },
     { instruction_type::PHI,        "phi " },
-    { instruction_type::LABEL,      "block " }
 };
 
 void unit::save(std::ostream& output)
@@ -38,9 +37,6 @@ void unit::save(std::ostream& output)
         auto& entry_block = subroutine.second.entry_node();
         auto& exit_block = subroutine.second.exit_node();
         for (const auto& instr : entry_block.instructions) {
-            if (instr.type == instruction_type::LABEL) {
-                continue;
-            }
             output << "\t" << instr << "\n";
         }
         subroutine.second.for_each_bb([&] (const basic_block& bb) {
@@ -53,9 +49,6 @@ void unit::save(std::ostream& output)
 
             output << "block " << bb.name << "\n";
             for (const auto& instr : bb.instructions) {
-                if (instr.type == instruction_type::LABEL) {
-                    continue;
-                }
                 output << "\t" << instr << "\n";
             }
         });

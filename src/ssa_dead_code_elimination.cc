@@ -65,7 +65,7 @@ void subroutine::dead_code_elimination()
     // sweep
     for_each_bb([&] (basic_block& bb) {
     for (auto i = bb.instructions.begin(), e = bb.instructions.end(); i != e;) {
-        if (i->type != instruction_type::LABEL && !i->mark) {
+        if (!i->mark) {
             i = bb.instructions.erase(i);
         } else {
             ++i;
