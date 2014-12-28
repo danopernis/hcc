@@ -126,11 +126,13 @@ void generate_code(subroutine& s, hcc::asm_program& out, const std::string& pref
         out.emitC(DEST_M | COMP_D);
     };
 
-    out.emitL(prefix);
-    out.emitA(prefix + "." + s.entry_node().name);
-    out.emitC(COMP_ZERO | JMP);
-
     s.for_each_bb([&] (basic_block& bb) {
+        if (s.exit_node().name == bb.name) {
+            return;
+        }
+        if (s.entry_node().name == bb.name) {
+            out.emitL(prefix);
+        }
         out.emitL(prefix + "." + bb.name);
     for (auto instruction : bb.instructions) {
         {
