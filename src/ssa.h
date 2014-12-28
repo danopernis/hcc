@@ -82,7 +82,6 @@ struct basic_block {
     std::set<std::string> uevar;
     std::set<std::string> varkill;
     std::set<std::string> liveout;
-    std::set<int> successors;
 
     // subroutine::construct_minimal_ssa()
     int work;
@@ -104,7 +103,7 @@ struct subroutine_ir {
     template<typename F>
     void for_each_cfg_successor(int index, F&& f)
     {
-        for (int i : basic_blocks.at(index).successors) {
+        for (int i : g.successors()[index]) {
             f(basic_blocks.at(i));
         }
     }
@@ -171,10 +170,7 @@ struct subroutine_ir {
     }
 
     void add_cfg_edge(basic_block& from, basic_block& to)
-    {
-        g.add_edge(from.index, to.index);
-        from.successors.insert(to.index);
-    }
+    { g.add_edge(from.index, to.index); }
 
 private:
     graph g;

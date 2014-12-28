@@ -147,16 +147,16 @@ void subroutine_ir::recompute_liveness()
             auto old_liveout = block.liveout;
 
             std::set<std::string> new_liveout;
-            for (const auto& successor: block.successors) {
-                const auto& uevar = basic_blocks[successor].uevar;
-                const auto& varkill = basic_blocks[successor].varkill;
-                const auto& liveout = basic_blocks[successor].liveout;
+            for_each_cfg_successor(block.index, [&] (basic_block& bb) {
+                const auto& uevar = bb.uevar;
+                const auto& varkill = bb.varkill;
+                const auto& liveout = bb.liveout;
                 std::copy(uevar.begin(), uevar.end(), std::inserter(new_liveout, new_liveout.begin()));
                 for (const auto& x : liveout) {
                     if (varkill.count(x) == 0)
                         new_liveout.insert(x);
                 }
-            }
+            });
             block.liveout = new_liveout;
 
             if (block.liveout != old_liveout) {
