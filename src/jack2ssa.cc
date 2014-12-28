@@ -563,9 +563,8 @@ try {
         subroutine.ssa_deconstruct();
 
         /*
-        unsigned int c1 = 0;
-        unsigned int c2 = 0;
-        subroutine.prettify_names(c1, c2);
+        unsigned int counter = 0;
+        subroutine.prettify_names(counter);
         */
     }
 

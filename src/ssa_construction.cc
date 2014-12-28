@@ -43,10 +43,9 @@ void insert_temp_phi(
 
             s.for_each_bb_in_dfs(x, [&] (basic_block& block) {
                 if (block.has_already < iteration) {
-                    // place PHI after LABEL
-                    block.instructions.insert(
-                        ++block.instructions.begin(),
-                        instruction(instruction_type::PHI, {variable}));
+                    // place PHI
+                    block.instructions.emplace_front(instruction(
+                        instruction_type::PHI, {variable}));
 
                     block.has_already = iteration;
                     if (block.work < iteration) {

@@ -25,7 +25,6 @@ enum class instruction_type {
     ARGUMENT,
     BRANCH,
     JUMP,
-    LABEL,
     CALL,
     RETURN,
     LOAD,
@@ -165,8 +164,6 @@ struct subroutine_ir {
             auto& node = basic_blocks[index];
             node.name = name;
             node.index = index;
-            node.instructions.push_back(
-                instruction(instruction_type::LABEL, {name}));
             return node;
         } else {
             return basic_blocks.at(it->second);
@@ -196,7 +193,7 @@ struct subroutine : public subroutine_ir {
     void copy_propagation();
     void ssa_deconstruct();
     void allocate_registers();
-    void prettify_names(unsigned& var_counter, unsigned& label_counter);
+    void prettify_names(unsigned& var_counter);
 };
 
 using subroutine_map = std::map<std::string, subroutine>;

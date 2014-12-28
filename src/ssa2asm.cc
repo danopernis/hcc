@@ -131,6 +131,7 @@ void generate_code(subroutine& s, hcc::asm_program& out, const std::string& pref
     out.emitC(COMP_ZERO | JMP);
 
     s.for_each_bb([&] (basic_block& bb) {
+        out.emitL(prefix + "." + bb.name);
     for (auto instruction : bb.instructions) {
         {
             std::stringstream ss;
@@ -139,9 +140,6 @@ void generate_code(subroutine& s, hcc::asm_program& out, const std::string& pref
         }
         switch (instruction.type) {
         // basic block boundary handling
-        case instruction_type::LABEL:
-            out.emitL(prefix + "." + instruction.arguments[0]);
-            break;
         case instruction_type::JUMP:
             out.emitA(prefix + "." + instruction.arguments[0]);
             out.emitC(COMP_ZERO | JMP);
