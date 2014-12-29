@@ -90,8 +90,6 @@ struct basic_block {
 
 /** Intermediate representation */
 struct subroutine_ir {
-    subroutine_ir();
-
     template<typename F>
     void for_each_domtree_successor(int index, F&& f)
     {
@@ -154,24 +152,6 @@ struct subroutine_ir {
     basic_block& exit_node()
     { return basic_blocks.at(exit_node_); }
 
-    basic_block& add_bb(const std::string& name)
-    {
-        auto it = name_to_index.find(name);
-        if (it == name_to_index.end()) {
-            int index = g.add_node();
-            name_to_index.emplace(name, index);
-            auto& node = basic_blocks[index];
-            node.name = name;
-            node.index = index;
-            return node;
-        } else {
-            return basic_blocks.at(it->second);
-        }
-    }
-
-    void add_cfg_edge(basic_block& from, basic_block& to)
-    { g.add_edge(from.index, to.index); }
-
 private:
     graph g;
     int exit_node_;
@@ -179,7 +159,8 @@ private:
     std::map<int, basic_block> basic_blocks;
     std::unique_ptr<graph_dominance> reverse_dominance;
     std::unique_ptr<graph_dominance> dominance;
-    std::map<std::string, int> name_to_index;
+
+friend struct subroutine_builder;
 };
 
 /** Transformations */

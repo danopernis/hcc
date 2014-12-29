@@ -2,14 +2,14 @@
 // See LICENSE for details
 
 #include "ssa.h"
+#include "ssa_subroutine_builder.h"
 #include <sstream>
 
 namespace {
 
-using hcc::ssa::basic_block;
-using hcc::ssa::instruction_list;
+using hcc::ssa::instruction;
 using hcc::ssa::instruction_type;
-using hcc::ssa::subroutine;
+using hcc::ssa::subroutine_builder;
 using hcc::ssa::unit;
 
 enum class ssa_token_type {
@@ -183,109 +183,94 @@ private:
         }
 
         const auto& name = arguments[0];
-        auto& subroutine = u.insert_subroutine(name)->second;
+        subroutine_builder builder(u.insert_subroutine(name)->second);
 
-        auto& block = subroutine.entry_node();
-        while (accept(ssa_token_type::PHI)) {
-            block.instructions.emplace_back(
-                instruction_type::PHI, std::move(arguments));
-        }
-
-        while (accept_instruction(block.instructions)) { }
-        if (!accept_terminator(subroutine, block)) {
+        if (!accept_block(builder, true)) {
             return false;
         }
-
-        while (accept_block(subroutine)) { }
+        while (accept_block(builder, false)) { }
         return true;
     }
 
-    bool accept_block(subroutine& s)
+    bool accept_block(subroutine_builder& builder, bool is_entry)
     {
         if (!accept(ssa_token_type::BLOCK)) {
             return false;
         }
 
         const auto& name = arguments[0];
-        auto& block = s.add_bb(name);
+        auto bb = builder.add_bb(name, is_entry);
 
         while (accept(ssa_token_type::PHI)) {
-            block.instructions.emplace_back(
-                instruction_type::PHI, std::move(arguments));
+            builder.add_instruction(bb, instruction(
+                instruction_type::PHI, std::move(arguments)));
         }
 
-        while (accept_instruction(block.instructions)) { }
-        if (!accept_terminator(s, block)) {
+        while (accept_instruction(builder, bb)) { }
+        if (!accept_terminator(builder, bb)) {
             return false;
         }
         return true;
     }
 
-    bool accept_instruction(instruction_list& instructions)
+    bool accept_instruction(subroutine_builder& builder, int bb)
     {
         if (accept(ssa_token_type::ARGUMENT)) {
-            instructions.emplace_back(
-                instruction_type::ARGUMENT, std::move(arguments));
+            builder.add_instruction(bb, instruction(
+                instruction_type::ARGUMENT, std::move(arguments)));
         } else if (accept(ssa_token_type::CALL)) {
-            instructions.emplace_back(
-                instruction_type::CALL, std::move(arguments));
+            builder.add_instruction(bb, instruction(
+                instruction_type::CALL, std::move(arguments)));
         } else if (accept(ssa_token_type::LOAD)) {
-            instructions.emplace_back(
-                instruction_type::LOAD, std::move(arguments));
+            builder.add_instruction(bb, instruction(
+                instruction_type::LOAD, std::move(arguments)));
         } else if (accept(ssa_token_type::STORE)) {
-            instructions.emplace_back(
-                instruction_type::STORE, std::move(arguments));
+            builder.add_instruction(bb, instruction(
+                instruction_type::STORE, std::move(arguments)));
         } else if (accept(ssa_token_type::MOV)) {
-            instructions.emplace_back(
-                instruction_type::MOV, std::move(arguments));
+            builder.add_instruction(bb, instruction(
+                instruction_type::MOV, std::move(arguments)));
         } else if (accept(ssa_token_type::ADD)) {
-            instructions.emplace_back(
-                instruction_type::ADD, std::move(arguments));
+            builder.add_instruction(bb, instruction(
+                instruction_type::ADD, std::move(arguments)));
         } else if (accept(ssa_token_type::SUB)) {
-            instructions.emplace_back(
-                instruction_type::SUB, std::move(arguments));
+            builder.add_instruction(bb, instruction(
+                instruction_type::SUB, std::move(arguments)));
         } else if (accept(ssa_token_type::AND)) {
-            instructions.emplace_back(
-                instruction_type::AND, std::move(arguments));
+            builder.add_instruction(bb, instruction(
+                instruction_type::AND, std::move(arguments)));
         } else if (accept(ssa_token_type::OR)) {
-            instructions.emplace_back(
-                instruction_type::OR, std::move(arguments));
+            builder.add_instruction(bb, instruction(
+                instruction_type::OR, std::move(arguments)));
         } else if (accept(ssa_token_type::LT)) {
-            instructions.emplace_back(
-                instruction_type::LT, std::move(arguments));
+            builder.add_instruction(bb, instruction(
+                instruction_type::LT, std::move(arguments)));
         } else if (accept(ssa_token_type::GT)) {
-            instructions.emplace_back(
-                instruction_type::GT, std::move(arguments));
+            builder.add_instruction(bb, instruction(
+                instruction_type::GT, std::move(arguments)));
         } else if (accept(ssa_token_type::EQ)) {
-            instructions.emplace_back(
-                instruction_type::EQ, std::move(arguments));
+            builder.add_instruction(bb, instruction(
+                instruction_type::EQ, std::move(arguments)));
         } else if (accept(ssa_token_type::NEG)) {
-            instructions.emplace_back(
-                instruction_type::NEG, std::move(arguments));
+            builder.add_instruction(bb, instruction(
+                instruction_type::NEG, std::move(arguments)));
         } else if (accept(ssa_token_type::NOT)) {
-            instructions.emplace_back(
-                instruction_type::NOT, std::move(arguments));
+            builder.add_instruction(bb, instruction(
+                instruction_type::NOT, std::move(arguments)));
         } else {
             return false;
         }
         return true;
     }
 
-    bool accept_terminator(subroutine& s, basic_block& block)
+    bool accept_terminator(subroutine_builder& builder, int bb)
     {
         if (accept(ssa_token_type::BRANCH)) {
-            s.add_cfg_edge(block, s.add_bb(arguments[1]));
-            s.add_cfg_edge(block, s.add_bb(arguments[2]));
-            block.instructions.emplace_back(
-                instruction_type::BRANCH, std::move(arguments));
+            builder.add_branch(bb, arguments[0], arguments[1], arguments[2]);
         } else if (accept(ssa_token_type::JUMP)) {
-            s.add_cfg_edge(block, s.add_bb(arguments[0]));
-            block.instructions.emplace_back(
-                instruction_type::JUMP, std::move(arguments));
+            builder.add_jump(bb, arguments[0]);
         } else if (accept(ssa_token_type::RETURN)) {
-            s.add_cfg_edge(block, s.exit_node());
-            block.instructions.emplace_back(
-                instruction_type::RETURN, std::move(arguments));
+            builder.add_return(bb, arguments[0]);
         } else {
             return false;
         }

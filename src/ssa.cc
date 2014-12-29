@@ -93,14 +93,6 @@ void instruction::def_apply(std::function<void(std::string&)> f)
     }
 }
 
-subroutine_ir::subroutine_ir()
-{
-    exit_node_ = add_bb("EXIT").index;
-    basic_blocks[exit_node_].instructions.push_back(instruction(instruction_type::RETURN, {"0"}));
-
-    entry_node_ = add_bb("ENTRY").index;
-}
-
 void subroutine_ir::recompute_dominance()
 {
     // hack: graph_dominance can't handle blocks that are not target of jump

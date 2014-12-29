@@ -36,6 +36,7 @@ void unit::save(std::ostream& output)
         output << "define " << subroutine.first << "\n";
         auto& entry_block = subroutine.second.entry_node();
         auto& exit_block = subroutine.second.exit_node();
+        output << "block " << entry_block.name << "\n";
         for (const auto& instr : entry_block.instructions) {
             output << "\t" << instr << "\n";
         }
