@@ -3,6 +3,7 @@
 
 #include "JackParser.h"
 #include "ssa.h"
+#include "ssa_subroutine_builder.h"
 #include <stack>
 #include <map>
 #include <cassert>
@@ -42,35 +43,22 @@ struct Writer
     , public ast::ExpressionVisitor
 {
     void beginBB(const std::string& label)
-    { bb = &currentSubroutine->second.add_bb(label); }
+    { bb = builder->add_bb(label, false); }
 
     void appendToCurrentBB(instruction_type type, std::initializer_list<std::string> il)
     { appendToCurrentBB(type, std::vector<std::string>(il)); }
 
     void appendToCurrentBB(instruction_type type, std::vector<std::string> args)
-    { bb->instructions.emplace_back(type, args); }
+    { builder->add_instruction(bb, instruction(type, args)); }
 
     void outputBranch(const std::string& branch)
-    {
-        auto& s = currentSubroutine->second;
-        s.add_cfg_edge(*bb, s.add_bb(branch));
-        appendToCurrentBB(instruction_type::JUMP, {branch});
-    }
+    { builder->add_jump(bb, branch); }
 
     void outputBranch(const std::string& variable, const std::string& positive, const std::string& negative)
-    {
-        auto& s = currentSubroutine->second;
-        s.add_cfg_edge(*bb, s.add_bb(positive));
-        s.add_cfg_edge(*bb, s.add_bb(negative));
-        appendToCurrentBB(instruction_type::BRANCH, {variable, positive, negative});
-    }
+    { builder->add_branch(bb, variable, positive, negative); }
 
     void outputReturn(const std::string& variable)
-    {
-        auto& s = currentSubroutine->second;
-        s.add_cfg_edge(*bb, s.exit_node());
-        appendToCurrentBB(instruction_type::RETURN, {variable});
-    }
+    { builder->add_return(bb, variable); }
 
     std::string ssaStackTopPop()
     {
@@ -448,8 +436,9 @@ struct Writer
         tmpCounter = 0;
         dummyCounter = 0;
 
-        currentSubroutine = res.insert_subroutine(className + "." + subroutine.name);
-        bb = &currentSubroutine->second.entry_node();
+        builder = make_unique<subroutine_builder>(
+            res.insert_subroutine(className + "." + subroutine.name)->second);
+        bb = builder->add_bb("ENTRY", true);
 
         // arguments
         unsigned argument_counter = 0;
@@ -522,8 +511,8 @@ struct Writer
     unsigned dummyCounter;
     unsigned fieldVarsCount;
     std::stack<std::string> ssaStack;
-    subroutine_map::iterator currentSubroutine;
-    basic_block* bb;
+    std::unique_ptr<subroutine_builder> builder;
+    int bb;
 };
 
 

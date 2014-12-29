@@ -12,6 +12,7 @@ OBJECTS = \
     ssa_deconstruction.o \
     ssa_reader.o \
     ssa_register_allocation.o \
+    ssa_subroutine_builder.o \
     ssa_writer.o \
     CPU.o \
     JackParser.o \
