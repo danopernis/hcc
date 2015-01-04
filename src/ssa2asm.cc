@@ -385,6 +385,7 @@ try {
     }
 
     for (auto& subroutine_entry : u.subroutines) {
+        subroutine_entry.second.ssa_deconstruct();
         subroutine_entry.second.allocate_registers();
         generate_code(subroutine_entry.second, out, subroutine_entry.first);
     }

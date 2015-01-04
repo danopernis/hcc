@@ -549,7 +549,6 @@ try {
         subroutine.dead_code_elimination();
         subroutine.copy_propagation();
         subroutine.dead_code_elimination();
-        subroutine.ssa_deconstruct();
 
         /*
         unsigned int counter = 0;
