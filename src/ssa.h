@@ -23,8 +23,9 @@ namespace hcc { namespace ssa {
 
 enum class instruction_type {
     ARGUMENT,
-    BRANCH,
     JUMP,
+    JLT,
+    JEQ,
     CALL,
     RETURN,
     LOAD,
@@ -35,9 +36,6 @@ enum class instruction_type {
     SUB,
     AND,
     OR,
-    LT,
-    GT,
-    EQ,
     NEG,
     NOT,
 };

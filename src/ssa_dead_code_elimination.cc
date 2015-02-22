@@ -16,7 +16,8 @@ void subroutine::dead_code_elimination()
         i->basic_block = bb.index;
         switch (i->type) {
         case instruction_type::JUMP:
-        case instruction_type::BRANCH:
+        case instruction_type::JLT:
+        case instruction_type::JEQ:
         case instruction_type::CALL:
         case instruction_type::RETURN:
         case instruction_type::LOAD:

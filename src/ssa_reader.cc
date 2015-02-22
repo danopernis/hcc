@@ -17,8 +17,9 @@ enum class ssa_token_type {
     DEFINE,
     BLOCK,
     RETURN,
-    BRANCH,
     JUMP,
+    JLT,
+    JEQ,
     CALL,
     ARGUMENT,
     LOAD,
@@ -28,9 +29,6 @@ enum class ssa_token_type {
     SUB,
     AND,
     OR,
-    LT,
-    GT,
-    EQ,
     NEG,
     NOT,
     PHI,
@@ -42,8 +40,9 @@ const std::map<ssa_token_type, std::string> token_to_string = {
     { ssa_token_type::DEFINE,   "define" },
     { ssa_token_type::BLOCK,    "block" },
     { ssa_token_type::RETURN,   "return" },
-    { ssa_token_type::BRANCH,   "branch" },
     { ssa_token_type::JUMP,     "jump" },
+    { ssa_token_type::JLT,      "jlt" },
+    { ssa_token_type::JEQ,      "jeq" },
     { ssa_token_type::CALL,     "call" },
     { ssa_token_type::ARGUMENT, "argument" },
     { ssa_token_type::LOAD,     "load" },
@@ -53,9 +52,6 @@ const std::map<ssa_token_type, std::string> token_to_string = {
     { ssa_token_type::SUB,      "sub" },
     { ssa_token_type::AND,      "and" },
     { ssa_token_type::OR,       "or" },
-    { ssa_token_type::LT,       "lt" },
-    { ssa_token_type::GT,       "gt" },
-    { ssa_token_type::EQ,       "eq" },
     { ssa_token_type::NEG,      "neg" },
     { ssa_token_type::NOT,      "not" },
     { ssa_token_type::PHI,      "phi" },
@@ -67,8 +63,9 @@ const std::map<std::string, ssa_token_type> string_to_token = {
     { "define",     ssa_token_type::DEFINE },
     { "block",      ssa_token_type::BLOCK },
     { "return",     ssa_token_type::RETURN },
-    { "branch",     ssa_token_type::BRANCH },
     { "jump",       ssa_token_type::JUMP },
+    { "jlt",        ssa_token_type::JLT },
+    { "jeq",        ssa_token_type::JEQ },
     { "call",       ssa_token_type::CALL },
     { "argument",   ssa_token_type::ARGUMENT },
     { "load",       ssa_token_type::LOAD },
@@ -78,9 +75,6 @@ const std::map<std::string, ssa_token_type> string_to_token = {
     { "sub",        ssa_token_type::SUB },
     { "and",        ssa_token_type::AND },
     { "or",         ssa_token_type::OR },
-    { "lt",         ssa_token_type::LT },
-    { "gt",         ssa_token_type::GT },
-    { "eq",         ssa_token_type::EQ },
     { "neg",        ssa_token_type::NEG },
     { "not",        ssa_token_type::NOT },
     { "phi",        ssa_token_type::PHI },
@@ -242,15 +236,6 @@ private:
         } else if (accept(ssa_token_type::OR)) {
             builder.add_instruction(bb, instruction(
                 instruction_type::OR, std::move(arguments)));
-        } else if (accept(ssa_token_type::LT)) {
-            builder.add_instruction(bb, instruction(
-                instruction_type::LT, std::move(arguments)));
-        } else if (accept(ssa_token_type::GT)) {
-            builder.add_instruction(bb, instruction(
-                instruction_type::GT, std::move(arguments)));
-        } else if (accept(ssa_token_type::EQ)) {
-            builder.add_instruction(bb, instruction(
-                instruction_type::EQ, std::move(arguments)));
         } else if (accept(ssa_token_type::NEG)) {
             builder.add_instruction(bb, instruction(
                 instruction_type::NEG, std::move(arguments)));
@@ -265,8 +250,10 @@ private:
 
     bool accept_terminator(subroutine_builder& builder, int bb)
     {
-        if (accept(ssa_token_type::BRANCH)) {
-            builder.add_branch(bb, arguments[0], arguments[1], arguments[2]);
+        if (accept(ssa_token_type::JLT)) {
+            builder.add_branch(bb, instruction_type::JLT, arguments[0], arguments[1], arguments[2], arguments[3]);
+        } else if (accept(ssa_token_type::JEQ)) {
+            builder.add_branch(bb, instruction_type::JEQ, arguments[0], arguments[1], arguments[2], arguments[3]);
         } else if (accept(ssa_token_type::JUMP)) {
             builder.add_jump(bb, arguments[0]);
         } else if (accept(ssa_token_type::RETURN)) {
