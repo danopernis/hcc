@@ -85,7 +85,6 @@ void generate_code(subroutine& s, hcc::asm_program& out, const std::string& pref
     }
 
     int returnCounter = 0;
-    int compareCounter = 0;
     auto handle = [&] (const std::string& x, unsigned short comp_reg, unsigned short comp_imm) {
         assert(!x.empty());
         if (x[0] == '%') {
@@ -103,23 +102,13 @@ void generate_code(subroutine& s, hcc::asm_program& out, const std::string& pref
     };
     auto handle_compare = [&] (const hcc::ssa::instruction& instruction, unsigned short jump) {
         // compute
-        handle(instruction.arguments[2], COMP_M, COMP_A);
-        handle(instruction.arguments[1], COMP_M_MINUS_D, COMP_A_MINUS_D);
+        handle(instruction.arguments[1], COMP_M, COMP_A);
+        handle(instruction.arguments[0], COMP_M_MINUS_D, COMP_A_MINUS_D);
         // decide
-        const auto compareLabel = prefix + ".compare." + std::to_string(compareCounter);
-        const auto doneLabel = prefix + ".done." + std::to_string(compareCounter++);
-        out.emitA(compareLabel);
+        out.emitA(prefix + "." + instruction.arguments[2]);
         out.emitC(COMP_D | jump);
-        // adjust to false and jump
-        out.emitA(registers.at(instruction.arguments[0]));
-        out.emitC(DEST_M | COMP_ZERO);
-        out.emitA(doneLabel);
+        out.emitA(prefix + "." + instruction.arguments[3]);
         out.emitC(COMP_ZERO | JMP);
-        // adjust to true
-        out.emitL(compareLabel);
-        out.emitA(registers.at(instruction.arguments[0]));
-        out.emitC(DEST_M | COMP_MINUS_ONE);
-        out.emitL(doneLabel);
     };
     auto reg_store = [&] (const std::string& x) {
         out.emitA(registers.at(x));
@@ -146,12 +135,11 @@ void generate_code(subroutine& s, hcc::asm_program& out, const std::string& pref
             out.emitA(prefix + "." + instruction.arguments[0]);
             out.emitC(COMP_ZERO | JMP);
             break;
-        case instruction_type::BRANCH:
-            handle(instruction.arguments[0], COMP_M, COMP_A);
-            out.emitA(prefix + "." + instruction.arguments[1]);
-            out.emitC(COMP_D | JNE);
-            out.emitA(prefix + "." + instruction.arguments[2]);
-            out.emitC(COMP_ZERO | JMP);
+        case instruction_type::JLT:
+            handle_compare(instruction, JLT);
+            break;
+        case instruction_type::JEQ:
+            handle_compare(instruction, JEQ);
             break;
         // subroutine boundary handling
         case instruction_type::RETURN:
@@ -216,15 +204,6 @@ void generate_code(subroutine& s, hcc::asm_program& out, const std::string& pref
             handle(instruction.arguments[1], COMP_M, COMP_A);
             handle(instruction.arguments[2], COMP_D_OR_M, COMP_D_OR_A);
             reg_store(instruction.arguments[0]);
-            break;
-        case instruction_type::GT:
-            handle_compare(instruction, JGT);
-            break;
-        case instruction_type::LT:
-            handle_compare(instruction, JLT);
-            break;
-        case instruction_type::EQ:
-            handle_compare(instruction, JEQ);
             break;
         case instruction_type::NOT:
             handle(instruction.arguments[1], COMP_NOT_M, COMP_NOT_A);

@@ -55,7 +55,7 @@ struct Writer
     { builder->add_jump(bb, branch); }
 
     void outputBranch(const std::string& variable, const std::string& positive, const std::string& negative)
-    { builder->add_branch(bb, variable, positive, negative); }
+    { builder->add_branch(bb, instruction_type::JEQ, "0", variable, negative, positive); }
 
     void outputReturn(const std::string& variable)
     { builder->add_return(bb, variable); }
@@ -241,6 +241,24 @@ struct Writer
         }
     }
 
+    void writeCompare(
+        const instruction_type& it,
+        const std::string result,
+        const std::string arg1,
+        const std::string arg2)
+    {
+        auto cmpIndex = std::to_string(cmpCounter++);
+        auto labelTrue  = "compare."  + cmpIndex;
+        auto labelEnd   = "done."   + cmpIndex;
+
+        appendToCurrentBB(instruction_type::MOV, {result, "0"});
+        builder->add_branch(bb, it, arg1, arg2, labelTrue, labelEnd);
+        beginBB(labelTrue);
+        appendToCurrentBB(instruction_type::MOV, {result, "-1"});
+        outputBranch(labelEnd);
+        beginBB(labelEnd);
+    }
+
     virtual void visit(ast::BinaryExpression* binaryExpression)
     {
         binaryExpression->argument1->accept(this);
@@ -272,13 +290,13 @@ struct Writer
             appendToCurrentBB(instruction_type::OR, {result, arg1, arg2});
             break;
         case ast::BinaryExpression::Type::LESSER:
-            appendToCurrentBB(instruction_type::LT, {result, arg1, arg2});
+            writeCompare(instruction_type::JLT, result, arg1, arg2);
             break;
         case ast::BinaryExpression::Type::GREATER:
-            appendToCurrentBB(instruction_type::GT, {result, arg1, arg2});
+            writeCompare(instruction_type::JLT, result, arg2, arg1);
             break;
         case ast::BinaryExpression::Type::EQUAL:
-            appendToCurrentBB(instruction_type::EQ, {result, arg1, arg2});
+            writeCompare(instruction_type::JEQ, result, arg1, arg2);
             break;
         }
     }
@@ -434,6 +452,7 @@ struct Writer
         ifCounter = 0;
         whileCounter = 0;
         tmpCounter = 0;
+        cmpCounter = 0;
         dummyCounter = 0;
 
         builder = make_unique<subroutine_builder>(
@@ -508,6 +527,7 @@ struct Writer
     unsigned ifCounter;
     unsigned whileCounter;
     unsigned tmpCounter;
+    unsigned cmpCounter;
     unsigned dummyCounter;
     unsigned fieldVarsCount;
     std::stack<std::string> ssaStack;

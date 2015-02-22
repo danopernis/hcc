@@ -33,13 +33,14 @@ void instruction::use_apply(std::function<void(std::string&)> g)
         }
         } break;
     case instruction_type::RETURN:
-    case instruction_type::BRANCH:
         f(arguments[0]);
         break;
     case instruction_type::JUMP:
     case instruction_type::ARGUMENT:
         break;
     case instruction_type::STORE:
+    case instruction_type::JLT:
+    case instruction_type::JEQ:
         f(arguments[0]);
         f(arguments[1]);
         break;
@@ -47,9 +48,6 @@ void instruction::use_apply(std::function<void(std::string&)> g)
     case instruction_type::SUB:
     case instruction_type::AND:
     case instruction_type::OR:
-    case instruction_type::LT:
-    case instruction_type::GT:
-    case instruction_type::EQ:
         f(arguments[1]);
         f(arguments[2]);
         break;
@@ -67,8 +65,9 @@ void instruction::use_apply(std::function<void(std::string&)> g)
 void instruction::def_apply(std::function<void(std::string&)> f)
 {
     switch (type) {
-    case instruction_type::BRANCH:
     case instruction_type::JUMP:
+    case instruction_type::JLT:
+    case instruction_type::JEQ:
     case instruction_type::RETURN:
     case instruction_type::STORE:
         break;
@@ -81,9 +80,6 @@ void instruction::def_apply(std::function<void(std::string&)> f)
     case instruction_type::SUB:
     case instruction_type::AND:
     case instruction_type::OR:
-    case instruction_type::LT:
-    case instruction_type::GT:
-    case instruction_type::EQ:
     case instruction_type::PHI:
     case instruction_type::ARGUMENT:
         f(arguments[0]);

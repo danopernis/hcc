@@ -8,8 +8,9 @@ namespace hcc { namespace ssa {
 
 const std::map<instruction_type, std::string> type_to_string = {
     { instruction_type::ARGUMENT,   "argument " },
-    { instruction_type::BRANCH,     "branch " },
     { instruction_type::JUMP,       "jump " },
+    { instruction_type::JLT,        "jlt " },
+    { instruction_type::JEQ,        "jeq " },
     { instruction_type::CALL,       "call " },
     { instruction_type::RETURN,     "return " },
     { instruction_type::LOAD,       "load " },
@@ -19,9 +20,6 @@ const std::map<instruction_type, std::string> type_to_string = {
     { instruction_type::SUB,        "sub " },
     { instruction_type::AND,        "and " },
     { instruction_type::OR,         "or " },
-    { instruction_type::LT,         "lt " },
-    { instruction_type::GT,         "gt " },
-    { instruction_type::EQ,         "eq " },
     { instruction_type::NEG,        "neg " },
     { instruction_type::NOT,        "not " },
     { instruction_type::PHI,        "phi " },

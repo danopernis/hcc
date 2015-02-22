@@ -40,13 +40,18 @@ void subroutine_builder::add_jump(int bb, const std::string& target)
         instruction_type::JUMP, {target}));
 }
 
-void subroutine_builder::add_branch(int bb, const std::string& variable,
-    const std::string& positive, const std::string& negative)
+void subroutine_builder::add_branch(
+    int bb,
+    const instruction_type& type,
+    const std::string& variable1,
+    const std::string& variable2,
+    const std::string& positive,
+    const std::string& negative)
 {
     s.g.add_edge(bb, add_bb(positive, false));
     s.g.add_edge(bb, add_bb(negative, false));
-    add_instruction(bb, instruction(
-        instruction_type::BRANCH, {variable, positive, negative}));
+    add_instruction(bb, instruction(type,
+        {variable1, variable2, positive, negative}));
 }
 
 void subroutine_builder::add_return(int bb, const std::string& variable)

@@ -30,8 +30,13 @@ struct subroutine_builder {
      */
     void add_instruction(int bb, const instruction& instr);
     void add_jump(int bb, const std::string& target);
-    void add_branch(int bb, const std::string& variable,
-        const std::string& positive, const std::string& negative);
+    void add_branch(
+        int bb,
+        const instruction_type& type,
+        const std::string& variable1,
+        const std::string& variable2,
+        const std::string& positive,
+        const std::string& negative);
     void add_return(int bb, const std::string& variable);
 
 private:
