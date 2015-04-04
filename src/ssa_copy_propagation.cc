@@ -10,33 +10,35 @@ namespace hcc { namespace ssa {
 void subroutine::copy_propagation()
 {
     struct replacer_algorithm {
-        void insert(const std::string& from, const std::string& to)
+        void insert(const argument& from, const argument& to)
         {
             // replace[to] = from;
             // find if there's a chain
             auto it = replace.find(from);
             if (it != replace.end()) {
-                replace[to] = it->second;
+                replace.emplace(to, it->second).first->second = it->second;
             } else {
-                replace[to] = from;
+                replace.emplace(to, from).first->second = from;
             }
         }
 
-        void operator()(std::string& s) const
+        void operator()(argument& a) const
         {
-            auto it = replace.find(s);
+            auto it = replace.find(a);
             if (it != replace.end())
-                s = it->second;
+                a = it->second;
         }
 
-        std::map<std::string, std::string> replace;
+        std::map<argument, argument> replace;
     } replacer;
 
     // pass 1: find MOVs and make replacement list
     for_each_bb([&] (basic_block& bb) {
     for (auto& instruction : bb.instructions) {
         if (instruction.type == instruction_type::MOV) {
-            replacer.insert(instruction.arguments[1], instruction.arguments[0]);
+            const auto& src = instruction.arguments[1];
+            const auto& dst = instruction.arguments[0];
+            replacer.insert(src, dst);
         }
     }
     });
@@ -44,11 +46,7 @@ void subroutine::copy_propagation()
     // pass 2: apply the replacement
     for_each_bb([&] (basic_block& bb) {
     for (auto& instruction : bb.instructions) {
-//        if (instruction.type == instruction_type::PHI) {
-            // TODO relax, dont propagate constant but do propagate variables
-//        } else {
-            instruction.use_apply(replacer);
-//        }
+        instruction.use_apply(replacer);
     }
     });
 }

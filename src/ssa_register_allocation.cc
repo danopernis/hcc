@@ -9,25 +9,25 @@ namespace hcc { namespace ssa {
 const int color_unknown = -1;
 const int color_spill = -2;
 
-std::map<std::string, int> color(
-    const std::set<std::string>& names,
-    std::set<std::pair<std::string, std::string>> interference)
+std::map<reg, int> color(
+    const std::set<reg>& names,
+    std::set<std::pair<reg, reg>> interference)
 {
     // todo remove linear scans
     const int regs = 7;
 
-    std::map<std::string, int> color;
+    std::map<reg, int> color;
     for (const auto& name : names) {
         color[name] = color_unknown;
     }
 
-    std::stack<std::string> stack;
+    std::stack<reg> stack;
     auto interference_bak = interference;
 
     auto names_buffer = names;
     while (!names_buffer.empty()) {
 
-        std::map<std::string, int> counters;
+        std::map<reg, int> counters;
         for (const auto& name : names) {
             counters[name] = 0;
         }
@@ -36,21 +36,22 @@ std::map<std::string, int> color(
             ++counters[xy.second];
         }
 
-        std::string remove;
-        std::string max;
+        reg remove = *names_buffer.begin();
+        reg max = *names_buffer.begin();
         int max_count = -1;
+        bool removed = false;
         for (const auto& name : names_buffer) {
             auto& count = counters.at(name);
             if (count > 0 && count < regs) {
                 remove = name;
+                removed = true;
             }
             if (count > max_count) {
                 max_count = count;
                 max = name;
             }
         }
-        assert (!max.empty());
-        if (remove.empty()) {
+        if (!removed) {
             remove = max;
         }
         stack.push(remove);
@@ -106,18 +107,21 @@ std::map<std::string, int> color(
 
 void subroutine::allocate_registers()
 {
-    bool did_spill;
-    do {
+    for(;;) {
         recompute_liveness();
 
         // build interference graph
-        std::set<std::pair<std::string, std::string>> interference;
+        std::set<std::pair<reg, reg>> interference;
         for_each_bb([&] (basic_block& block) {
             auto livenow = block.liveout;
             std::for_each(block.instructions.rbegin(), block.instructions.rend(), [&] (instruction& i) {
-                i.def_apply([&] (std::string& x) {
+                i.def_apply([&] (argument& arg) {
+                    if (!arg.is_reg()) {
+                        return;
+                    }
+                    const auto& x = arg.get_reg();
                     for (const auto& y : livenow) {
-                        if (x != y) {
+                        if (!(x == y)) {
                             interference.emplace(
                                 std::max(x, y),
                                 std::min(x, y)
@@ -126,8 +130,10 @@ void subroutine::allocate_registers()
                     }
                     livenow.erase(x);
                 });
-                i.use_apply([&] (std::string& x) {
-                    livenow.insert(x);
+                i.use_apply([&] (argument& arg) {
+                    if (arg.is_reg()) {
+                        livenow.insert(arg.get_reg());
+                    }
                 });
             });
         });
@@ -136,78 +142,75 @@ void subroutine::allocate_registers()
         const auto names = collect_variable_names();
         auto colors = color(names, interference);
 
-        // spill
-        int spill_counter = 0;
-        did_spill = false;
-        for_each_bb([&] (basic_block& bb) {
-        for (auto i = bb.instructions.begin(), e = bb.instructions.end(); i != e;) {
-            auto& instruction = *i;
-            ++spill_counter;
-            std::pair<std::string, std::string> load_spill;
-            std::pair<std::string, std::string> store_spill;
-            instruction.use_apply([&] (std::string& x) {
-                if (colors.count(x)) {
-                    auto c = colors.at(x);
-                    if (c == color_unknown) {
-                    } else if (c == color_spill) {
-                        load_spill = std::make_pair("#SPILLED_" + x, x + "_" + std::to_string(spill_counter));
-                        x = load_spill.second;
-                        did_spill = true;
+        auto spilled = std::find_if(colors.begin(), colors.end(), [&] (const std::pair<reg, int>& kv) {
+            return kv.second == color_spill;
+        });
+        if (spilled != colors.end()) {
+            const auto& r = spilled->first;
+
+            // spill
+            int spill_counter = 0;
+            for_each_bb([&] (basic_block& bb) {
+            for (auto i = bb.instructions.begin(), e = bb.instructions.end(); i != e;) {
+                const auto x = regs.get(r);
+                const argument spill_first = argument(locals.put("SPILLED_" + x));
+                const argument spill_second = argument(regs.put(x + "_" + std::to_string(++spill_counter)));
+                bool did_spill_load = false;
+                bool did_spill_store = false;
+
+                auto& instruction = *i;
+                instruction.use_apply([&] (argument& arg) {
+                    if (!arg.is_reg()) {
+                        return;
                     }
-                }
-            });
-            instruction.def_apply([&] (std::string& x) {
-                if (colors.count(x)) {
-                    auto c = colors.at(x);
-                    if (c == color_unknown) {
-                    } else if (c == color_spill) {
-                        store_spill = std::make_pair("#SPILLED_" + x, x + "_" + std::to_string(spill_counter));
-                        x = store_spill.second;
-                        did_spill = true;
+                    auto& x = arg.get_reg();
+                    if (x == r) {
+                        arg = spill_second;
+                        did_spill_load = true;
                     }
+                });
+                instruction.def_apply([&] (argument& arg) {
+                    if (!arg.is_reg()) {
+                        return;
+                    }
+                    auto& x = arg.get_reg();
+                    if (x == r) {
+                        arg = spill_second;
+                        did_spill_store = true;
+                    }
+                });
+                if (did_spill_load) {
+                    bb.instructions.insert(i, hcc::ssa::instruction(instruction_type::LOAD, {spill_second, spill_first}));
                 }
-            });
-            if (!load_spill.first.empty()) {
-                bb.instructions.insert(i, hcc::ssa::instruction(
-                    instruction_type::LOAD,
-                    {load_spill.second, load_spill.first}));
-            }
-            // meh
-            if (!store_spill.first.empty()) {
-                if (instruction.type == instruction_type::MOV && instruction.arguments[0] == store_spill.second) {
-                    instruction.type = instruction_type::STORE;
-                    instruction.arguments[0] = store_spill.first;
-                    ++i;
+                // meh
+                if (did_spill_store) {
+                    if (instruction.type == instruction_type::MOV && instruction.arguments[0] == spill_second) {
+                        instruction.type = instruction_type::STORE;
+                        instruction.arguments[0] = spill_first;
+                        ++i;
+                    } else {
+                        ++i;
+                        bb.instructions.insert(i, hcc::ssa::instruction(instruction_type::STORE, {spill_first, spill_second}));
+                    }
                 } else {
                     ++i;
-                    bb.instructions.insert(i, hcc::ssa::instruction(
-                        instruction_type::STORE,
-                        {store_spill.first, store_spill.second}));
                 }
-            } else {
-                ++i;
             }
-        }
-        });
-
-        if (!did_spill) {
+            });
+        } else {
             for_each_bb([&] (basic_block& bb) {
             for (auto i = bb.instructions.begin(), e = bb.instructions.end(); i != e;) {
                 auto& instruction = *i;
-                instruction.use_apply([&] (std::string& x) {
-                    if (colors.count(x)) {
-                        auto c = colors.at(x);
+
+                auto f = [&] (argument& arg) {
+                    if (arg.is_reg()) {
+                        auto c = colors.at(arg.get_reg());
                         assert (c != color_unknown);
-                        x = "%R" + std::to_string(c);
+                        arg = argument(regs.put("R" + std::to_string(c)));
                     }
-                });
-                instruction.def_apply([&] (std::string& x) {
-                    if (colors.count(x)) {
-                        auto c = colors.at(x);
-                        assert (c != color_unknown);
-                        x = "%R" + std::to_string(c);
-                    }
-                });
+                };
+                instruction.use_apply(f);
+                instruction.def_apply(f);
                 if (instruction.type == instruction_type::MOV && instruction.arguments[0] == instruction.arguments[1]) {
                     i = bb.instructions.erase(i);
                 } else {
@@ -215,8 +218,9 @@ void subroutine::allocate_registers()
                 }
             }
             });
+            return;
         }
-    } while(did_spill);
+    };
 }
 
 }} // namespace hcc::ssa

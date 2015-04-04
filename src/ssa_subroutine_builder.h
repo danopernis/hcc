@@ -23,24 +23,27 @@ struct subroutine_builder {
      *
      * Inserts new basic block if it is not already present and returns handle.
      */
-    int add_bb(const std::string& name, bool is_entry);
+    label add_bb(const std::string& name, bool is_entry = false);
 
     /**
      * Add instruction to given basic block.
      */
-    void add_instruction(int bb, const instruction& instr);
-    void add_jump(int bb, const std::string& target);
+    void add_instruction(const label& bb, const instruction& instr);
+    void add_jump(const label& bb, const label& target);
     void add_branch(
-        int bb,
+        const label& bb,
         const instruction_type& type,
-        const std::string& variable1,
-        const std::string& variable2,
-        const std::string& positive,
-        const std::string& negative);
-    void add_return(int bb, const std::string& variable);
+        const argument& variable1,
+        const argument& variable2,
+        const label& positive,
+        const label& negative);
+    void add_return(const label& bb, const argument& variable);
+
+    reg add_reg(const std::string& name) { return s.regs.put(name); }
+    local add_local(const std::string& name) { return s.locals.put(name); }
 
 private:
-    std::map<std::string, int> name_to_index;
+    std::map<std::string, label> name_to_index;
     subroutine_ir& s;
 };
 

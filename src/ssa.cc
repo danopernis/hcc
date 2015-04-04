@@ -6,11 +6,12 @@
 
 namespace hcc { namespace ssa {
 
-void instruction::use_apply(std::function<void(std::string&)> g)
+void instruction::use_apply(std::function<void(argument&)> g)
 {
-    auto f = [&] (std::string& s) {
-        if (!s.empty() && s[0] == '%')
-            g(s);
+    auto f = [&] (argument& a) {
+        if (a.is_reg()) {
+            g(a);
+        }
     };
 
     switch (type) {
@@ -62,7 +63,7 @@ void instruction::use_apply(std::function<void(std::string&)> g)
     }
 }
 
-void instruction::def_apply(std::function<void(std::string&)> f)
+void instruction::def_apply(std::function<void(argument&)> f)
 {
     switch (type) {
     case instruction_type::JUMP:
@@ -82,6 +83,7 @@ void instruction::def_apply(std::function<void(std::string&)> f)
     case instruction_type::OR:
     case instruction_type::PHI:
     case instruction_type::ARGUMENT:
+        assert(arguments[0].is_reg());
         f(arguments[0]);
         break;
     default:
@@ -92,19 +94,19 @@ void instruction::def_apply(std::function<void(std::string&)> f)
 void subroutine_ir::recompute_dominance()
 {
     // hack: graph_dominance can't handle blocks that are not target of jump
-    depth_first_search dfs(g.successors(), entry_node_);
+    depth_first_search dfs(g.successors(), entry_node_.index);
     for (auto& node : basic_blocks) {
         const auto& from = node.first;
-        if (!dfs.visited()[from]) {
-            for (const auto& to : g.successors()[from]) {
-                g.remove_edge(from, to);
-                basic_blocks[from].instructions.clear();
+        if (!dfs.visited()[from.index]) {
+            for (const auto& to : g.successors()[from.index]) {
+                g.remove_edge(from.index, to);
+                basic_blocks.at(from).instructions.clear();
             }
         }
     }
 
-    dominance.reset(new graph_dominance(g, entry_node_));
-    reverse_dominance.reset(new graph_dominance(g.reverse(), exit_node_));
+    dominance.reset(new graph_dominance(g, entry_node_.index));
+    reverse_dominance.reset(new graph_dominance(g.reverse(), exit_node_.index));
 }
 
 void subroutine_ir::recompute_liveness()
@@ -116,11 +118,20 @@ void subroutine_ir::recompute_liveness()
         block.varkill.clear();
         block.liveout.clear();
         for (auto& instruction : block.instructions) {
-            instruction.use_apply([&block] (const std::string& x) {
-                if (!block.varkill.count(x))
+            instruction.use_apply([&block] (const argument& a) {
+                if (!a.is_reg()) {
+                    return;
+                }
+                const auto& x = a.get_reg();
+                if (!block.varkill.count(x)) {
                     block.uevar.insert(x);
+                }
             });
-            instruction.def_apply([&block] (const std::string& x) {
+            instruction.def_apply([&block] (const argument& a) {
+                if (!a.is_reg()) {
+                    return;
+                }
+                const auto& x = a.get_reg();
                 block.varkill.insert(x);
             });
         }
@@ -134,8 +145,8 @@ void subroutine_ir::recompute_liveness()
             auto& block = kv.second;
             auto old_liveout = block.liveout;
 
-            std::set<std::string> new_liveout;
-            for_each_cfg_successor(block.index, [&] (basic_block& bb) {
+            std::set<reg> new_liveout;
+            for_each_cfg_successor(block.name, [&] (basic_block& bb) {
                 const auto& uevar = bb.uevar;
                 const auto& varkill = bb.varkill;
                 const auto& liveout = bb.liveout;
@@ -154,10 +165,14 @@ void subroutine_ir::recompute_liveness()
     }
 }
 
-std::set<std::string> subroutine_ir::collect_variable_names()
+std::set<reg> subroutine_ir::collect_variable_names()
 {
-    std::set<std::string> result;
-    auto inserter = [&] (std::string& s) { result.insert(s); };
+    std::set<reg> result;
+    auto inserter = [&] (argument& a) {
+        if (a.is_reg()) {
+            result.insert(a.get_reg());
+        }
+    };
     for_each_bb([&] (basic_block& bb) {
     for (auto& instruction : bb.instructions) {
         instruction.use_apply(inserter);

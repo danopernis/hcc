@@ -38,19 +38,20 @@ void adjust_symmetric_operation(instruction &i)
     }
 }
 
-void generate_code(subroutine& s, hcc::asm_program& out, const std::string& prefix)
+void generate_code(unit& u, subroutine& s, hcc::asm_program& out, const global& prefix)
 {
     int available_register = 0;
-    std::map<std::string, std::string> registers;
-    std::map<std::string, int> locals_counts;
+    std::map<reg, std::string> registers;
+    std::map<local, int> locals_counts;
 
-    auto f = [&] (const std::string& x) {
-        assert (!x.empty());
-        if (x[0] == '%') {
+    auto f = [&] (const argument& arg) {
+        if (arg.is_reg()) {
+            const auto& x = arg.get_reg();
             if (registers.count(x) == 0) {
                 registers[x] = "R" + std::to_string(available_register++);
             }
-        } else if (x[0] == '#') {
+        } else if (arg.is_local()) {
+            const auto& x = arg.get_local();
             auto it = locals_counts.find(x);
             if (it == locals_counts.end()) {
                 locals_counts.emplace(x, 1);
@@ -73,11 +74,11 @@ void generate_code(subroutine& s, hcc::asm_program& out, const std::string& pref
     }
     });
 
-    std::vector<std::pair<std::string, int>> locals_tmp;
+    std::vector<std::pair<local, int>> locals_tmp;
     for (const auto& kv : locals_counts) {
         locals_tmp.emplace_back(kv.first, kv.second);
     }
-    std::sort(locals_tmp.begin(), locals_tmp.end(), [] (const std::pair<std::string, int>& x, const std::pair<std::string, int>& y) { return x.second > y.second; });
+    std::sort(locals_tmp.begin(), locals_tmp.end(), [] (const std::pair<local, int>& x, const std::pair<local, int>& y) { return x.second > y.second; });
     int locals_counter = 0;
     locals_counts.clear();
     for (const auto& kv : locals_tmp) {
@@ -85,33 +86,40 @@ void generate_code(subroutine& s, hcc::asm_program& out, const std::string& pref
     }
 
     int returnCounter = 0;
-    auto handle = [&] (const std::string& x, unsigned short comp_reg, unsigned short comp_imm) {
-        assert(!x.empty());
-        if (x[0] == '%') {
-            out.emitA(registers.at(x));
-            out.emitC(DEST_D | comp_reg);
-        } else if (x[0] == '@') {
-            out.emitA(x.substr(1));
-            out.emitC(DEST_D | comp_reg);
-        } else if (x[0] == '#') {
-            assert (false);
-        } else {
-            out.emitA(std::stoi(x));
+    auto handle = [&] (const argument& arg, unsigned short comp_reg, unsigned short comp_imm) {
+        if (arg.is_constant()) {
+            out.emitA(arg.get_constant().value);
             out.emitC(DEST_D | comp_imm);
+        } else if (arg.is_reg()) {
+            out.emitA(registers.at(arg.get_reg()));
+            out.emitC(DEST_D | comp_reg);
+        } else if (arg.is_global()) {
+            out.emitA(u.globals.get(arg.get_global()));
+            out.emitC(DEST_D | comp_reg);
+        } else {
+            assert(false);
         }
     };
+    auto handleLabel = [&] (const label& l) {
+        std::stringstream ss;
+        ss << u.globals.get(prefix) << ".";
+        argument(l).save(ss, u, s);
+        return ss.str();
+    };
+
     auto handle_compare = [&] (const hcc::ssa::instruction& instruction, unsigned short jump) {
         // compute
         handle(instruction.arguments[1], COMP_M, COMP_A);
         handle(instruction.arguments[0], COMP_M_MINUS_D, COMP_A_MINUS_D);
         // decide
-        out.emitA(prefix + "." + instruction.arguments[2]);
+        out.emitA(handleLabel(instruction.arguments[2].get_label()));
         out.emitC(COMP_D | jump);
-        out.emitA(prefix + "." + instruction.arguments[3]);
+        out.emitA(handleLabel(instruction.arguments[3].get_label()));
         out.emitC(COMP_ZERO | JMP);
     };
-    auto reg_store = [&] (const std::string& x) {
-        out.emitA(registers.at(x));
+    auto reg_store = [&] (const argument& x) {
+        assert (x.is_reg());
+        out.emitA(registers.at(x.get_reg()));
         out.emitC(DEST_M | COMP_D);
     };
 
@@ -120,19 +128,19 @@ void generate_code(subroutine& s, hcc::asm_program& out, const std::string& pref
             return;
         }
         if (s.entry_node().name == bb.name) {
-            out.emitL(prefix);
+            out.emitL(u.globals.get(prefix));
         }
-        out.emitL(prefix + "." + bb.name);
+        out.emitL(handleLabel(bb.name));
     for (auto instruction : bb.instructions) {
         {
             std::stringstream ss;
-            ss << instruction;
+            instruction.save(ss, u, s);
             out.emitComment(ss.str());
         }
         switch (instruction.type) {
         // basic block boundary handling
         case instruction_type::JUMP:
-            out.emitA(prefix + "." + instruction.arguments[0]);
+            out.emitA(handleLabel(instruction.arguments[0].get_label()));
             out.emitC(COMP_ZERO | JMP);
             break;
         case instruction_type::JLT:
@@ -150,7 +158,7 @@ void generate_code(subroutine& s, hcc::asm_program& out, const std::string& pref
             out.emitC(COMP_ZERO | JMP);
             break;
         case instruction_type::CALL: {
-            const auto returnAddress = prefix + ".return." + std::to_string(returnCounter++);
+            const auto returnAddress = u.globals.get(prefix) + ".return." + std::to_string(returnCounter++);
             out.emitA(locals_counter);
             out.emitC(DEST_D | COMP_A);
             out.emitA(reg_locals);
@@ -170,7 +178,7 @@ void generate_code(subroutine& s, hcc::asm_program& out, const std::string& pref
             out.emitA(reg_stack_pointer);
             out.emitC(DEST_A | DEST_M | COMP_M_PLUS_ONE);
             out.emitC(DEST_M | COMP_D);
-            out.emitA(instruction.arguments[1]);
+            out.emitA(u.globals.get(instruction.arguments[1].get_global()));
             out.emitC(DEST_D | COMP_A);
             out.emitA(reg_return);
             out.emitC(DEST_M | COMP_D);
@@ -214,49 +222,53 @@ void generate_code(subroutine& s, hcc::asm_program& out, const std::string& pref
             reg_store(instruction.arguments[0]);
             break;
         // copying
-        case instruction_type::STORE:
-            if (instruction.arguments[0][0] == '%') {
-                handle(instruction.arguments[1], COMP_M, COMP_A);
-                out.emitA(registers.at(instruction.arguments[0]));
+        case instruction_type::STORE: {
+            const auto& dst = instruction.arguments[0];
+            const auto& src = instruction.arguments[1];
+            if (dst.is_reg()) {
+                handle(src, COMP_M, COMP_A);
+                out.emitA(registers.at(dst.get_reg()));
                 out.emitC(DEST_A | COMP_M);
                 out.emitC(DEST_M | COMP_D);
-            } else if (instruction.arguments[0][0] == '@') {
-                handle(instruction.arguments[1], COMP_M, COMP_A);
-                out.emitA(instruction.arguments[0].substr(1));
+            } else if (dst.is_global()) {
+                handle(src, COMP_M, COMP_A);
+                out.emitA(u.globals.get(dst.get_global()));
                 out.emitC(DEST_M | COMP_D);
-            } else if (instruction.arguments[0][0] == '#') {
-                out.emitA(locals_counts.at(instruction.arguments[0]));
+            } else if (dst.is_local()) {
+                out.emitA(locals_counts.at(dst.get_local()));
                 out.emitC(DEST_D | COMP_A);
                 out.emitA(reg_locals);
                 out.emitC(DEST_D | COMP_D_PLUS_M);
                 out.emitA(reg_tmp);
                 out.emitC(DEST_M | COMP_D);
-                handle(instruction.arguments[1], COMP_M, COMP_A);
+                handle(src, COMP_M, COMP_A);
                 out.emitA(reg_tmp);
                 out.emitC(DEST_A | COMP_M);
                 out.emitC(DEST_M | COMP_D);
             } else {
                 assert (false);
             }
-            break;
+            } break;
         case instruction_type::ARGUMENT:
-            out.emitA(std::stoi(instruction.arguments[1]));
+            out.emitA(instruction.arguments[1].get_constant().value);
             out.emitC(DEST_D | COMP_A);
             out.emitA(reg_arguments);
             out.emitC(DEST_A | COMP_D_PLUS_M);
             out.emitC(DEST_D | COMP_M);
             reg_store(instruction.arguments[0]);
             break;
-        case instruction_type::LOAD:
-            if (instruction.arguments[1][0] == '%') {
-                out.emitA(registers.at(instruction.arguments[1]));
+        case instruction_type::LOAD: {
+            const auto& dst = instruction.arguments[0];
+            const auto& src = instruction.arguments[1];
+            if (src.is_reg()) {
+                out.emitA(registers.at(src.get_reg()));
                 out.emitC(DEST_A | COMP_M);
                 out.emitC(DEST_D | COMP_M);
-            } else if (instruction.arguments[1][0] == '@') {
-                out.emitA(instruction.arguments[1].substr(1));
+            } else if (src.is_global()) {
+                out.emitA(u.globals.get(src.get_global()));
                 out.emitC(DEST_D | COMP_M);
-            } else if (instruction.arguments[1][0] == '#') {
-                out.emitA(locals_counts.at(instruction.arguments[1]));
+            } else if (src.is_local()) {
+                out.emitA(locals_counts.at(src.get_local()));
                 out.emitC(DEST_D | COMP_A);
                 out.emitA(reg_locals);
                 out.emitC(DEST_A | COMP_D_PLUS_M);
@@ -264,8 +276,8 @@ void generate_code(subroutine& s, hcc::asm_program& out, const std::string& pref
             } else {
                 assert (false);
             }
-            reg_store(instruction.arguments[0]);
-            break;
+            reg_store(dst);
+        } break;
         case instruction_type::MOV:
             handle(instruction.arguments[1], COMP_M, COMP_A);
             reg_store(instruction.arguments[0]);
@@ -366,7 +378,7 @@ try {
     for (auto& subroutine_entry : u.subroutines) {
         subroutine_entry.second.ssa_deconstruct();
         subroutine_entry.second.allocate_registers();
-        generate_code(subroutine_entry.second, out, subroutine_entry.first);
+        generate_code(u, subroutine_entry.second, out, subroutine_entry.first);
     }
     out.local_optimization();
     out.save("output.asm");
