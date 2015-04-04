@@ -5,7 +5,6 @@ OBJECTS = \
     asm.o \
     asm_local.o \
     ssa.o \
-    ssa_adhoc.o \
     ssa_construction.o \
     ssa_copy_propagation.o \
     ssa_dead_code_elimination.o \

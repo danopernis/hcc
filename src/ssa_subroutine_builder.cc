@@ -8,55 +8,55 @@ namespace hcc { namespace ssa {
 subroutine_builder::subroutine_builder(subroutine_ir& s)
         : s(s)
 {
-    s.exit_node_ = add_bb("EXIT", false);
-    add_instruction(s.exit_node_, instruction(instruction_type::RETURN, {"0"}));
+    s.exit_node_ = add_bb("EXIT");
+    add_instruction(s.exit_node_, instruction(instruction_type::RETURN, {argument(constant(0))}));
 }
 
-int subroutine_builder::add_bb(const std::string& name, bool is_entry)
+label subroutine_builder::add_bb(const std::string& name, bool is_entry)
 {
     auto it = name_to_index.find(name);
     if (it == name_to_index.end()) {
-        int index = s.g.add_node();
-        name_to_index.emplace(name, index);
-        auto& node = s.basic_blocks[index];
-        node.name = name;
-        node.index = index;
+        label l;
+        l.index = s.g.add_node();
+        name_to_index.emplace(name, l);
+        auto& node = s.basic_blocks[l];
+        node.name = l;
         if (is_entry) {
-            s.entry_node_ = index;
+            s.entry_node_ = l;
         }
-        return index;
+        return l;
     } else {
         return it->second;
     }
 }
 
-void subroutine_builder::add_instruction(int bb, const instruction& instr)
+void subroutine_builder::add_instruction(const label& bb, const instruction& instr)
 { s.basic_blocks.at(bb).instructions.push_back(instr); }
 
-void subroutine_builder::add_jump(int bb, const std::string& target)
+void subroutine_builder::add_jump(const label& bb, const label& target)
 {
-    s.g.add_edge(bb, add_bb(target, false));
+    s.g.add_edge(bb.index, target.index);
     add_instruction(bb, instruction(
-        instruction_type::JUMP, {target}));
+        instruction_type::JUMP, {argument(target)}));
 }
 
 void subroutine_builder::add_branch(
-    int bb,
+    const label& bb,
     const instruction_type& type,
-    const std::string& variable1,
-    const std::string& variable2,
-    const std::string& positive,
-    const std::string& negative)
+    const argument& variable1,
+    const argument& variable2,
+    const label& positive,
+    const label& negative)
 {
-    s.g.add_edge(bb, add_bb(positive, false));
-    s.g.add_edge(bb, add_bb(negative, false));
+    s.g.add_edge(bb.index, positive.index);
+    s.g.add_edge(bb.index, negative.index);
     add_instruction(bb, instruction(type,
-        {variable1, variable2, positive, negative}));
+        {variable1, variable2, argument(positive), argument(negative)}));
 }
 
-void subroutine_builder::add_return(int bb, const std::string& variable)
+void subroutine_builder::add_return(const label& bb, const argument& variable)
 {
-    s.g.add_edge(bb, s.exit_node_);
+    s.g.add_edge(bb.index, s.exit_node_.index);
     add_instruction(bb, instruction(
         instruction_type::RETURN, {variable}));
 }

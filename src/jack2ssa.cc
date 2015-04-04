@@ -43,33 +43,33 @@ struct Writer
     , public ast::ExpressionVisitor
 {
     void beginBB(const std::string& label)
-    { bb = builder->add_bb(label, false); }
+    { bb = builder->add_bb(label); }
 
-    void appendToCurrentBB(instruction_type type, std::initializer_list<std::string> il)
-    { appendToCurrentBB(type, std::vector<std::string>(il)); }
+    void appendToCurrentBB(instruction_type type, std::initializer_list<argument> il)
+    { appendToCurrentBB(type, std::vector<argument>(il)); }
 
-    void appendToCurrentBB(instruction_type type, std::vector<std::string> args)
+    void appendToCurrentBB(instruction_type type, std::vector<argument> args)
     { builder->add_instruction(bb, instruction(type, args)); }
 
     void outputBranch(const std::string& branch)
-    { builder->add_jump(bb, branch); }
+    { builder->add_jump(bb, builder->add_bb(branch)); }
 
-    void outputBranch(const std::string& variable, const std::string& positive, const std::string& negative)
-    { builder->add_branch(bb, instruction_type::JEQ, "0", variable, negative, positive); }
+    void outputBranch(const argument& variable, const std::string& positive, const std::string& negative)
+    { builder->add_branch(bb, instruction_type::JEQ, constant(0), variable, builder->add_bb(negative), builder->add_bb(positive)); }
 
-    void outputReturn(const std::string& variable)
+    void outputReturn(const argument& variable)
     { builder->add_return(bb, variable); }
 
-    std::string ssaStackTopPop()
+    argument ssaStackTopPop()
     {
         assert(!ssaStack.empty());
-        std::string top = ssaStack.top();
+        auto top = ssaStack.top();
         ssaStack.pop();
         return top;
     }
-    std::string genTempName()
+    argument genTempName()
     {
-        return "%" + std::to_string(tmpCounter++);
+        return builder->add_reg(std::to_string(tmpCounter++));
     }
 
     /** statement visitor */
@@ -85,15 +85,15 @@ struct Writer
 
         switch ((*it)->second.storage) {
         case Symbol::Storage::STATIC:
-            appendToCurrentBB(instruction_type::STORE, {"@" + className + "." + letScalar->name, last});
+            appendToCurrentBB(instruction_type::STORE, {res.globals.put(className + "." + letScalar->name), last});
             break;
         case Symbol::Storage::FIELD: {
             const auto addr = genTempName();
-            appendToCurrentBB(instruction_type::ADD, {addr, "%this", std::to_string((*it)->second.index)});
+            appendToCurrentBB(instruction_type::ADD, {addr, builder->add_reg("this"), constant((*it)->second.index)});
             appendToCurrentBB(instruction_type::STORE, {addr, last});
             } break;
         default:
-            appendToCurrentBB(instruction_type::MOV, {"%" + letScalar->name, last});
+            appendToCurrentBB(instruction_type::MOV, {builder->add_reg(letScalar->name), last});
         }
 
     }
@@ -111,15 +111,15 @@ struct Writer
 
         switch ((*it)->second.storage) {
         case Symbol::Storage::STATIC:
-            appendToCurrentBB(instruction_type::LOAD, {base, "@" + className + "." + letVector->name});
+            appendToCurrentBB(instruction_type::LOAD, {base, res.globals.put(className + "." + letVector->name)});
             break;
         case Symbol::Storage::FIELD: {
             const auto _addr = genTempName();
-            appendToCurrentBB(instruction_type::ADD, {_addr, "%this", std::to_string((*it)->second.index)});
+            appendToCurrentBB(instruction_type::ADD, {_addr, builder->add_reg("this"), constant((*it)->second.index)});
             appendToCurrentBB(instruction_type::LOAD, {base, _addr});
             } break;
         default:
-            appendToCurrentBB(instruction_type::MOV, {base, "%" + letVector->name});
+            appendToCurrentBB(instruction_type::MOV, {base, builder->add_reg(letVector->name)});
         }
 
         appendToCurrentBB(instruction_type::ADD, {addr, base, offset});
@@ -186,7 +186,7 @@ struct Writer
             outputReturn(last);
         } else {
             /* Subroutine always returns. */
-            outputReturn("0");
+            outputReturn(constant(0));
         }
         // Each block must end with exactly one terminator, so we have to create
         // another block.
@@ -197,7 +197,7 @@ struct Writer
 
     virtual void visit(ast::ThisConstant*)
     {
-        ssaStack.push("%this");
+        ssaStack.push(builder->add_reg("this"));
     }
 
     virtual void visit(ast::IntegerConstant* integerConstant)
@@ -205,17 +205,17 @@ struct Writer
         auto result = genTempName();
         ssaStack.push(result);
 
-        appendToCurrentBB(instruction_type::MOV, {result, std::to_string(integerConstant->value)});
+        appendToCurrentBB(instruction_type::MOV, {result, constant(integerConstant->value)});
     }
 
     virtual void visit(ast::StringConstant* stringConstant)
     {
         auto string = genTempName();
-        appendToCurrentBB(instruction_type::CALL, {string, "String.new", std::to_string(stringConstant->value.length())});
+        appendToCurrentBB(instruction_type::CALL, {string, res.globals.put("String.new"), constant(stringConstant->value.length())});
 
         for (char& c : stringConstant->value) {
             const auto string2 = genTempName();
-            appendToCurrentBB(instruction_type::CALL, {string2, "String.appendChar", string, std::to_string((unsigned)c)});
+            appendToCurrentBB(instruction_type::CALL, {string2, res.globals.put("String.appendChar"), string, constant((unsigned)c)});
 
             string = string2;
         }
@@ -243,18 +243,18 @@ struct Writer
 
     void writeCompare(
         const instruction_type& it,
-        const std::string result,
-        const std::string arg1,
-        const std::string arg2)
+        const argument& result,
+        const argument& arg1,
+        const argument& arg2)
     {
         auto cmpIndex = std::to_string(cmpCounter++);
         auto labelTrue  = "compare."  + cmpIndex;
         auto labelEnd   = "done."   + cmpIndex;
 
-        appendToCurrentBB(instruction_type::MOV, {result, "0"});
-        builder->add_branch(bb, it, arg1, arg2, labelTrue, labelEnd);
+        appendToCurrentBB(instruction_type::MOV, {result, constant(0)});
+        builder->add_branch(bb, it, arg1, arg2, builder->add_bb(labelTrue), builder->add_bb(labelEnd));
         beginBB(labelTrue);
-        appendToCurrentBB(instruction_type::MOV, {result, "-1"});
+        appendToCurrentBB(instruction_type::MOV, {result, constant(-1)});
         outputBranch(labelEnd);
         beginBB(labelEnd);
     }
@@ -278,10 +278,10 @@ struct Writer
             appendToCurrentBB(instruction_type::SUB, {result, arg1, arg2});
             break;
         case ast::BinaryExpression::Type::MULTIPLY:
-            appendToCurrentBB(instruction_type::CALL, {result, "Math.multiply", arg1, arg2});
+            appendToCurrentBB(instruction_type::CALL, {result, res.globals.put("Math.multiply"), arg1, arg2});
             break;
         case ast::BinaryExpression::Type::DIVIDE:
-            appendToCurrentBB(instruction_type::CALL, {result, "Math.divide", arg1, arg2});
+            appendToCurrentBB(instruction_type::CALL, {result, res.globals.put("Math.divide"), arg1, arg2});
             break;
         case ast::BinaryExpression::Type::AND:
             appendToCurrentBB(instruction_type::AND, {result, arg1, arg2});
@@ -312,15 +312,15 @@ struct Writer
 
         switch ((*it)->second.storage) {
         case Symbol::Storage::STATIC:
-            appendToCurrentBB(instruction_type::LOAD, {result, "@" + className + "." + scalarVariable->name});
+            appendToCurrentBB(instruction_type::LOAD, {result, res.globals.put(className + "." + scalarVariable->name)});
             break;
         case Symbol::Storage::FIELD: {
             const auto addr = genTempName();
-            appendToCurrentBB(instruction_type::ADD, {addr, "%this", std::to_string((*it)->second.index)});
+            appendToCurrentBB(instruction_type::ADD, {addr, builder->add_reg("this"), constant((*it)->second.index)});
             appendToCurrentBB(instruction_type::LOAD, {result, addr});
             } break;
         default:
-            appendToCurrentBB(instruction_type::MOV, {result, "%" + scalarVariable->name});
+            appendToCurrentBB(instruction_type::MOV, {result, builder->add_reg(scalarVariable->name)});
         }
     }
 
@@ -337,15 +337,15 @@ struct Writer
 
         switch ((*it)->second.storage) {
         case Symbol::Storage::STATIC:
-            appendToCurrentBB(instruction_type::LOAD, {base, "@" + className + "." + vectorVariable->name});
+            appendToCurrentBB(instruction_type::LOAD, {base, res.globals.put(className + "." + vectorVariable->name)});
             break;
         case Symbol::Storage::FIELD: {
             const auto _addr = genTempName();
-            appendToCurrentBB(instruction_type::ADD, {_addr, "%this", std::to_string((*it)->second.index)});
+            appendToCurrentBB(instruction_type::ADD, {_addr, builder->add_reg("this"), constant((*it)->second.index)});
             appendToCurrentBB(instruction_type::LOAD, {base, _addr});
             } break;
         default:
-            appendToCurrentBB(instruction_type::MOV, {base, "%" + vectorVariable->name});
+            appendToCurrentBB(instruction_type::MOV, {base, builder->add_reg(vectorVariable->name)});
         }
 
         appendToCurrentBB(instruction_type::ADD, {addr, base, offset});
@@ -372,41 +372,41 @@ struct Writer
         return boost::optional<Scope::iterator>();
     }
 
-    std::vector<std::string> generalCall(const std::string& base, const std::string& name, const ast::ExpressionList& arguments)
+    std::vector<argument> generalCall(const std::string& base, const std::string& name, const ast::ExpressionList& arguments)
     {
-        std::vector<std::string> args;
+        std::vector<argument> args;
 
         if (base.empty()) {
-            args.push_back(className + "." + name);
-            args.push_back("%this");
+            args.push_back(res.globals.put(className + "." + name));
+            args.push_back(builder->add_reg("this"));
         } else {
             auto it = resolve(base);
             if (it) {
-                args.push_back(
+                args.push_back(res.globals.put(
                     dynamic_cast<ast::UnresolvedType*>(
                         (*it)->second.type->clone().get()
-                    )->name + "." + name);
+                    )->name + "." + name));
 
                 switch ((*it)->second.storage) {
                 case Symbol::Storage::STATIC: {
                     const auto var = genTempName();
-                    appendToCurrentBB(instruction_type::LOAD, {var, "@" + className + "." + base});
+                    appendToCurrentBB(instruction_type::LOAD, {var, res.globals.put(className + "." + base)});
                     args.push_back(var);
                     } break;
                 case Symbol::Storage::FIELD: {
                     const auto addr = genTempName();
                     const auto var = genTempName();
-                    appendToCurrentBB(instruction_type::ADD, {addr, "%this", std::to_string((*it)->second.index)});
+                    appendToCurrentBB(instruction_type::ADD, {addr, builder->add_reg("this"), constant((*it)->second.index)});
                     appendToCurrentBB(instruction_type::LOAD, {var, addr});
                     args.push_back(var);
                     } break;
                 default:
-                    args.push_back("%" + base);
+                    args.push_back(builder->add_reg(base));
                     break;
                 }
             } else {
                // not found, so it must be class name
-               args.push_back(base + "." + name);
+               args.push_back(res.globals.put(base + "." + name));
             }
         }
 
@@ -420,30 +420,20 @@ struct Writer
 
     virtual void visit(ast::DoStatement* doStatement)
     {
-        std::vector<std::string> args = generalCall(doStatement->base, doStatement->name, doStatement->arguments);
-
-        std::vector<std::string> args2;
-        args2.push_back(genTempName());
-        for (auto arg : args) {
-            args2.push_back(arg);
-        }
-        appendToCurrentBB(instruction_type::CALL, args2);
+        auto args = generalCall(doStatement->base, doStatement->name, doStatement->arguments);
+        args.insert(args.begin(), genTempName());
+        appendToCurrentBB(instruction_type::CALL, args);
     }
-
 
     virtual void visit(ast::SubroutineCall* subroutineCall)
     {
-        std::vector<std::string> args = generalCall(subroutineCall->base, subroutineCall->name, subroutineCall->arguments);
+        auto args = generalCall(subroutineCall->base, subroutineCall->name, subroutineCall->arguments);
 
         auto result = genTempName();
         ssaStack.push(result);
 
-        std::vector<std::string> args2;
-        args2.push_back(result);
-        for (auto arg : args) {
-            args2.push_back(arg);
-        }
-        appendToCurrentBB(instruction_type::CALL, args2);
+        args.insert(args.begin(), result);
+        appendToCurrentBB(instruction_type::CALL, args);
     }
 
     void writeSubroutine(const ast::Subroutine& subroutine)
@@ -456,19 +446,19 @@ struct Writer
         dummyCounter = 0;
 
         builder = make_unique<subroutine_builder>(
-            res.insert_subroutine(className + "." + subroutine.name)->second);
+            res.insert_subroutine(res.globals.put(className + "." + subroutine.name))->second);
         bb = builder->add_bb("ENTRY", true);
 
         // arguments
         unsigned argument_counter = 0;
         if (subroutine.kind == ast::Subroutine::Kind::METHOD) {
-            appendToCurrentBB(instruction_type::ARGUMENT, {"%this", std::to_string(argument_counter++)});
+            appendToCurrentBB(instruction_type::ARGUMENT, {builder->add_reg("this"), constant(argument_counter++)});
         }
         for (const auto& variable : subroutine.arguments) {
             subroutineScope.insert(std::make_pair(variable.name, Symbol(
                 Symbol::Storage::ARGUMENT,
                 variable.type->clone())));
-            appendToCurrentBB(instruction_type::ARGUMENT, {"%" + variable.name, std::to_string(argument_counter++)});
+            appendToCurrentBB(instruction_type::ARGUMENT, {builder->add_reg(variable.name), constant(argument_counter++)});
         }
 
 
@@ -478,12 +468,12 @@ struct Writer
                 Symbol::Storage::LOCAL,
                 variable.type->clone())));
 
-            appendToCurrentBB(instruction_type::MOV, {"%" + variable.name, "0"});
+            appendToCurrentBB(instruction_type::MOV, {builder->add_reg(variable.name), constant(0)});
         }
 
         // constructor needs to allocate space
         if (subroutine.kind == ast::Subroutine::Kind::CONSTRUCTOR) {
-            appendToCurrentBB(instruction_type::CALL, {"%this", "Memory.alloc", std::to_string(fieldVarsCount)});
+            appendToCurrentBB(instruction_type::CALL, {builder->add_reg("this"), res.globals.put("Memory.alloc"), constant(fieldVarsCount)});
         }
 
         for (const auto& statement : subroutine.statements) {
@@ -492,7 +482,7 @@ struct Writer
 
         // Each block must end with exactly one terminator, so we have to
         // insert terminator here.
-        outputReturn("0");
+        outputReturn(constant(0));
     }
 
     void write(const ast::Class& class_)
@@ -504,7 +494,6 @@ struct Writer
             classScope.insert(std::make_pair(variable.name, Symbol(
                 Symbol::Storage::STATIC,
                 variable.type->clone())));
-            res.globals.insert(className + "." + variable.name);
         }
 
         fieldVarsCount = 0;
@@ -530,9 +519,9 @@ struct Writer
     unsigned cmpCounter;
     unsigned dummyCounter;
     unsigned fieldVarsCount;
-    std::stack<std::string> ssaStack;
+    std::stack<argument> ssaStack;
     std::unique_ptr<subroutine_builder> builder;
-    int bb;
+    label bb;
 };
 
 
@@ -569,11 +558,6 @@ try {
         subroutine.dead_code_elimination();
         subroutine.copy_propagation();
         subroutine.dead_code_elimination();
-
-        /*
-        unsigned int counter = 0;
-        subroutine.prettify_names(counter);
-        */
     }
 
     // output

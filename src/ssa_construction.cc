@@ -11,7 +11,7 @@ namespace {
 
 /** Use dominance frontier set to find where phi-functions are needed */
 void insert_temp_phi(
-    const std::set<std::string>& variables,
+    const std::set<reg>& variables,
     subroutine& s)
 {
     // init
@@ -21,24 +21,24 @@ void insert_temp_phi(
         block.work = iteration;
     });
 
-    std::set<int> w; // worklist of CFG nodes being processed
+    std::set<label> w; // worklist of CFG nodes being processed
     for (const auto& variable : variables) {
         ++iteration;
 
         s.for_each_bb([&] (basic_block& block) {
             for (auto& instruction : block.instructions) {
-                instruction.def_apply([&] (std::string& def) {
-                    if (def == variable) {
+                instruction.def_apply([&] (argument& a) {
+                    if (a.get_reg() == variable) {
                         // add to worklist
                         block.work = iteration;
-                        w.emplace(block.index);
+                        w.emplace(block.name);
                     }
                 });
             }
         });
 
         while (!w.empty()) {
-            int x = *w.begin();
+            auto x = *w.begin();
             w.erase(w.begin());
 
             s.for_each_bb_in_dfs(x, [&] (basic_block& block) {
@@ -50,7 +50,7 @@ void insert_temp_phi(
                     block.has_already = iteration;
                     if (block.work < iteration) {
                         block.work = iteration;
-                        w.emplace(block.index);
+                        w.emplace(block.name);
                     }
                 }
             });
@@ -59,7 +59,8 @@ void insert_temp_phi(
 }
 
 struct name_manager {
-    name_manager(const std::set<std::string>& variables)
+    name_manager(regs_table& regs, const std::set<reg>& variables)
+        : regs(regs)
     {
         for (const auto& v : variables) {
             counter[v] = 0;
@@ -67,30 +68,35 @@ struct name_manager {
         }
     }
 
-    void rename_to_current(std::string& name)
+    reg current_name(const reg& name)
     {
-        name += "_" + std::to_string(stack[name].top());
+        const auto n = regs.get(name);
+        const auto n2 = n.substr(0, n.rfind('_'));
+        const auto a = regs.put(n2);
+        return regs.put(n2 + "_" + std::to_string(stack.at(a).top()));
     }
 
-    void rename_to_new(std::string& name)
+    reg new_name(const reg& name)
     {
-        stack[name].push(counter[name]++);
-        rename_to_current(name);
+        stack.at(name).push(counter.at(name)++);
+        return current_name(name);
     }
 
-    void pop(const std::string& name)
+    void pop(const reg& name)
     {
         stack.at(strip(name)).pop();
     }
 
-    std::string strip(std::string name) const
+private:
+    reg strip(const reg& name) const
     {
-        return name.substr(0, name.rfind('_'));
+        const auto n = regs.get(name);
+        return regs.put(n.substr(0, n.rfind('_')));
     }
 
-private:
-    std::map<std::string, std::stack<int>> stack;
-    std::map<std::string, int> counter;
+    std::map<reg, std::stack<int>> stack;
+    std::map<reg, int> counter;
+    regs_table& regs;
 };
 
 } // anonymous namespace
@@ -106,40 +112,43 @@ void subroutine::construct_minimal_ssa()
     insert_temp_phi(variables, *this);
 
     // Step 2: append indices to variable names
-    name_manager names(variables);
+    name_manager names(this->regs, variables);
     std::function<void(basic_block&)> rename = [&] (basic_block& x)
     {
-        // Rewrite variable names according to this table:
-        //
-        //         |     use           def
-        // --------+--------------------------
-        // regular | current name    new name
-        // phi     |     skip        new name
-        //
         for (auto& instr : x.instructions) {
             if (instr.type != instruction_type::PHI) {
-                instr.use_apply([&] (std::string& def) { names.rename_to_current(def); });
+                // Uses get current name
+                instr.use_apply([&] (argument& a) {
+                    if (a.is_reg()) {
+                        a = names.current_name(a.get_reg());
+                    }
+                });
             }
-            instr.def_apply([&] (std::string& def) { names.rename_to_new(def); });
+            // Definitions get new name
+            instr.def_apply([&] (argument& a) {
+                a = names.new_name(a.get_reg());
+            });
         }
 
         // Complete uses in temporary phi-function using current names
-        for_each_cfg_successor(x.index, [&] (basic_block& y) {
+        for_each_cfg_successor(x.name, [&] (basic_block& y) {
             for (auto& instr : y.instructions) {
                 if (instr.type == instruction_type::PHI) {
+                    auto dest = instr.arguments[0].get_reg();
                     instr.arguments.push_back(x.name);
-                    instr.arguments.push_back(names.strip(instr.arguments[0]));
-                    names.rename_to_current(instr.arguments.back());
+                    instr.arguments.push_back(names.current_name(dest));
                 }
             }
         });
 
         // Recursive call
-        for_each_domtree_successor(x.index, rename);
+        for_each_domtree_successor(x.name, rename);
 
         // Cleanup
         for (auto& instr : x.instructions) {
-            instr.def_apply([&] (std::string& def) { names.pop(def); });
+            instr.def_apply([&] (argument& a) {
+                names.pop(a.get_reg());
+            });
         }
     };
     rename(entry_node());

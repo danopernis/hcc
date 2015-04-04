@@ -12,18 +12,25 @@ namespace {
 
 
 struct congruence_classes {
-    int last_class = 0;
-    std::map<std::string, int> classes;
+    congruence_classes(regs_table& regs) : regs(regs) { }
 
-    void insert(std::string s) {
-        classes.emplace(std::move(s), last_class);
+    regs_table& regs;
+    int last_class = 0;
+    std::map<argument, int> classes;
+
+    void insert(const argument& a) {
+        classes.emplace(a, last_class);
     }
 
-    std::function<void(std::string&)> replacer() {
-        return [&](std::string& s) {
-            auto it = classes.find(s);
+    std::function<void(argument&)> replacer() {
+        return [&](argument& arg) {
+            if (!arg.is_reg()) {
+                return;
+            }
+
+            auto it = classes.find(arg);
             if (it != classes.end()) {
-                s = "%class" + std::to_string(it->second);
+                arg = regs.put("class" + std::to_string(it->second));
             }
         };
     }
@@ -35,9 +42,10 @@ struct congruence_classes {
 // FIXME copies are not parallel
 void naive_copy_insertion(subroutine& s, congruence_classes& cc)
 {
+    auto& regs = s.regs;
     // worklist of MOV instructions to be inserted at the end of basic block,
     // indexed by basic block
-    std::map<std::string, instruction_list> worklist;
+    std::map<label, instruction_list> worklist;
 
     // pass 1: fill worklist and insert primed copy
     s.for_each_bb([&] (basic_block& bb) {
@@ -48,7 +56,7 @@ void naive_copy_insertion(subroutine& s, congruence_classes& cc)
         auto arg = i->arguments.begin();
 
         // invent a new primed name
-        const std::string base = *arg + "'";
+        const auto base = regs.put(regs.get(arg->get_reg()) + "'");
 
         // insert MOV after PHI
         bb.instructions.insert(++decltype(i)(i), instruction(instruction_type::MOV, {*arg, base}));
@@ -62,10 +70,13 @@ void naive_copy_insertion(subroutine& s, congruence_classes& cc)
             auto label = *arg++;
             auto value = *arg;
 
-            const std::string name = base + label; // unique name
+            std::stringstream name_builder;
+            name_builder << regs.get(base);
+            label.save(name_builder, s.get_unit(), s);
+            const auto name = regs.put(name_builder.str()); // unique name
 
             // insert MOV into worklist
-            worklist[label].emplace_back(instruction_type::MOV, std::vector<std::string>({name, value}));
+            worklist[label.get_label()].emplace_back(instruction(instruction_type::MOV, {name, value}));
             cc.insert(name);
 
             // rename PHI's src
@@ -87,8 +98,10 @@ void naive_copy_insertion(subroutine& s, congruence_classes& cc)
 // V(x) ... V(b) = V(a) if b <- a
 //          V(b) = b    otherwise
 // a interfere b ... live(a) intersects live(b) and V(a) != V(b)
-bool interfere(std::string a, std::string b, subroutine& s)
+bool interfere(const argument& a, const argument& b, subroutine& s)
 {
+    assert (a.is_reg() && b.is_reg());
+
     bool def_a_in_live_b = false;
     bool def_b_in_live_a = false;
     bool live_a = false;
@@ -101,7 +114,7 @@ bool interfere(std::string a, std::string b, subroutine& s)
     s.for_each_bb_in_domtree_preorder([&] (basic_block& block) {
         for (auto& instr: block.instructions) {
             // live ranges
-            instr.def_apply([&] (std::string& def) {
+            instr.def_apply([&] (argument& def) {
                 if (def == a) {
                     live_a = true;
                     if (live_b)
@@ -115,19 +128,31 @@ bool interfere(std::string a, std::string b, subroutine& s)
 
             // values
             if (instr.type == instruction_type::MOV) {
-                V[instr.arguments[0]] = V[instr.arguments[1]];
+                std::stringstream s0;
+                std::stringstream s1;
+                instr.arguments[0].save(s0, s.get_unit(), s);
+                instr.arguments[1].save(s1, s.get_unit(), s);
+
+                V[s0.str()] = V[s1.str()];
             } else {
-                instr.def_apply([&] (std::string& s) {
-                    std::stringstream ss;
-                    ss << instr;
-                    V[s] = ss.str();
+                instr.def_apply([&] (argument& arg) {
+                    std::stringstream s0;
+                    std::stringstream s1;
+                    arg.save(s0, s.get_unit(), s);
+                    instr.save(s1, s.get_unit(), s);
+
+                    V[s0.str()] = s1.str();
                 });
             }
         }
     });
 
     const bool intersect = def_a_in_live_b || def_b_in_live_a;
-    const bool differ_in_value = V.at(a) != V.at(b);
+    std::stringstream sa;
+    std::stringstream sb;
+    a.save(sa, s.get_unit(), s);
+    b.save(sb, s.get_unit(), s);
+    const bool differ_in_value = V.at(sa.str()) != V.at(sb.str());
     return intersect && differ_in_value;
 }
 
@@ -141,7 +166,7 @@ void subroutine::ssa_deconstruct()
 {
     recompute_dominance();
 
-    congruence_classes cc;
+    congruence_classes cc(this->regs);
     naive_copy_insertion(*this, cc);
 
     // incidental classes, rising from the code
@@ -155,11 +180,11 @@ void subroutine::ssa_deconstruct()
             if (has_src_class && has_dest_class && cc.classes.at(src) == cc.classes.at(dest))
                 continue;
 
-            if (!src.empty() && src[0] == '%' && !dest.empty() && dest[0] == '%') {
+            if (src.is_reg() && dest.is_reg()) {
                 if (!interfere(src, dest, *this)) {
                     if (!has_src_class && !has_dest_class) {
-                        cc.classes.emplace(src, cc.last_class);
-                        cc.classes.emplace(dest, cc.last_class);
+                        cc.insert(src);
+                        cc.insert(dest);
                         ++cc.last_class;
                     } else if (has_src_class && has_dest_class) {
                         int keep_class = cc.classes.at(src);
