@@ -217,8 +217,35 @@ struct instruction {
     label basic_block;
 
     void use_apply(std::function<void(argument&)>);
-    void def_apply(std::function<void(argument&)>);
-    void label_apply(std::function<void(argument&)>);
+
+    template<typename F>
+    void def_apply(F&& f)
+    {
+        switch (type) {
+        case instruction_type::JUMP:
+        case instruction_type::JLT:
+        case instruction_type::JEQ:
+        case instruction_type::RETURN:
+        case instruction_type::STORE:
+            break;
+        case instruction_type::CALL:
+        case instruction_type::LOAD:
+        case instruction_type::MOV:
+        case instruction_type::NEG:
+        case instruction_type::NOT:
+        case instruction_type::ADD:
+        case instruction_type::SUB:
+        case instruction_type::AND:
+        case instruction_type::OR:
+        case instruction_type::PHI:
+        case instruction_type::ARGUMENT:
+            assert(arguments[0].is_reg());
+            f(arguments[0]);
+            break;
+        default:
+            assert(false);
+        }
+    }
 
     bool operator<(const instruction& other) const
     {
