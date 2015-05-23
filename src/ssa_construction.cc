@@ -63,39 +63,50 @@ struct name_manager {
         : regs(regs)
     {
         for (const auto& v : variables) {
-            counter[v] = 0;
-            stack[v].push(0);
+            entries.emplace(v, map_entry(v));
+            backref.emplace(v, v);
         }
     }
 
     reg current_name(const reg& name)
     {
-        const auto n = regs.get(name);
-        const auto n2 = n.substr(0, n.rfind('_'));
-        const auto a = regs.put(n2);
-        return regs.put(n2 + "_" + std::to_string(stack.at(a).top()));
+        return entries.at(backref.at(name)).current_name();
     }
 
     reg new_name(const reg& name)
     {
-        stack.at(name).push(counter.at(name)++);
-        return current_name(name);
+        const auto a = backref.at(name);
+        const auto r = entries.at(a).new_name(regs, a);
+        backref.emplace(r, a);
+        return r;
     }
 
     void pop(const reg& name)
     {
-        stack.at(strip(name)).pop();
+        entries.at(backref.at(name)).pop();
     }
 
 private:
-    reg strip(const reg& name) const
-    {
-        const auto n = regs.get(name);
-        return regs.put(n.substr(0, n.rfind('_')));
-    }
-
-    std::map<reg, std::stack<int>> stack;
-    std::map<reg, int> counter;
+    struct map_entry {
+        map_entry(const reg& a) : counter{0}
+        {
+            stack.emplace(a);
+        }
+        reg current_name() const {return stack.top(); }
+        reg new_name(regs_table& regs, const reg& a)
+        {
+            const auto n = regs.get(a) + "_" + std::to_string(counter++);
+            const auto r = regs.put(n);
+            stack.emplace(r);
+            return current_name();
+        }
+        void pop() { stack.pop(); }
+    private:
+        std::stack<reg> stack;
+        int counter;
+    };
+    std::map<reg, map_entry> entries;
+    std::map<reg, reg> backref;
     regs_table& regs;
 };
 
