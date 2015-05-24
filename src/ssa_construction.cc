@@ -10,10 +10,27 @@ namespace hcc { namespace ssa {
 namespace {
 
 /** Use dominance frontier set to find where phi-functions are needed */
-void insert_temp_phi(
-    const std::set<reg>& variables,
-    subroutine& s)
+void insert_temp_phi(subroutine& s)
 {
+    std::set<reg> globals;
+    s.for_each_bb([&] (basic_block& bb) {
+        std::set<reg> varkill;
+        for (auto& i: bb.instructions) {
+            i.use_apply([&] (argument& a) {
+                if (a.is_reg()) {
+                    const auto r = a.get_reg();
+                    if (!varkill.count(r)) {
+                        globals.insert(r);
+                    }
+                }
+            });
+            i.def_apply([&] (argument& a) {
+                const auto r = a.get_reg();
+                varkill.insert(r);
+            });
+        }
+    });
+
     // init
     int iteration = 0;
     s.for_each_bb([&] (basic_block& block) {
@@ -22,7 +39,7 @@ void insert_temp_phi(
     });
 
     std::set<label> w; // worklist of CFG nodes being processed
-    for (const auto& variable : variables) {
+    for (const auto& variable : globals) {
         ++iteration;
 
         s.for_each_bb([&] (basic_block& block) {
@@ -120,7 +137,7 @@ void subroutine::construct_minimal_ssa()
     recompute_dominance();
 
     // Step 1: insert (incomplete) phi-functions
-    insert_temp_phi(variables, *this);
+    insert_temp_phi(*this);
 
     // Step 2: append indices to variable names
     name_manager names(this->regs, variables);
