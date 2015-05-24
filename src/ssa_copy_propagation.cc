@@ -9,28 +9,13 @@ namespace hcc { namespace ssa {
 
 void subroutine::copy_propagation()
 {
-    struct replacer_algorithm {
-        void insert(const argument& from, const argument& to)
-        {
-            // replace[to] = from;
-            // find if there's a chain
-            auto it = replace.find(from);
-            if (it != replace.end()) {
-                replace.emplace(to, it->second).first->second = it->second;
-            } else {
-                replace.emplace(to, from).first->second = from;
-            }
+    std::map<argument, argument> replace;
+    auto replacer = [&] (argument& a) {
+        auto it = replace.find(a);
+        if (it != replace.end()) {
+            a = it->second;
         }
-
-        void operator()(argument& a) const
-        {
-            auto it = replace.find(a);
-            if (it != replace.end())
-                a = it->second;
-        }
-
-        std::map<argument, argument> replace;
-    } replacer;
+    };
 
     // pass 1: find MOVs and make replacement list
     for_each_bb([&] (basic_block& bb) {
@@ -38,7 +23,14 @@ void subroutine::copy_propagation()
         if (instruction.type == instruction_type::MOV) {
             const auto& src = instruction.arguments[1];
             const auto& dst = instruction.arguments[0];
-            replacer.insert(src, dst);
+            // replace[dst] = src;
+            // find if there's a chain
+            auto it = replace.find(src);
+            if (it != replace.end()) {
+                replace.emplace(dst, it->second).first->second = it->second;
+            } else {
+                replace.emplace(dst, src).first->second = src;
+            }
         }
     }
     });
