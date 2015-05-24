@@ -213,8 +213,7 @@ struct instruction {
     std::vector<argument> arguments;
 
     // see subroutine::dead_code_elimination()
-    bool mark;
-    label basic_block;
+    int work;
 
     void use_apply(std::function<void(argument&)>);
 
