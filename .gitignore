@@ -1,3 +1,4 @@
+src/*.a
 src/*.o
 src/Makefile.depend
 src/asm2hack
