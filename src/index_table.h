@@ -1,4 +1,4 @@
-// Copyright (c) 2013 Dano Pernis
+// Copyright (c) 2012-2015 Dano Pernis
 // See LICENSE for details
 
 #ifndef INDEX_TABLE_H

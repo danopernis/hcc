@@ -1,4 +1,4 @@
-// Copyright (c) 2013-2014 Dano Pernis
+// Copyright (c) 2012-2015 Dano Pernis
 // See LICENSE for details
 
 #include "ssa_subroutine_builder.h"
