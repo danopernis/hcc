@@ -1,5 +1,5 @@
-// Copyright (c) 2013 Dano Pernis
-// See LICENSE.txt
+// Copyright (c) 2012-2015 Dano Pernis
+// See LICENSE for details
 
 #include "ssa.h"
 

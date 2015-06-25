@@ -1,5 +1,5 @@
-// Copyright (c) 2014 Dano Pernis
-// See LICENSE.txt
+// Copyright (c) 2012-2015 Dano Pernis
+// See LICENSE for details
 
 #ifndef GRAPH_H
 #define GRAPH_H
