@@ -1,0 +1,15 @@
+sudo: false
+language: cpp
+compiler: gcc
+install:
+  - if [ "$CXX" = "g++" ]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
+script: make && make test
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - g++-4.8
+      - gcc-4.8
+      - libboost-dev
+      - libgtk-3-dev

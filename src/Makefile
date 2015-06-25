@@ -1,4 +1,3 @@
-CXX=g++
 CXXFLAGS = -Wall -g -O2 -std=c++11
 
 OBJECTS = \
