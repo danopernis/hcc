@@ -1,18 +1,21 @@
 // Copyright (c) 2012-2015 Dano Pernis
 // See LICENSE for details
 
-#include "JackParser.h"
+#include "jack_parser.h"
+#include "jack_tokenizer.h"
 #include "ssa.h"
 #include "ssa_subroutine_builder.h"
-#include <stack>
-#include <map>
-#include <cassert>
-#include <memory>
-#include <stdexcept>
-#include <sstream>
-#include <iostream>
 #include <boost/algorithm/string/join.hpp>
+#include <boost/optional.hpp>
+#include <cassert>
+#include <fstream>
 #include <initializer_list>
+#include <iostream>
+#include <map>
+#include <memory>
+#include <sstream>
+#include <stack>
+#include <stdexcept>
 
 using namespace hcc::jack;
 using namespace hcc::ssa;
@@ -510,11 +513,14 @@ try {
     // parse input
     std::vector<ast::Class> classes;
     try {
-        Parser parser;
         for (int i = 1; i<argc; ++i) {
-            classes.push_back(parser.parse(argv[i]));
+            std::ifstream input(argv[i]);
+            tokenizer t {
+                std::istreambuf_iterator<char>(input),
+                std::istreambuf_iterator<char>()};
+            classes.push_back(parse(t));
         }
-    } catch (const ParseError& e) {
+    } catch (const parse_error& e) {
         std::stringstream ss;
         ss  << "Parse error: " << e.what()
             << " at " << e.line << ":" << e.column << '\n';

@@ -5,8 +5,9 @@ ASM_OBJECTS = \
 	asm_local.o
 
 JACK_OBJECTS = \
-	JackParser.o \
-	JackTokenizer.o \
+	jack_parser.o \
+	jack_token_type.o \
+	jack_tokenizer.o \
 	JackVMWriter.o
 
 SSA_OBJECTS = \
@@ -76,6 +77,14 @@ ssa2asm: ssa2asm.cc asm.a ssa.a
 
 -include Makefile.depend
 
+TESTS = test_jack_tokenizer
+
+check: $(TESTS)
+	./test_jack_tokenizer
+
+test_%: test_%.cc jack.a
+	$(CXX) $(CXXFLAGS) -o $@ $^
+
 clean:
 	rm -f $(BIN)
 	rm -f Makefile.depend
@@ -83,3 +92,4 @@ clean:
 	rm -f jack.a $(JACK_OBJECTS)
 	rm -f ssa.a $(SSA_OBJECTS)
 	rm -f vm.a $(VM_OBJECTS)
+	rm -f $(TESTS)

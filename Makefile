@@ -3,6 +3,7 @@ all:
 
 test:
 	make -C src
+	make -C src check
 	make -C test
 
 clean:

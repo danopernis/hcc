@@ -2,7 +2,8 @@
 // See LICENSE for details
 
 #pragma once
-#include "JackParser.h"
+#include "JackAST.h"
+#include "make_unique.h"
 
 namespace hcc {
 namespace jack {
