@@ -1,11 +1,13 @@
 // Copyright (c) 2012-2015 Dano Pernis
 // See LICENSE for details
 
-#include <sstream>
-#include <iostream>
-#include <boost/algorithm/string/join.hpp>
-#include "JackParser.h"
 #include "JackVMWriter.h"
+#include "jack_tokenizer.h"
+#include "jack_parser.h"
+#include <boost/algorithm/string/join.hpp>
+#include <fstream>
+#include <iostream>
+#include <sstream>
 
 using namespace hcc::jack;
 
@@ -18,12 +20,15 @@ try {
     // parse input
     std::vector<ast::Class> classes;
     try {
-        Parser parser;
         for (int i = 1; i<argc; ++i) {
             std::cout << "parsing " << argv[i] << '\n';
-            classes.push_back(parser.parse(argv[i]));
+            std::ifstream input(argv[i]);
+            tokenizer t {
+                std::istreambuf_iterator<char>(input),
+                std::istreambuf_iterator<char>()};
+            classes.push_back(parse(t));
         }
-    } catch (const ParseError& e) {
+    } catch (const parse_error& e) {
         std::stringstream ss;
         ss  << "Parse error: " << e.what()
             << " at " << e.line << ":" << e.column << '\n';
