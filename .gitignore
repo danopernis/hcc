@@ -10,4 +10,3 @@ src/ssa2asm
 src/test_jack_tokenizer
 src/vm2asm
 src/vm2hack
-.teststore/
