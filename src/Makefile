@@ -77,9 +77,12 @@ ssa2asm: ssa2asm.cc asm.a ssa.a
 
 -include Makefile.depend
 
-TESTS = test_jack_tokenizer
+TESTS = \
+	test_interference_graph \
+	test_jack_tokenizer
 
 check: $(TESTS)
+	./test_interference_graph
 	./test_jack_tokenizer
 
 test_%: test_%.cc jack.a
