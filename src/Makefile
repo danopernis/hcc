@@ -17,6 +17,7 @@ SSA_OBJECTS = \
 	ssa_copy_propagation.o \
 	ssa_dead_code_elimination.o \
 	ssa_deconstruction.o \
+	ssa_jack_reader.o \
 	ssa_reader.o \
 	ssa_register_allocation.o \
 	ssa_subroutine_builder.o \

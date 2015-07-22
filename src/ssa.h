@@ -22,6 +22,14 @@ namespace hcc {
 
 struct asm_program;
 
+namespace jack {
+namespace ast {
+
+struct Class;
+
+} // namespace ast
+} // namespace jack
+
 namespace ssa {
 
 
@@ -397,6 +405,7 @@ struct unit {
     void load(std::istream&);
     void save(std::ostream&);
     void translate_to_asm(hcc::asm_program&);
+    void translate_from_jack(const hcc::jack::ast::Class&);
 };
 
 }} // namespace hcc::ssa
