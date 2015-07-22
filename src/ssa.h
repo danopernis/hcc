@@ -18,7 +18,11 @@
 #include <list>
 #include <functional>
 
-namespace hcc { namespace ssa {
+namespace hcc {
+
+struct asm_program;
+
+namespace ssa {
 
 
 struct unit;
@@ -392,6 +396,7 @@ struct unit {
 
     void load(std::istream&);
     void save(std::ostream&);
+    void translate_to_asm(hcc::asm_program&);
 };
 
 }} // namespace hcc::ssa
