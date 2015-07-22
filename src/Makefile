@@ -12,6 +12,7 @@ JACK_OBJECTS = \
 
 SSA_OBJECTS = \
 	ssa.o \
+	ssa_asm_writer.o \
 	ssa_construction.o \
 	ssa_copy_propagation.o \
 	ssa_dead_code_elimination.o \
