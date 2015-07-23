@@ -9,5 +9,6 @@ src/jack2vm
 src/ssa2asm
 src/test_interference_graph
 src/test_jack_tokenizer
+src/test_ssa_tokenizer
 src/vm2asm
 src/vm2hack
