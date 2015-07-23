@@ -2,6 +2,7 @@
 // See LICENSE for details
 
 #include "ssa.h"
+#include "ssa_tokenizer.h"
 #include "ssa_subroutine_builder.h"
 #include <sstream>
 
@@ -15,193 +16,15 @@ using hcc::ssa::instruction_type;
 using hcc::ssa::label;
 using hcc::ssa::subroutine_builder;
 using hcc::ssa::unit;
-
-enum class ssa_token_type {
-    CONSTANT,
-    REG,
-    GLOBAL,
-    LOCAL,
-    LABEL,
-    DEFINE,
-    BLOCK,
-    RETURN,
-    JUMP,
-    JLT,
-    JEQ,
-    CALL,
-    ARGUMENT,
-    LOAD,
-    STORE,
-    MOV,
-    ADD,
-    SUB,
-    AND,
-    OR,
-    NEG,
-    NOT,
-    PHI,
-    SEMICOLON,
-    END,
-};
-
-const std::map<ssa_token_type, std::string> token_to_string = {
-    { ssa_token_type::CONSTANT, "integer constant" },
-    { ssa_token_type::REG,      "%register" },
-    { ssa_token_type::GLOBAL,   "@global" },
-    { ssa_token_type::LOCAL,    "#local" },
-    { ssa_token_type::LABEL,    "$label" },
-    { ssa_token_type::DEFINE,   "define" },
-    { ssa_token_type::BLOCK,    "block" },
-    { ssa_token_type::RETURN,   "return" },
-    { ssa_token_type::JUMP,     "jump" },
-    { ssa_token_type::JLT,      "jlt" },
-    { ssa_token_type::JEQ,      "jeq" },
-    { ssa_token_type::CALL,     "call" },
-    { ssa_token_type::ARGUMENT, "argument" },
-    { ssa_token_type::LOAD,     "load" },
-    { ssa_token_type::STORE,    "store" },
-    { ssa_token_type::MOV,      "mov" },
-    { ssa_token_type::ADD,      "add" },
-    { ssa_token_type::SUB,      "sub" },
-    { ssa_token_type::AND,      "and" },
-    { ssa_token_type::OR,       "or" },
-    { ssa_token_type::NEG,      "neg" },
-    { ssa_token_type::NOT,      "not" },
-    { ssa_token_type::PHI,      "phi" },
-    { ssa_token_type::SEMICOLON,";" },
-    { ssa_token_type::END,      "end of file" },
-};
-
-const std::map<std::string, ssa_token_type> string_to_token = {
-    { "global",     ssa_token_type::GLOBAL },
-    { "define",     ssa_token_type::DEFINE },
-    { "block",      ssa_token_type::BLOCK },
-    { "return",     ssa_token_type::RETURN },
-    { "jump",       ssa_token_type::JUMP },
-    { "jlt",        ssa_token_type::JLT },
-    { "jeq",        ssa_token_type::JEQ },
-    { "call",       ssa_token_type::CALL },
-    { "argument",   ssa_token_type::ARGUMENT },
-    { "load",       ssa_token_type::LOAD },
-    { "store",      ssa_token_type::STORE },
-    { "mov",        ssa_token_type::MOV },
-    { "add",        ssa_token_type::ADD },
-    { "sub",        ssa_token_type::SUB },
-    { "and",        ssa_token_type::AND },
-    { "or",         ssa_token_type::OR },
-    { "neg",        ssa_token_type::NEG },
-    { "not",        ssa_token_type::NOT },
-    { "phi",        ssa_token_type::PHI },
-};
-
-struct ssa_tokenizer {
-    ssa_tokenizer(std::istream& input) : current(input) { }
-
-    void advance() { token_type = advance_impl(); }
-
-    ssa_token_type token_type;
-    std::string token;
-    unsigned line_number = 1;
-
-private:
-    std::istreambuf_iterator<char> current;
-    std::istreambuf_iterator<char> last;
-
-    enum class state {
-        START,
-        CONSTANT,
-        REG,
-        GLOBAL,
-        LOCAL,
-        LABEL,
-        KEYWORD,
-    };
-
-    ssa_token_type advance_impl()
-    {
-        auto current_state = state::START;
-
-        while (true) {
-            if (current == last) {
-                return ssa_token_type::END;
-            }
-            const auto c = *current++;
-            if (c == '\n') {
-                ++line_number;
-            }
-
-            switch (current_state) {
-            case state::START:
-                token = "";
-                if (isdigit(c) || c == '-') {
-                    current_state = state::CONSTANT;
-                    token.push_back(c);
-                } else if (c == '%') {
-                    current_state = state::REG;
-                } else if (c == '@') {
-                    current_state = state::GLOBAL;
-                } else if (c == '#') {
-                    current_state = state::LOCAL;
-                } else if (c == '$') {
-                    current_state = state::LABEL;
-                } else if (c == ';') {
-                    return ssa_token_type::SEMICOLON;
-                } else if (isspace(c)) {
-                    // just skip
-                } else {
-                    current_state = state::KEYWORD;
-                    token.push_back(c);
-                }
-                break;
-            case state::CONSTANT:
-            case state::REG:
-            case state::GLOBAL:
-            case state::LOCAL:
-            case state::LABEL:
-            case state::KEYWORD:
-                if (isspace(c)) {
-                    return get_token_type(current_state);
-                } else {
-                    token.push_back(c);
-                }
-                break;
-            default:
-                assert(false);
-            }
-        }
-    }
-
-    ssa_token_type get_token_type(const state& current_state) const
-    {
-        switch (current_state) {
-        case state::CONSTANT:   return ssa_token_type::CONSTANT;
-        case state::REG:        return ssa_token_type::REG;
-        case state::GLOBAL:     return ssa_token_type::GLOBAL;
-        case state::LOCAL:      return ssa_token_type::LOCAL;
-        case state::LABEL:      return ssa_token_type::LABEL;
-        case state::KEYWORD:    return keyword_to_token_type();
-        default:                assert(false);
-        }
-    }
-
-    ssa_token_type keyword_to_token_type() const
-    {
-        try {
-            return string_to_token.at(token);
-        } catch (const std::exception& e) {
-            std::stringstream message;
-            message << "Unexpected '" << token << "' at line " << line_number;
-            throw std::runtime_error(message.str());
-        }
-    }
-};
+using ssa_tokenizer = hcc::ssa::tokenizer;
+using ssa_token_type = hcc::ssa::token_type;
 
 struct ssa_parser {
     ssa_parser(std::istream& input) : tokenizer(input) { }
 
     void parse(unit& u)
     {
-        tokenizer.advance();
+        current = tokenizer.next();
         while (accept_define(u)) { }
         expect(ssa_token_type::END);
     }
@@ -209,9 +32,9 @@ struct ssa_parser {
 private:
     bool accept(ssa_token_type token_type)
     {
-        if (tokenizer.token_type == token_type) {
-            token = tokenizer.token;
-            tokenizer.advance();
+        if (current.type == token_type) {
+            token = current.token;
+            current = tokenizer.next();
             return true;
         }
         return false;
@@ -222,9 +45,9 @@ private:
         if (!accept(token_type)) {
             std::stringstream message;
             message
-                << "Expected '" << token_to_string.at(token_type)
-                << "', got '" << token_to_string.at(tokenizer.token_type)
-                << "' at line " << tokenizer.line_number;
+                << "Expected '" << to_string(token_type)
+                << "', got '" << to_string(current.type)
+                << "' at line " << current.line_number;
             throw std::runtime_error(message.str());
         }
     }
@@ -279,7 +102,7 @@ private:
     {
         if (!accept_block(u, builder, is_entry)) {
             std::stringstream message;
-            message << "Expected block at line " << tokenizer.line_number;
+            message << "Expected block at line " << current.line_number;
             throw std::runtime_error(message.str());
         }
     }
@@ -423,6 +246,7 @@ private:
 
     ssa_tokenizer tokenizer;
     std::string token;
+    hcc::ssa::token current;
 };
 
 } // end anonymous namespace

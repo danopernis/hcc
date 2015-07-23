@@ -21,6 +21,7 @@ SSA_OBJECTS = \
 	ssa_reader.o \
 	ssa_register_allocation.o \
 	ssa_subroutine_builder.o \
+	ssa_tokenizer.o \
 	ssa_writer.o
 
 VM_OBJECTS = \
@@ -81,13 +82,15 @@ ssa2asm: ssa2asm.cc asm.a ssa.a
 
 TESTS = \
 	test_interference_graph \
-	test_jack_tokenizer
+	test_jack_tokenizer \
+	test_ssa_tokenizer
 
 check: $(TESTS)
 	./test_interference_graph
 	./test_jack_tokenizer
+	./test_ssa_tokenizer
 
-test_%: test_%.cc jack.a
+test_%: test_%.cc jack.a ssa.a
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
 clean:
