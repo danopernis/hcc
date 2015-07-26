@@ -11,6 +11,7 @@ JACK_OBJECTS = \
 	JackVMWriter.o
 
 SSA_OBJECTS = \
+	graph_dominance.o \
 	ssa.o \
 	ssa_asm_writer.o \
 	ssa_construction.o \
