@@ -32,7 +32,7 @@ VM_OBJECTS = \
 	VMCommand.o \
 	CPU.o
 
-BIN = asm2hack vm2asm jack2vm vm2hack emulator emulator-gui jack2ssa ssa2asm
+BIN = asm2hack vm2asm jack2vm vm2hack emulator emulator-gui hcc
 
 all: Makefile.depend $(BIN)
 
@@ -73,10 +73,7 @@ emulator: emulator.cc CPU.o
 emulator-gui: emulator-gui.cc CPU.o
 	$(CXX) $(CXXFLAGS) -o $@ $^ `pkg-config --libs --cflags gtk+-3.0`
 
-jack2ssa: jack2ssa.cc jack.a ssa.a
-	$(CXX) $(CXXFLAGS) -o $@ $^
-
-ssa2asm: ssa2asm.cc asm.a ssa.a
+hcc: hcc.cc asm.a jack.a ssa.a
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
 -include Makefile.depend

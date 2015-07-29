@@ -1,6 +1,7 @@
 // Copyright (c) 2012-2015 Dano Pernis
 // See LICENSE for details
 
+#include "asm.h"
 #include "jack_parser.h"
 #include "jack_tokenizer.h"
 #include "ssa.h"
@@ -48,10 +49,14 @@ try {
         subroutine.dead_code_elimination();
         subroutine.copy_propagation();
         subroutine.dead_code_elimination();
+        subroutine.ssa_deconstruct();
+        subroutine.allocate_registers();
     }
 
-    // output
-    u.save(std::cout);
+    hcc::asm_program out;
+    u.translate_to_asm(out);
+    out.local_optimization();
+    out.save("output.asm");
 
     return 0;
 } catch (const std::runtime_error& e) {
