@@ -1,8 +1,0 @@
-class Sys {
-    static int a;
-    function void init()
-    {
-        let a = 42;
-        return 0;
-    }
-}
