@@ -4,9 +4,8 @@ src/Makefile.depend
 src/asm2hack
 src/emulator
 src/emulator-gui
-src/jack2ssa
+src/hcc
 src/jack2vm
-src/ssa2asm
 src/test_graph
 src/test_interference_graph
 src/test_jack_tokenizer

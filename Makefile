@@ -19,7 +19,6 @@ install:
 	 src/vm2hack \
 	 src/emulator \
 	 src/emulator-gui \
-	 src/jack2ssa \
-	 src/ssa2asm
+	 src/hcc
 
 .PHONY: test clean install
