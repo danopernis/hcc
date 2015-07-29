@@ -1,7 +1,7 @@
 // Copyright (c) 2012-2015 Dano Pernis
 // See LICENSE for details
 
-#include <graph.h>
+#include "graph.h"
 
 void assert_order(const std::vector<int>& elements, const int first, const int second)
 {
@@ -20,9 +20,9 @@ void assert_order(const std::vector<int>& elements, const int first, const int s
     }
 }
 
-// n1 -->-- n2
-//    \
 //     ->-- n3
+//    /
+// n1 -->-- n2
 void test_tree()
 {
     graph g;
