@@ -82,11 +82,13 @@ ssa2asm: ssa2asm.cc asm.a ssa.a
 -include Makefile.depend
 
 TESTS = \
+	test_graph \
 	test_interference_graph \
 	test_jack_tokenizer \
 	test_ssa_tokenizer
 
 check: $(TESTS)
+	./test_graph
 	./test_interference_graph
 	./test_jack_tokenizer
 	./test_ssa_tokenizer
