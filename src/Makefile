@@ -85,15 +85,17 @@ TESTS = \
 	test_graph \
 	test_interference_graph \
 	test_jack_tokenizer \
+	test_ssa_integration \
 	test_ssa_tokenizer
 
 check: $(TESTS)
 	./test_graph
 	./test_interference_graph
 	./test_jack_tokenizer
+	./test_ssa_integration
 	./test_ssa_tokenizer
 
-test_%: test_%.cc jack.a ssa.a
+test_%: test_%.cc asm.a jack.a ssa.a vm.a
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
 clean:
