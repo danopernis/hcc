@@ -70,6 +70,7 @@ struct constant {
     int value;
     bool operator< (const constant& other) const { return value <  other.value; }
     bool operator==(const constant& other) const { return value == other.value; }
+    std::string save_fast() const;
 };
 
 // ============================================================================
@@ -77,6 +78,7 @@ struct constant {
 struct reg {
     bool operator< (const reg& other) const { return index <  other.index; }
     bool operator==(const reg& other) const { return index == other.index; }
+    std::string save_fast() const;
 private:
     reg(int index) : index(index) { }
     int index; // index to the subroutine's table of registers
@@ -92,6 +94,7 @@ struct regs_table : index_table<regs_table, std::string, reg> {
 struct global {
     bool operator< (const global& other) const { return index <  other.index; }
     bool operator==(const global& other) const { return index == other.index; }
+    std::string save_fast() const;
 private:
     global(int index) : index(index) { }
     int index; // index to the compilation unit's table of globals
@@ -107,6 +110,7 @@ struct globals_table : index_table<globals_table, std::string, global> {
 struct local {
     bool operator< (const local& other) const { return index <  other.index; }
     bool operator==(const local& other) const { return index == other.index; }
+    std::string save_fast() const;
 private:
     local(int index) : index(index) { }
     int index; // index to the subroutine's table of locals
@@ -122,6 +126,7 @@ struct locals_table : index_table<locals_table, std::string, local> {
 struct label {
     bool operator< (const label& other) const { return index <  other.index; }
     bool operator==(const label& other) const { return index == other.index; }
+    std::string save_fast() const;
 private:
     int index;
 friend struct subroutine_builder;
@@ -152,6 +157,7 @@ struct argument {
     const label&    get_label()    const { assert(is_label());    return value.label_value;    }
 
     void save(std::ostream&, unit&, subroutine_ir&) const;
+    std::string save_fast() const;
 
 private:
     argument() {}
@@ -267,6 +273,7 @@ struct instruction {
     }
 
     void save(std::ostream&, unit&, subroutine_ir&) const;
+    std::string save_fast() const;
 };
 
 using instruction_list = std::list<instruction>;

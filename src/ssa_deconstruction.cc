@@ -128,31 +128,23 @@ bool interfere(const argument& a, const argument& b, subroutine& s)
 
             // values
             if (instr.type == instruction_type::MOV) {
-                std::stringstream s0;
-                std::stringstream s1;
-                instr.arguments[0].save(s0, s.get_unit(), s);
-                instr.arguments[1].save(s1, s.get_unit(), s);
-
-                V[s0.str()] = V[s1.str()];
+                auto s0 = instr.arguments[0].save_fast();
+                auto s1 = instr.arguments[1].save_fast();
+                V[std::move(s0)] = V[std::move(s1)];
             } else {
                 instr.def_apply([&] (argument& arg) {
-                    std::stringstream s0;
-                    std::stringstream s1;
-                    arg.save(s0, s.get_unit(), s);
-                    instr.save(s1, s.get_unit(), s);
-
-                    V[s0.str()] = s1.str();
+                    auto s0 = arg.save_fast();
+                    auto s1 = instr.save_fast();
+                    V[std::move(s0)] = std::move(s1);
                 });
             }
         }
     });
 
     const bool intersect = def_a_in_live_b || def_b_in_live_a;
-    std::stringstream sa;
-    std::stringstream sb;
-    a.save(sa, s.get_unit(), s);
-    b.save(sb, s.get_unit(), s);
-    const bool differ_in_value = V.at(sa.str()) != V.at(sb.str());
+    auto sa = a.save_fast();
+    auto sb = b.save_fast();
+    const bool differ_in_value = V.at(sa) != V.at(sb);
     return intersect && differ_in_value;
 }
 

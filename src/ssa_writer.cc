@@ -3,6 +3,7 @@
 
 #include "ssa.h"
 #include <ostream>
+#include <sstream>
 
 namespace hcc { namespace ssa {
 
@@ -88,6 +89,42 @@ void argument::save(std::ostream& os, unit& u, subroutine_ir& s) const
     default:
         assert(false);
     }
+}
+
+std::string instruction::save_fast() const
+{
+    std::stringstream os;
+    os << type_to_string.at(type);
+    for (auto&& arg : arguments) {
+        os << ' ' << arg.save_fast();
+    }
+    return os.str();
+}
+
+std::string save_fast_internal(char c, int index)
+{ return c + std::to_string(index); }
+
+std::string constant::save_fast() const { return save_fast_internal('!', value); }
+std::string reg     ::save_fast() const { return save_fast_internal('%', index); }
+std::string global  ::save_fast() const { return save_fast_internal('@', index); }
+std::string local   ::save_fast() const { return save_fast_internal('#', index); }
+std::string label   ::save_fast() const { return save_fast_internal('$', index); }
+
+std::string argument::save_fast() const
+{
+    switch (type) {
+    case argument_type::CONSTANT:
+        return value.constant_value.save_fast();
+    case argument_type::REG:
+        return value.reg_value.save_fast();
+    case argument_type::GLOBAL:
+        return value.global_value.save_fast();
+    case argument_type::LOCAL:
+        return value.local_value.save_fast();
+    case argument_type::LABEL:
+        return value.label_value.save_fast();
+    }
+    assert (false);
 }
 
 }} // end namespace hcc::ssa
