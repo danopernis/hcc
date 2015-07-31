@@ -83,7 +83,8 @@ TESTS = \
 	test_interference_graph \
 	test_jack_tokenizer \
 	test_ssa_integration \
-	test_ssa_tokenizer
+	test_ssa_tokenizer \
+	test_vm_integration
 
 check: $(TESTS)
 	./test_graph
@@ -91,6 +92,7 @@ check: $(TESTS)
 	./test_jack_tokenizer
 	./test_ssa_integration
 	./test_ssa_tokenizer
+	./test_vm_integration
 
 test_%: test_%.cc asm.a jack.a ssa.a vm.a
 	$(CXX) $(CXXFLAGS) -o $@ $^

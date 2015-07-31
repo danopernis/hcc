@@ -1,3 +1,0 @@
-// test bootstrap code
-// bootstrap code should setup stack and call Sys.init function
-function Sys.init 0
