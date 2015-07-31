@@ -11,5 +11,6 @@ src/test_interference_graph
 src/test_jack_tokenizer
 src/test_ssa_integration
 src/test_ssa_tokenizer
+src/test_vm_integration
 src/vm2asm
 src/vm2hack
