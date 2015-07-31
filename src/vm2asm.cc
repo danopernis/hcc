@@ -20,25 +20,11 @@ int main(int argc, char* argv[])
 
     for (int i = 1; i<argc; ++i) {
         std::string filename(argv[i]);
-        writer.setFilename(filename);
-        hcc::VMParser parser(filename);
-
-        hcc::VMCommandList cmds;
-
-        // load commands from file
-        while (parser.hasMoreCommands()) {
-            hcc::VMCommand c = parser.advance();
-            if (c.type == hcc::VMCommand::NOP)
-                continue; // NOP is an artifact from parser and thus ignored
-
-            cmds.push_back(c);
-        }
-
+        std::ifstream input {filename.c_str()};
+        hcc::VMParser parser {input};
+        auto cmds = parser.parse();
         hcc::VMOptimize(cmds);
-
-        for (const auto& c : cmds) {
-            writer.write(c);
-        }
+        writer.writeFile(filename, cmds);
     }
 
     prog.save("output.asm");

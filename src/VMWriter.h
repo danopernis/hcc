@@ -39,16 +39,20 @@ class VMWriter
 	void writeFunction(const std::string name, int argc);
 	void writeCall(const std::string name, int argc);
 	void writeReturn();
+	void write(const VMCommand &c);
 public:
 	VMWriter(asm_program& out);
 	virtual ~VMWriter();
 
-	void setFilename(std::string& filename) {
-		this->filename.assign(filename);
-	}
 	void writeBootstrap();
-	void write(const VMCommand &c);
 
+	void writeFile(const std::string& filename, const VMCommandList& cmds)
+	{
+		this->filename = filename;
+		for (const auto& cmd : cmds) {
+			write(cmd);
+		}
+	}
 };
 
 } // end namespace
