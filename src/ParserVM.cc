@@ -28,16 +28,6 @@ Segment segmentFromString(const std::string& segment)
 	throw std::runtime_error("invalid segment name");
 }
 
-VMParser::VMParser(std::string &fileName)
-{
-	input.open(fileName.c_str());
-}
-
-VMParser::~VMParser()
-{
-	input.close();
-}
-
 bool VMParser::hasMoreCommands()
 {
 	std::string tmp;
