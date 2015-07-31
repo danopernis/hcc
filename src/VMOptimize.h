@@ -6,9 +6,6 @@
 
 namespace hcc {
 
-void o_stat_reset();
-void o_stat_print();
-
 void VMOptimize(VMCommandList &cmds);
 
 } // end namespace

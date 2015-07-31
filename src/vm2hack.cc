@@ -18,7 +18,6 @@ int main(int argc, char* argv[])
     hcc::VMWriter writer(prog);
     writer.writeBootstrap();
 
-    hcc::o_stat_reset();
     for (int i = 1; i<argc; ++i) {
         std::string filename(argv[i]);
         writer.setFilename(filename);
@@ -41,7 +40,6 @@ int main(int argc, char* argv[])
             writer.write(c);
         }
     }
-    hcc::o_stat_print();
 
     hcc::saveHACK("output.hack", prog.assemble());
 
