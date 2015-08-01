@@ -10,15 +10,11 @@ Installation
 
 Build HCC using plain make
 
-> make
-
-Optionally run tests
-
-> make test
+> make -C src all
 
 Install binaries using
 
-> DESTDIR=~ make install
+> DESTDIR=~ make -C src install
 
 Standard library/OS is available in directory "lib". Contents of this directory
 shall be copied to your Jack project.

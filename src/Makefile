@@ -80,7 +80,7 @@ TESTS = \
 	test_ssa_tokenizer \
 	test_vm_integration
 
-check: $(TESTS)
+check: all $(TESTS)
 	./test_graph
 	./test_interference_graph
 	./test_jack_tokenizer
@@ -99,3 +99,9 @@ clean:
 	rm -f ssa.a $(SSA_OBJECTS)
 	rm -f vm.a $(VM_OBJECTS)
 	rm -f $(TESTS)
+
+install: all
+	test -d $(DESTDIR)/bin
+	cp -t $(DESTDIR)/bin $(BIN)
+
+.PHONY: all check clean install
