@@ -14,6 +14,14 @@
 using namespace hcc::jack;
 using namespace hcc::ssa;
 
+bool ends_with(const std::string& value, const std::string& suffix)
+{
+    if (suffix.size() > value.size()) {
+        return false;
+    }
+    return std::equal(suffix.rbegin(), suffix.rend(), value.rbegin());
+}
+
 struct command_line_options {
     command_line_options(int argc, char* argv[])
     {
@@ -41,11 +49,29 @@ struct command_line_options {
             }
         }
         while (optind < argc) {
-            input_files.emplace_back(argv[optind++]);
+            std::string input_file = argv[optind++];
+            if (ends_with(input_file, ".jack")) {
+                jack_input_files.emplace_back(input_file);
+            } else if (ends_with(input_file, ".asm")) {
+                asm_input_files.emplace_back(input_file);
+            } else {
+                throw std::runtime_error("Input file has unknown suffix: " + input_file);
+            }
         }
-        if (input_files.empty() && !help) {
+
+        const auto all_empty = jack_input_files.empty() && asm_input_files.empty();
+        if (all_empty && !help) {
             throw std::runtime_error("Missing input file(s)");
         }
+
+        // Until we get linker working, we have to impose some constraints
+        if (asm_input_files.size() > 1) {
+            throw std::runtime_error("More than one asm input file");
+        }
+        if (!asm_input_files.empty() && !jack_input_files.empty()) {
+            throw std::runtime_error("Mixing jack and asm input files");
+        }
+
         if (output.empty()) {
             if (assemble) {
                 output = "output.hack";
@@ -69,21 +95,16 @@ struct command_line_options {
     bool help {false};
     bool assemble {true};
     std::string output;
-    std::vector<std::string> input_files;
+    std::vector<std::string> jack_input_files;
+    std::vector<std::string> asm_input_files;
 };
 
-int main(int argc, char* argv[])
-try {
-    const command_line_options options {argc, argv};
-    if (options.help) {
-        options.print_help();
-        return 0;
-    }
-
+void jack_to_asm(const std::vector<std::string>& jack_input_files, hcc::asm_program& out)
+{
     // parse input
     std::vector<ast::Class> classes;
     try {
-        for (const auto& input_file : options.input_files) {
+        for (const auto& input_file : jack_input_files) {
             std::ifstream input {input_file};
             tokenizer t {
                 std::istreambuf_iterator<char>(input),
@@ -113,8 +134,29 @@ try {
         subroutine.allocate_registers();
     }
 
-    hcc::asm_program out;
     u.translate_to_asm(out);
+}
+
+void asm_to_asm(const std::vector<std::string>& asm_input_files, hcc::asm_program& out)
+{
+    for (const auto& input_file : asm_input_files) {
+        std::ifstream input_stream {input_file};
+        hcc::asm_program prog {input_stream};
+        out = prog;
+    }
+}
+
+int main(int argc, char* argv[])
+try {
+    const command_line_options options {argc, argv};
+    if (options.help) {
+        options.print_help();
+        return 0;
+    }
+
+    hcc::asm_program out;
+    jack_to_asm(options.jack_input_files, out);
+    asm_to_asm(options.asm_input_files, out);
     out.local_optimization();
 
     // output
