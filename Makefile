@@ -14,7 +14,6 @@ install:
 	 src/asm2hack \
 	 src/vm2asm \
 	 src/jack2vm \
-	 src/vm2hack \
 	 src/emulator-gui \
 	 src/hcc
 
