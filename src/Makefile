@@ -32,7 +32,7 @@ VM_OBJECTS = \
 	VMCommand.o \
 	CPU.o
 
-BIN = asm2hack vm2asm jack2vm emulator-gui hcc
+BIN = vm2asm jack2vm emulator-gui hcc
 
 all: Makefile.depend $(BIN)
 
@@ -54,9 +54,6 @@ ssa.a: $(SSA_OBJECTS)
 vm.a: $(VM_OBJECTS)
 	$(AR) cr $@ $^
 	ranlib $@
-
-asm2hack: asm2hack.cc asm.a
-	$(CXX) $(CXXFLAGS) -o $@ $^
 
 vm2asm: vm2asm.cc asm.a vm.a
 	$(CXX) $(CXXFLAGS) -o $@ $^
