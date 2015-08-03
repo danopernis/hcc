@@ -1,6 +1,9 @@
 // Copyright (c) 2012-2015 Dano Pernis
 // See LICENSE for details
 
+#include "ParserVM.h"
+#include "VMOptimize.h"
+#include "VMWriter.h"
 #include "asm.h"
 #include "jack_parser.h"
 #include "jack_tokenizer.h"
@@ -54,12 +57,17 @@ struct command_line_options {
                 jack_input_files.emplace_back(input_file);
             } else if (ends_with(input_file, ".asm")) {
                 asm_input_files.emplace_back(input_file);
+            } else if (ends_with(input_file, ".vm")) {
+                vm_input_files.emplace_back(input_file);
             } else {
                 throw std::runtime_error("Input file has unknown suffix: " + input_file);
             }
         }
 
-        const auto all_empty = jack_input_files.empty() && asm_input_files.empty();
+        const auto all_empty =
+            jack_input_files.empty() &&
+            asm_input_files.empty() &&
+            vm_input_files.empty();
         if (all_empty && !help) {
             throw std::runtime_error("Missing input file(s)");
         }
@@ -70,6 +78,12 @@ struct command_line_options {
         }
         if (!asm_input_files.empty() && !jack_input_files.empty()) {
             throw std::runtime_error("Mixing jack and asm input files");
+        }
+        if (!jack_input_files.empty() && !vm_input_files.empty()) {
+            throw std::runtime_error("Mixing jack and vm input files");
+        }
+        if (!vm_input_files.empty() && !asm_input_files.empty()) {
+            throw std::runtime_error("Mixing vm and asm input files");
         }
 
         if (output.empty()) {
@@ -97,6 +111,7 @@ struct command_line_options {
     std::string output;
     std::vector<std::string> jack_input_files;
     std::vector<std::string> asm_input_files;
+    std::vector<std::string> vm_input_files;
 };
 
 void jack_to_asm(const std::vector<std::string>& jack_input_files, hcc::asm_program& out)
@@ -137,6 +152,19 @@ void jack_to_asm(const std::vector<std::string>& jack_input_files, hcc::asm_prog
     u.translate_to_asm(out);
 }
 
+void vm_to_asm(const std::vector<std::string>& vm_input_files, hcc::asm_program& out)
+{
+    hcc::VMWriter writer(out);
+    writer.writeBootstrap();
+    for (const auto& input_file : vm_input_files) {
+        std::ifstream input {input_file.c_str()};
+        hcc::VMParser parser {input};
+        auto cmds = parser.parse();
+        hcc::VMOptimize(cmds);
+        writer.writeFile(input_file, cmds);
+    }
+}
+
 void asm_to_asm(const std::vector<std::string>& asm_input_files, hcc::asm_program& out)
 {
     for (const auto& input_file : asm_input_files) {
@@ -157,6 +185,7 @@ try {
     hcc::asm_program out;
     jack_to_asm(options.jack_input_files, out);
     asm_to_asm(options.asm_input_files, out);
+    vm_to_asm(options.vm_input_files, out);
     out.local_optimization();
 
     // output
