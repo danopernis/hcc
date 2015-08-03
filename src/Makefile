@@ -32,7 +32,7 @@ VM_OBJECTS = \
 	VMCommand.o \
 	CPU.o
 
-BIN = vm2asm jack2vm emulator-gui hcc
+BIN = jack2vm emulator-gui hcc
 
 all: Makefile.depend $(BIN)
 
@@ -55,16 +55,13 @@ vm.a: $(VM_OBJECTS)
 	$(AR) cr $@ $^
 	ranlib $@
 
-vm2asm: vm2asm.cc asm.a vm.a
-	$(CXX) $(CXXFLAGS) -o $@ $^
-
 jack2vm: jack2vm.cc jack.a vm.a
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
 emulator-gui: emulator-gui.cc CPU.o
 	$(CXX) $(CXXFLAGS) -o $@ $^ `pkg-config --libs --cflags gtk+-3.0`
 
-hcc: hcc.cc asm.a jack.a ssa.a
+hcc: hcc.cc asm.a jack.a ssa.a vm.a
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
 -include Makefile.depend
