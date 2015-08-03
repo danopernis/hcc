@@ -1,6 +1,6 @@
 src/*.a
+src/*.d
 src/*.o
-src/Makefile.depend
 src/emulator-gui
 src/hcc
 src/jack2vm
