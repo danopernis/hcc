@@ -1,4 +1,7 @@
-CXXFLAGS = -Wall -g -O2 -std=c++11
+CXXFLAGS := $(CXXFLAGS) -Wall -g -O2 -std=c++11
+
+SRC := $(wildcard *.cc)
+OBJ := $(SRC:.cc=.o)
 
 ASM_OBJECTS = \
 	asm.o \
@@ -32,12 +35,9 @@ VM_OBJECTS = \
 	VMCommand.o \
 	CPU.o
 
-BIN = jack2vm emulator-gui hcc
+BIN := jack2vm emulator-gui hcc
 
-all: Makefile.depend $(BIN)
-
-Makefile.depend: *.cc *.h
-	$(CXX) $(CXXFLAGS) -MM *.cc > $@
+all: $(BIN)
 
 asm.a: $(ASM_OBJECTS)
 	$(AR) cr $@ $^
@@ -64,9 +64,12 @@ emulator-gui: emulator-gui.cc CPU.o
 hcc: hcc.cc asm.a jack.a ssa.a vm.a
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
--include Makefile.depend
+include $(OBJ:.o=.d)
 
-TESTS = \
+%.d: %.cc
+	./depend.sh $(CXX) $(CXXFLAGS) $*.cc > $@
+
+TESTS := \
 	test_graph \
 	test_interference_graph \
 	test_jack_tokenizer \
@@ -87,7 +90,6 @@ test_%: test_%.cc asm.a jack.a ssa.a vm.a
 
 clean:
 	rm -f $(BIN)
-	rm -f Makefile.depend
 	rm -f asm.a $(ASM_OBJECTS)
 	rm -f jack.a $(JACK_OBJECTS)
 	rm -f ssa.a $(SSA_OBJECTS)
