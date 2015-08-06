@@ -1,7 +1,7 @@
 src/*.a
 src/*.d
 src/*.o
-src/emulator-gui
+src/emulator
 src/hcc
 src/jack2vm
 src/test_graph
