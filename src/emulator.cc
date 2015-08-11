@@ -130,48 +130,57 @@ public:
         return data[address];
     }
 };
-hcc::ROM rom;
-GUIEmulatorRAM *ram;
-hcc::CPU cpu;
 
-bool running = false;
+struct emulator {
+    hcc::ROM rom;
+    GUIEmulatorRAM ram;
+    hcc::CPU cpu;
 
-GtkWidget *window;
-GtkToolItem *button_load, *button_run, *button_pause;
+    bool running = false;
+
+    GtkWidget* window;
+    GtkToolItem* button_load;
+    GtkToolItem* button_run;
+    GtkToolItem* button_pause;
+};
 
 void load_clicked(GtkButton *button, gpointer user_data)
 {
+    emulator* e = reinterpret_cast<emulator*>(user_data);
+
     bool loaded = false;
 
     GtkWidget *dialog = gtk_file_chooser_dialog_new(
-        "Load ROM", GTK_WINDOW(window), GTK_FILE_CHOOSER_ACTION_OPEN,
+        "Load ROM", GTK_WINDOW(e->window), GTK_FILE_CHOOSER_ACTION_OPEN,
         "gtk-cancel", GTK_RESPONSE_CANCEL,
         "gtk-open", GTK_RESPONSE_ACCEPT,
         NULL);
     if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
         char *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
-        loaded = rom.load(filename);
+        loaded = e->rom.load(filename);
         g_free(filename);
     }
     gtk_widget_destroy(dialog);
 
     if (!loaded) {
-        GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(window),
+        GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(e->window),
             GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE,
             "Error loading program");
         gtk_dialog_run(GTK_DIALOG(dialog));
         gtk_widget_destroy(dialog);
     } else {
-        cpu.reset();
-        gtk_widget_set_sensitive(GTK_WIDGET(button_run), TRUE);
+        e->cpu.reset();
+        gtk_widget_set_sensitive(GTK_WIDGET(e->button_run), TRUE);
     }
 }
 
 gpointer run_thread(gpointer user_data)
 {
+    emulator* e = reinterpret_cast<emulator*>(user_data);
+
     int steps = 0;
-    while (running) {
-        cpu.step(&rom, ram);
+    while (e->running) {
+        e->cpu.step(&e->rom, &e->ram);
         if (steps>100) {
             g_usleep(10);
             steps = 0;
@@ -180,27 +189,31 @@ gpointer run_thread(gpointer user_data)
     }
     return NULL;
 }
-void run_clicked()
+void run_clicked(GtkButton *button, gpointer user_data)
 {
-    assert(!running);
+    emulator* e = reinterpret_cast<emulator*>(user_data);
 
-    running = true;
-    gtk_widget_set_sensitive(GTK_WIDGET(button_run), FALSE);
-    gtk_widget_set_visible(GTK_WIDGET(button_run), FALSE);
-    gtk_widget_set_sensitive(GTK_WIDGET(button_pause), TRUE);
-    gtk_widget_set_visible(GTK_WIDGET(button_pause), TRUE);
+    assert(!e->running);
 
-    g_thread_create(run_thread, NULL, FALSE, NULL);
+    e->running = true;
+    gtk_widget_set_sensitive(GTK_WIDGET(e->button_run), FALSE);
+    gtk_widget_set_visible(GTK_WIDGET(e->button_run), FALSE);
+    gtk_widget_set_sensitive(GTK_WIDGET(e->button_pause), TRUE);
+    gtk_widget_set_visible(GTK_WIDGET(e->button_pause), TRUE);
+
+    g_thread_create(run_thread, e, FALSE, NULL);
 }
-void pause_clicked()
+void pause_clicked(GtkButton *button, gpointer user_data)
 {
-    assert(running);
+    emulator* e = reinterpret_cast<emulator*>(user_data);
 
-    running = false;
-    gtk_widget_set_sensitive(GTK_WIDGET(button_pause), FALSE);
-    gtk_widget_set_visible(GTK_WIDGET(button_pause), FALSE);
-    gtk_widget_set_sensitive(GTK_WIDGET(button_run), TRUE);
-    gtk_widget_set_visible(GTK_WIDGET(button_run), TRUE);
+    assert(e->running);
+
+    e->running = false;
+    gtk_widget_set_sensitive(GTK_WIDGET(e->button_pause), FALSE);
+    gtk_widget_set_visible(GTK_WIDGET(e->button_pause), FALSE);
+    gtk_widget_set_sensitive(GTK_WIDGET(e->button_run), TRUE);
+    gtk_widget_set_visible(GTK_WIDGET(e->button_run), TRUE);
 }
 
 
@@ -240,69 +253,72 @@ unsigned short translate(guint keyval)
 
 gboolean keyboard_callback(GtkWidget *widget, GdkEventKey *event, gpointer user_data)
 {
+    emulator* e = reinterpret_cast<emulator*>(user_data);
+
     if (event->type == GDK_KEY_RELEASE) {
-        ram->keyboard(0);
+        e->ram.keyboard(0);
     } else {
-        ram->keyboard(translate(event->keyval));
+        e->ram.keyboard(translate(event->keyval));
     }
     return TRUE;
 }
 
 
-GtkToolItem *create_button(const gchar *stock_id, const gchar *text, GCallback callback)
+GtkToolItem *create_button(const gchar *stock_id, const gchar *text, GCallback callback, gpointer user_data)
 {
     GtkToolItem *button = gtk_tool_button_new(NULL, text);
     gtk_tool_button_set_icon_name(GTK_TOOL_BUTTON(button), stock_id);
     gtk_tool_item_set_tooltip_text(button, text);
-    g_signal_connect(button, "clicked", callback, NULL);
+    g_signal_connect(button, "clicked", callback, user_data);
     return button;
 }
 
 int main(int argc, char *argv[])
 {
     gtk_init(&argc, &argv);
-    ram = new GUIEmulatorRAM();
+
+    emulator e;
 
     /* toolbar buttons */
-    button_load    = create_button("document-open",        "Load...", G_CALLBACK(load_clicked));
-    button_run     = create_button("media-playback-start", "Run",     G_CALLBACK(run_clicked));
-    button_pause   = create_button("media-playback-pause", "Pause",   G_CALLBACK(pause_clicked));
+    e.button_load    = create_button("document-open",        "Load...", G_CALLBACK(load_clicked), &e);
+    e.button_run     = create_button("media-playback-start", "Run",     G_CALLBACK(run_clicked), &e);
+    e.button_pause   = create_button("media-playback-pause", "Pause",   G_CALLBACK(pause_clicked), &e);
 
     GtkToolItem *separator1 = gtk_separator_tool_item_new();
 
-    gtk_widget_set_sensitive(GTK_WIDGET(button_run), FALSE);
-    gtk_widget_set_sensitive(GTK_WIDGET(button_pause), FALSE);
+    gtk_widget_set_sensitive(GTK_WIDGET(e.button_run), FALSE);
+    gtk_widget_set_sensitive(GTK_WIDGET(e.button_pause), FALSE);
 
     /* toolbar itself */
     GtkWidget *toolbar = gtk_toolbar_new();
     gtk_widget_set_hexpand(toolbar, TRUE);
     gtk_toolbar_set_style(GTK_TOOLBAR(toolbar), GTK_TOOLBAR_ICONS);
-    gtk_toolbar_insert(GTK_TOOLBAR(toolbar), button_load,  -1);
+    gtk_toolbar_insert(GTK_TOOLBAR(toolbar), e.button_load,  -1);
     gtk_toolbar_insert(GTK_TOOLBAR(toolbar), separator1,   -1);
-    gtk_toolbar_insert(GTK_TOOLBAR(toolbar), button_run,   -1);
-    gtk_toolbar_insert(GTK_TOOLBAR(toolbar), button_pause, -1);
+    gtk_toolbar_insert(GTK_TOOLBAR(toolbar), e.button_run,   -1);
+    gtk_toolbar_insert(GTK_TOOLBAR(toolbar), e.button_pause, -1);
 
     /* keyboard */
     GtkWidget *keyboard = gtk_toggle_button_new_with_label("Grab keyboard focus");
     gtk_widget_add_events(keyboard, GDK_KEY_PRESS_MASK | GDK_KEY_RELEASE_MASK);
-    g_signal_connect(keyboard, "key-press-event",   G_CALLBACK(keyboard_callback), NULL);
-    g_signal_connect(keyboard, "key-release-event", G_CALLBACK(keyboard_callback), NULL);
+    g_signal_connect(keyboard, "key-press-event",   G_CALLBACK(keyboard_callback), &e);
+    g_signal_connect(keyboard, "key-release-event", G_CALLBACK(keyboard_callback), &e);
 
     /* main layout */
     GtkWidget *grid = gtk_grid_new();
     gtk_grid_attach(GTK_GRID(grid), toolbar, 0, 0, 1, 1);
-    gtk_grid_attach(GTK_GRID(grid), ram->getScreenWidget(), 0, 1, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), e.ram.getScreenWidget(), 0, 1, 1, 1);
     gtk_grid_attach(GTK_GRID(grid), keyboard, 0, 2, 1, 1);
 
     /* main window */
-    window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    gtk_window_set_title(GTK_WINDOW(window), "HACK emulator");
-    gtk_window_set_resizable(GTK_WINDOW(window), FALSE);
-    gtk_window_set_focus(GTK_WINDOW(window), NULL);
-    g_signal_connect(window, "destroy", G_CALLBACK (gtk_main_quit), NULL);
-    gtk_container_add(GTK_CONTAINER(window), grid);
-    gtk_widget_show_all(window);
-    gtk_widget_set_visible(GTK_WIDGET(button_pause), FALSE);
+    e.window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    gtk_window_set_title(GTK_WINDOW(e.window), "HACK emulator");
+    gtk_window_set_resizable(GTK_WINDOW(e.window), FALSE);
+    gtk_window_set_focus(GTK_WINDOW(e.window), NULL);
+    g_signal_connect(e.window, "destroy", G_CALLBACK (gtk_main_quit), NULL);
+    gtk_container_add(GTK_CONTAINER(e.window), grid);
+    gtk_widget_show_all(e.window);
+    gtk_widget_set_visible(GTK_WIDGET(e.button_pause), FALSE);
 
     gtk_main();
     return 0;
