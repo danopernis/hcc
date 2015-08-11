@@ -143,9 +143,11 @@ void load_clicked(GtkButton *button, gpointer user_data)
 {
     bool loaded = false;
 
-    GtkWidget *dialog = gtk_file_chooser_dialog_new("Load ROM",
-        GTK_WINDOW(window), GTK_FILE_CHOOSER_ACTION_OPEN, GTK_STOCK_CANCEL,
-        GTK_RESPONSE_CANCEL, GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT, NULL);
+    GtkWidget *dialog = gtk_file_chooser_dialog_new(
+        "Load ROM", GTK_WINDOW(window), GTK_FILE_CHOOSER_ACTION_OPEN,
+        "gtk-cancel", GTK_RESPONSE_CANCEL,
+        "gtk-open", GTK_RESPONSE_ACCEPT,
+        NULL);
     if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
         char *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
         loaded = rom.load(filename);
@@ -249,8 +251,8 @@ gboolean keyboard_callback(GtkWidget *widget, GdkEventKey *event, gpointer user_
 
 GtkToolItem *create_button(const gchar *stock_id, const gchar *text, GCallback callback)
 {
-    GtkToolItem *button = gtk_tool_button_new_from_stock(stock_id);
-    gtk_tool_button_set_label(GTK_TOOL_BUTTON(button), text);
+    GtkToolItem *button = gtk_tool_button_new(NULL, text);
+    gtk_tool_button_set_icon_name(GTK_TOOL_BUTTON(button), stock_id);
     gtk_tool_item_set_tooltip_text(button, text);
     g_signal_connect(button, "clicked", callback, NULL);
     return button;
@@ -262,9 +264,9 @@ int main(int argc, char *argv[])
     ram = new GUIEmulatorRAM();
 
     /* toolbar buttons */
-    button_load    = create_button(GTK_STOCK_OPEN,        "Load...", G_CALLBACK(load_clicked));
-    button_run     = create_button(GTK_STOCK_MEDIA_PLAY,  "Run",     G_CALLBACK(run_clicked));
-    button_pause   = create_button(GTK_STOCK_MEDIA_PAUSE, "Pause",   G_CALLBACK(pause_clicked));
+    button_load    = create_button("document-open",        "Load...", G_CALLBACK(load_clicked));
+    button_run     = create_button("media-playback-start", "Run",     G_CALLBACK(run_clicked));
+    button_pause   = create_button("media-playback-pause", "Pause",   G_CALLBACK(pause_clicked));
 
     GtkToolItem *separator1 = gtk_separator_tool_item_new();
 
