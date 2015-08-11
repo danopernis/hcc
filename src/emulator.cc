@@ -147,6 +147,8 @@ struct emulator {
     bool running = false;
 
     GtkWidget* window;
+    GtkWidget* load_dialog;
+    GtkWidget* error_dialog;
     GtkToolItem* button_load;
     GtkToolItem* button_run;
     GtkToolItem* button_pause;
@@ -245,6 +247,16 @@ emulator::emulator()
     gtk_container_add(GTK_CONTAINER(window), grid);
     gtk_widget_show_all(window);
     gtk_widget_set_visible(GTK_WIDGET(button_pause), FALSE);
+
+    load_dialog = gtk_file_chooser_dialog_new(
+        "Load ROM", GTK_WINDOW(window), GTK_FILE_CHOOSER_ACTION_OPEN,
+        "gtk-cancel", GTK_RESPONSE_CANCEL,
+        "gtk-open", GTK_RESPONSE_ACCEPT,
+        NULL);
+
+    error_dialog = gtk_message_dialog_new(GTK_WINDOW(window),
+        GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE,
+        "Error loading program");
 }
 
 GtkToolItem* emulator::create_button(const gchar* stock_id, const gchar* text, GCallback callback)
@@ -258,30 +270,25 @@ GtkToolItem* emulator::create_button(const gchar* stock_id, const gchar* text, G
 
 void emulator::load_clicked()
 {
-    bool loaded = false;
+    const gint result = gtk_dialog_run(GTK_DIALOG(load_dialog));
+    gtk_widget_hide(load_dialog);
 
-    GtkWidget *dialog = gtk_file_chooser_dialog_new(
-        "Load ROM", GTK_WINDOW(window), GTK_FILE_CHOOSER_ACTION_OPEN,
-        "gtk-cancel", GTK_RESPONSE_CANCEL,
-        "gtk-open", GTK_RESPONSE_ACCEPT,
-        NULL);
-    if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
-        char *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
-        loaded = rom.load(filename);
-        g_free(filename);
+    if (result != GTK_RESPONSE_ACCEPT) {
+        return;
     }
-    gtk_widget_destroy(dialog);
+
+    char *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(load_dialog));
+    const bool loaded = rom.load(filename);
+    g_free(filename);
 
     if (!loaded) {
-        GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(window),
-            GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE,
-            "Error loading program");
-        gtk_dialog_run(GTK_DIALOG(dialog));
-        gtk_widget_destroy(dialog);
-    } else {
-        cpu.reset();
-        gtk_widget_set_sensitive(GTK_WIDGET(button_run), TRUE);
+        gtk_dialog_run(GTK_DIALOG(error_dialog));
+        gtk_widget_hide(error_dialog);
+        return;
     }
+
+    cpu.reset();
+    gtk_widget_set_sensitive(GTK_WIDGET(button_run), TRUE);
 }
 
 void emulator::run_clicked()
