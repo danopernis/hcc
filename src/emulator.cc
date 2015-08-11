@@ -201,91 +201,47 @@ void pause_clicked()
     gtk_widget_set_visible(GTK_WIDGET(button_run), TRUE);
 }
 
+
+// Translate special keys. See Figure 5.6 in TECS book.
+unsigned short translate(guint keyval)
+{
+    switch (keyval) {
+    case GDK_KEY_Return:    return 128;
+    case GDK_KEY_BackSpace: return 129;
+    case GDK_KEY_Left:      return 130;
+    case GDK_KEY_Up:        return 131;
+    case GDK_KEY_Right:     return 132;
+    case GDK_KEY_Down:      return 133;
+    case GDK_KEY_Home:      return 134;
+    case GDK_KEY_End:       return 135;
+    case GDK_KEY_Page_Up:   return 136;
+    case GDK_KEY_Page_Down: return 137;
+    case GDK_KEY_Insert:    return 138;
+    case GDK_KEY_Delete:    return 139;
+    case GDK_KEY_Escape:    return 140;
+    case GDK_KEY_F1:        return 141;
+    case GDK_KEY_F2:        return 142;
+    case GDK_KEY_F3:        return 143;
+    case GDK_KEY_F4:        return 144;
+    case GDK_KEY_F5:        return 145;
+    case GDK_KEY_F6:        return 146;
+    case GDK_KEY_F7:        return 147;
+    case GDK_KEY_F8:        return 148;
+    case GDK_KEY_F9:        return 149;
+    case GDK_KEY_F10:       return 150;
+    case GDK_KEY_F11:       return 151;
+    case GDK_KEY_F12:       return 152;
+    }
+    return keyval;
+}
+
+
 gboolean keyboard_callback(GtkWidget *widget, GdkEventKey *event, gpointer user_data)
 {
     if (event->type == GDK_KEY_RELEASE) {
         ram->keyboard(0);
     } else {
-        // Translate special keys. See Figure 5.6 in TECS book.
-        switch (event->keyval) {
-        case GDK_KEY_Return:
-            ram->keyboard(128);
-            break;
-        case GDK_KEY_BackSpace:
-            ram->keyboard(129);
-            break;
-        case GDK_KEY_Left:
-            ram->keyboard(130);
-            break;
-        case GDK_KEY_Up:
-            ram->keyboard(131);
-            break;
-        case GDK_KEY_Right:
-            ram->keyboard(132);
-            break;
-        case GDK_KEY_Down:
-            ram->keyboard(133);
-            break;
-        case GDK_KEY_Home:
-            ram->keyboard(134);
-            break;
-        case GDK_KEY_End:
-            ram->keyboard(135);
-            break;
-        case GDK_KEY_Page_Up:
-            ram->keyboard(136);
-            break;
-        case GDK_KEY_Page_Down:
-            ram->keyboard(137);
-            break;
-        case GDK_KEY_Insert:
-            ram->keyboard(138);
-            break;
-        case GDK_KEY_Delete:
-            ram->keyboard(139);
-            break;
-        case GDK_KEY_Escape:
-            ram->keyboard(140);
-            break;
-        case GDK_KEY_F1:
-            ram->keyboard(141);
-            break;
-        case GDK_KEY_F2:
-            ram->keyboard(142);
-            break;
-        case GDK_KEY_F3:
-            ram->keyboard(143);
-            break;
-        case GDK_KEY_F4:
-            ram->keyboard(144);
-            break;
-        case GDK_KEY_F5:
-            ram->keyboard(145);
-            break;
-        case GDK_KEY_F6:
-            ram->keyboard(146);
-            break;
-        case GDK_KEY_F7:
-            ram->keyboard(147);
-            break;
-        case GDK_KEY_F8:
-            ram->keyboard(148);
-            break;
-        case GDK_KEY_F9:
-            ram->keyboard(149);
-            break;
-        case GDK_KEY_F10:
-            ram->keyboard(150);
-            break;
-        case GDK_KEY_F11:
-            ram->keyboard(151);
-            break;
-        case GDK_KEY_F12:
-            ram->keyboard(152);
-            break;
-        default:
-            ram->keyboard(event->keyval);
-        }
+        ram->keyboard(translate(event->keyval));
     }
     return TRUE;
 }
