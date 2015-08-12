@@ -73,7 +73,6 @@ gboolean queue_redraw(gpointer widget)
 }
 
 struct RAM : public hcc::IRAM {
-    static const unsigned int CHANNELS = 3;
     static const unsigned int SCREEN_WIDTH = 512;
     static const unsigned int SCREEN_HEIGHT = 256;
 
@@ -81,17 +80,6 @@ struct RAM : public hcc::IRAM {
     GdkPixbuf *pixbuf;
     GtkWidget *screen;
 
-    void putpixel(unsigned short x, unsigned short y, bool black) {
-        int color = black ? 0x00 : 0xff;
-
-        int n_channels = gdk_pixbuf_get_n_channels (pixbuf);
-        int rowstride = gdk_pixbuf_get_rowstride (pixbuf);
-        guchar* pixels = gdk_pixbuf_get_pixels(pixbuf);
-        guchar* p = pixels + y * rowstride + x * n_channels;
-        p[0] = color;
-        p[1] = color;
-        p[2] = color;
-    }
 public:
     RAM() : data(0x6001, 0)
     {
@@ -114,18 +102,33 @@ public:
     void set(unsigned int address, unsigned short value) override
     {
         data.at(address) = value;
+    }
 
-        // check if we are writing to video RAM
-        if (0x4000 <= address && address <0x6000) {
-            address -= 0x4000;
+    void redraw()
+    {
+        const auto rowstride = gdk_pixbuf_get_rowstride(pixbuf);
+        auto first = begin(data) + 0x4000;
+        auto last  = begin(data) + 0x6000;
+        guchar* row = gdk_pixbuf_get_pixels(pixbuf);
+        unsigned short value = 0;
 
-            unsigned short y = address / 32;
-            unsigned short x = 16*(address % 32);
-            for (int bit = 0; bit<16; ++bit) {
-                putpixel(x + bit, y, value & 1);
+        for (unsigned int y = 0; y < SCREEN_HEIGHT; ++y) {
+            guchar* p = row;
+
+            for (unsigned int x = 0; x < SCREEN_WIDTH; ++x) {
+                if ((x % 16) == 0) {
+                    assert (first != last);
+                    value = *first++;
+                }
+
+                const auto color = (value & 1) ? 0x00 : 0xff;
                 value = value >> 1;
+
+                *p++ = color;
+                *p++ = color;
+                *p++ = color;
             }
-            gdk_threads_add_idle(queue_redraw, screen);
+            row += rowstride;
         }
     }
 
@@ -139,7 +142,8 @@ struct emulator {
     void run_clicked();
     void pause_clicked();
     gboolean keyboard_callback(GdkEventKey* event);
-    void run_thread();
+    void cpu_thread();
+    void screen_thread();
     GtkToolItem* create_button(const gchar* stock_id, const gchar* text, GCallback callback);
 
     ROM rom;
@@ -168,9 +172,15 @@ void c_run_clicked(GtkButton*, gpointer user_data)
 void c_pause_clicked(GtkButton*, gpointer user_data)
 { reinterpret_cast<emulator*>(user_data)->pause_clicked(); }
 
-gpointer c_run_thread(gpointer user_data)
+gpointer c_cpu_thread(gpointer user_data)
 {
-    reinterpret_cast<emulator*>(user_data)->run_thread();
+    reinterpret_cast<emulator*>(user_data)->cpu_thread();
+    return NULL;
+}
+
+gpointer c_screen_thread(gpointer user_data)
+{
+    reinterpret_cast<emulator*>(user_data)->screen_thread();
     return NULL;
 }
 
@@ -303,7 +313,8 @@ void emulator::run_clicked()
     gtk_widget_set_sensitive(GTK_WIDGET(button_pause), TRUE);
     gtk_widget_set_visible(GTK_WIDGET(button_pause), TRUE);
 
-    g_thread_new("c_run_thread", c_run_thread, this);
+    g_thread_new("c_cpu_thread",    c_cpu_thread,    this);
+    g_thread_new("c_screen_thread", c_screen_thread, this);
 }
 
 void emulator::pause_clicked()
@@ -327,7 +338,7 @@ gboolean emulator::keyboard_callback(GdkEventKey* event)
     return TRUE;
 }
 
-void emulator::run_thread()
+void emulator::cpu_thread()
 {
     int steps = 0;
     while (running) {
@@ -337,6 +348,15 @@ void emulator::run_thread()
             steps = 0;
         }
         ++steps;
+    }
+}
+
+void emulator::screen_thread()
+{
+    while (running) {
+        ram.redraw();
+        gdk_threads_add_idle(queue_redraw, ram.getScreenWidget());
+        g_usleep(10000);
     }
 }
 
