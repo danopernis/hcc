@@ -66,6 +66,14 @@ struct ROM : public IROM {
 
 } // end namespace
 
+gboolean on_draw(GtkWidget*, cairo_t* cr, gpointer data)
+{
+    GdkPixbuf* pixbuf = reinterpret_cast<GdkPixbuf*>(data);
+    gdk_cairo_set_source_pixbuf(cr, pixbuf, 0, 0);
+    cairo_paint(cr);
+    return FALSE;
+}
+
 struct GUIEmulatorRAM : public hcc::IRAM {
     static const unsigned int CHANNELS = 3;
     static const unsigned int SCREEN_WIDTH = 512;
@@ -73,26 +81,33 @@ struct GUIEmulatorRAM : public hcc::IRAM {
     static const unsigned int size = 0x6001;
 
     unsigned short *data;
-    unsigned char *vram;
     GdkPixbuf *pixbuf;
     GtkWidget *screen;
 
     void putpixel(unsigned short x, unsigned short y, bool black) {
-        unsigned int offset = CHANNELS*(SCREEN_WIDTH*y + x);
-        for (unsigned int channel = 0; channel<CHANNELS; ++channel) {
-            vram[offset++] = black ? 0x00 : 0xff;
-        }
+        int color = black ? 0x00 : 0xff;
+
+        int n_channels = gdk_pixbuf_get_n_channels (pixbuf);
+        int rowstride = gdk_pixbuf_get_rowstride (pixbuf);
+        guchar* pixels = gdk_pixbuf_get_pixels(pixbuf);
+        guchar* p = pixels + y * rowstride + x * n_channels;
+        p[0] = color;
+        p[1] = color;
+        p[2] = color;
     }
 public:
     GUIEmulatorRAM() {
         data = new unsigned short[size];
-        vram = new unsigned char[CHANNELS*SCREEN_WIDTH*SCREEN_HEIGHT];
-        pixbuf = gdk_pixbuf_new_from_data(vram, GDK_COLORSPACE_RGB, FALSE, 8, SCREEN_WIDTH, SCREEN_HEIGHT, CHANNELS*SCREEN_WIDTH, NULL, NULL);
-        screen = gtk_image_new_from_pixbuf(pixbuf);
+
+        pixbuf = gdk_pixbuf_new(GDK_COLORSPACE_RGB, FALSE, 8, SCREEN_WIDTH, SCREEN_HEIGHT);
+        gdk_pixbuf_fill(pixbuf, 0x0000000);
+
+        screen = gtk_drawing_area_new();
+        gtk_widget_set_size_request(screen, SCREEN_WIDTH, SCREEN_HEIGHT);
+        g_signal_connect(screen, "draw", G_CALLBACK(on_draw), pixbuf);
     }
     virtual ~GUIEmulatorRAM() {
         delete[] data;
-        delete[] vram;
     }
     void keyboard(unsigned short value) {
         data[0x6000] = value;
