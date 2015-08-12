@@ -1,140 +1,63 @@
 // Copyright (c) 2012-2015 Dano Pernis
 // See LICENSE for details
 
-#include <gtk/gtk.h>
-#include <glib.h>
+#include "CPU.h"
+#include <cassert>
 #include <fstream>
+#include <glib.h>
+#include <gtk/gtk.h>
 #include <iostream>
 #include <stdexcept>
-#include <cassert>
 #include <vector>
-#include "CPU.h"
+
+
+namespace {
+
+
+const unsigned int SCREEN_WIDTH = 512;
+const unsigned int SCREEN_HEIGHT = 256;
+
 
 struct ROM : public hcc::IROM {
     ROM() : data(0x8000, 0) { }
 
-    bool load(const char *filename)
-    {
-        std::ifstream input(filename);
-        std::string line;
-        auto it = begin(data);
-        while (input.good() && it != end(data)) {
-            getline(input, line);
-            if (line.size() == 0) {
-                continue;
-            }
-            if (line.size() != 16) {
-                return false;
-            }
-
-            unsigned int instruction = 0;
-            for (unsigned int i = 0; i<16; ++i) {
-                instruction <<= 1;
-                switch (line[i]) {
-                case '0':
-                    break;
-                case '1':
-                    instruction |= 1;
-                    break;
-                default:
-                    return false;
-                }
-            }
-            *it++ = instruction;
-        }
-
-        // clear the rest
-        while (it != end(data)) {
-            *it++ = 0;
-        }
-
-        return true;
-    }
-
     uint16_t get(unsigned int address) const override
     { return data.at(address); }
 
-private:
+    bool load(const char* filename);
+
     std::vector<uint16_t> data;
 };
 
-gboolean on_draw(GtkWidget*, cairo_t* cr, gpointer data)
-{
-    GdkPixbuf* pixbuf = reinterpret_cast<GdkPixbuf*>(data);
-    gdk_cairo_set_source_pixbuf(cr, pixbuf, 0, 0);
-    cairo_paint(cr);
-    return FALSE;
-}
-
-gboolean queue_redraw(gpointer widget)
-{
-    gtk_widget_queue_draw(GTK_WIDGET(widget));
-    return FALSE;
-}
 
 struct RAM : public hcc::IRAM {
-    static const unsigned int SCREEN_WIDTH = 512;
-    static const unsigned int SCREEN_HEIGHT = 256;
-
-    std::vector<uint16_t> data;
-    GdkPixbuf *pixbuf;
-    GtkWidget *screen;
-
-public:
-    RAM() : data(0x6001, 0)
-    {
-        pixbuf = gdk_pixbuf_new(GDK_COLORSPACE_RGB, FALSE, 8, SCREEN_WIDTH, SCREEN_HEIGHT);
-        gdk_pixbuf_fill(pixbuf, 0x0000000);
-
-        screen = gtk_drawing_area_new();
-        gtk_widget_set_size_request(screen, SCREEN_WIDTH, SCREEN_HEIGHT);
-        g_signal_connect(screen, "draw", G_CALLBACK(on_draw), pixbuf);
-    }
-
-    void keyboard(uint16_t value) {
-        data[0x6000] = value;
-    }
-
-    GtkWidget* getScreenWidget() {
-        return screen;
-    }
-
-    void set(unsigned int address, uint16_t value) override
-    {
-        data.at(address) = value;
-    }
-
-    void redraw()
-    {
-        const auto rowstride = gdk_pixbuf_get_rowstride(pixbuf);
-        auto first = begin(data) + 0x4000;
-        auto last  = begin(data) + 0x6000;
-        guchar* row = gdk_pixbuf_get_pixels(pixbuf);
-        uint16_t value = 0;
-
-        for (unsigned int y = 0; y < SCREEN_HEIGHT; ++y) {
-            guchar* p = row;
-
-            for (unsigned int x = 0; x < SCREEN_WIDTH; ++x) {
-                if ((x % 16) == 0) {
-                    assert (first != last);
-                    value = *first++;
-                }
-
-                const auto color = (value & 1) ? 0x00 : 0xff;
-                value = value >> 1;
-
-                *p++ = color;
-                *p++ = color;
-                *p++ = color;
-            }
-            row += rowstride;
-        }
-    }
+    RAM() : data(0x6001, 0) { }
 
     uint16_t get(unsigned int address) const override
     { return data.at(address); }
+
+    void set(unsigned int address, uint16_t value) override
+    { data.at(address) = value; }
+
+    void keyboard(uint16_t value) { set(0x6000, value); };
+
+    std::vector<uint16_t> data;
 };
+
+
+struct screen_widget {
+    screen_widget(RAM& ram);
+
+    operator GtkWidget* () { return widget; }
+
+    gboolean draw(cairo_t* cr);
+
+private:
+    GtkWidget* widget;
+    GdkPixbuf* pixbuf;
+    RAM& ram;
+};
+
 
 struct emulator {
     emulator();
@@ -158,19 +81,36 @@ struct emulator {
     GtkToolItem* button_load;
     GtkToolItem* button_run;
     GtkToolItem* button_pause;
+    screen_widget screen;
 };
+
+
+gboolean c_screen_widget_draw(GtkWidget*, cairo_t* cr, gpointer data)
+{ return reinterpret_cast<screen_widget*>(data)->draw(cr); }
+
+
+gboolean c_queue_redraw(gpointer widget)
+{
+    gtk_widget_queue_draw(GTK_WIDGET(widget));
+    return FALSE;
+}
+
 
 gboolean c_keyboard_callback(GtkWidget*, GdkEventKey *event, gpointer user_data)
 { return reinterpret_cast<emulator*>(user_data)->keyboard_callback(event); }
 
+
 void c_load_clicked(GtkButton*, gpointer user_data)
 { reinterpret_cast<emulator*>(user_data)->load_clicked(); }
+
 
 void c_run_clicked(GtkButton*, gpointer user_data)
 { reinterpret_cast<emulator*>(user_data)->run_clicked(); }
 
+
 void c_pause_clicked(GtkButton*, gpointer user_data)
 { reinterpret_cast<emulator*>(user_data)->pause_clicked(); }
+
 
 gpointer c_cpu_thread(gpointer user_data)
 {
@@ -178,11 +118,13 @@ gpointer c_cpu_thread(gpointer user_data)
     return NULL;
 }
 
+
 gpointer c_screen_thread(gpointer user_data)
 {
     reinterpret_cast<emulator*>(user_data)->screen_thread();
     return NULL;
 }
+
 
 // Translate special keys. See Figure 5.6 in TECS book.
 uint16_t translate(guint keyval)
@@ -217,7 +159,91 @@ uint16_t translate(guint keyval)
     return keyval;
 }
 
+
+bool ROM::load(const char* filename)
+{
+    std::ifstream input(filename);
+    std::string line;
+    auto it = begin(data);
+    while (input.good() && it != end(data)) {
+        getline(input, line);
+        if (line.size() == 0) {
+            continue;
+        }
+        if (line.size() != 16) {
+            return false;
+        }
+
+        unsigned int instruction = 0;
+        for (unsigned int i = 0; i<16; ++i) {
+            instruction <<= 1;
+            switch (line[i]) {
+            case '0':
+                break;
+            case '1':
+                instruction |= 1;
+                break;
+            default:
+                return false;
+            }
+        }
+        *it++ = instruction;
+    }
+
+    // clear the rest
+    while (it != end(data)) {
+        *it++ = 0;
+    }
+
+    return true;
+}
+
+
+screen_widget::screen_widget(RAM& ram)
+    : widget(gtk_drawing_area_new())
+    , pixbuf(gdk_pixbuf_new(GDK_COLORSPACE_RGB, FALSE, 8, SCREEN_WIDTH, SCREEN_HEIGHT))
+    , ram(ram)
+{
+    gtk_widget_set_size_request(widget, SCREEN_WIDTH, SCREEN_HEIGHT);
+    g_signal_connect(widget, "draw", G_CALLBACK(c_screen_widget_draw), this);
+}
+
+
+gboolean screen_widget::draw(cairo_t* cr)
+{
+    const auto rowstride = gdk_pixbuf_get_rowstride(pixbuf);
+    auto first = begin(ram.data) + 0x4000;
+    auto last  = begin(ram.data) + 0x6000;
+    guchar* row = gdk_pixbuf_get_pixels(pixbuf);
+    uint16_t value = 0;
+
+    for (unsigned int y = 0; y < SCREEN_HEIGHT; ++y) {
+        guchar* p = row;
+
+        for (unsigned int x = 0; x < SCREEN_WIDTH; ++x) {
+            if ((x % 16) == 0) {
+                assert (first != last);
+                value = *first++;
+            }
+
+            const auto color = (value & 1) ? 0x00 : 0xff;
+            value = value >> 1;
+
+            *p++ = color;
+            *p++ = color;
+            *p++ = color;
+        }
+        row += rowstride;
+    }
+
+    gdk_cairo_set_source_pixbuf(cr, pixbuf, 0, 0);
+    cairo_paint(cr);
+    return FALSE;
+}
+
+
 emulator::emulator()
+    : screen(ram)
 {
     /* toolbar buttons */
     button_load    = create_button("document-open",        "Load...", G_CALLBACK(c_load_clicked));
@@ -247,7 +273,7 @@ emulator::emulator()
     /* main layout */
     GtkWidget *grid = gtk_grid_new();
     gtk_grid_attach(GTK_GRID(grid), toolbar, 0, 0, 1, 1);
-    gtk_grid_attach(GTK_GRID(grid), ram.getScreenWidget(), 0, 1, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), screen, 0, 1, 1, 1);
     gtk_grid_attach(GTK_GRID(grid), keyboard, 0, 2, 1, 1);
 
     /* main window */
@@ -271,6 +297,7 @@ emulator::emulator()
         "Error loading program");
 }
 
+
 GtkToolItem* emulator::create_button(const gchar* stock_id, const gchar* text, GCallback callback)
 {
     GtkToolItem *button = gtk_tool_button_new(NULL, text);
@@ -279,6 +306,7 @@ GtkToolItem* emulator::create_button(const gchar* stock_id, const gchar* text, G
     g_signal_connect(button, "clicked", callback, this);
     return button;
 }
+
 
 void emulator::load_clicked()
 {
@@ -303,6 +331,7 @@ void emulator::load_clicked()
     gtk_widget_set_sensitive(GTK_WIDGET(button_run), TRUE);
 }
 
+
 void emulator::run_clicked()
 {
     assert(!running);
@@ -317,6 +346,7 @@ void emulator::run_clicked()
     g_thread_new("c_screen_thread", c_screen_thread, this);
 }
 
+
 void emulator::pause_clicked()
 {
     assert(running);
@@ -328,6 +358,7 @@ void emulator::pause_clicked()
     gtk_widget_set_visible(GTK_WIDGET(button_run), TRUE);
 }
 
+
 gboolean emulator::keyboard_callback(GdkEventKey* event)
 {
     if (event->type == GDK_KEY_RELEASE) {
@@ -337,6 +368,7 @@ gboolean emulator::keyboard_callback(GdkEventKey* event)
     }
     return TRUE;
 }
+
 
 void emulator::cpu_thread()
 {
@@ -351,14 +383,18 @@ void emulator::cpu_thread()
     }
 }
 
+
 void emulator::screen_thread()
 {
     while (running) {
-        ram.redraw();
-        gdk_threads_add_idle(queue_redraw, ram.getScreenWidget());
+        gdk_threads_add_idle(c_queue_redraw, screen);
         g_usleep(10000);
     }
 }
+
+
+} // anonymous namespace
+
 
 int main(int argc, char *argv[])
 {
