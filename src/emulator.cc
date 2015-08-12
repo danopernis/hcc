@@ -7,30 +7,25 @@
 #include <iostream>
 #include <stdexcept>
 #include <cassert>
+#include <vector>
 #include "CPU.h"
 
-namespace hcc {
+struct ROM : public hcc::IROM {
+    ROM() : data(0x8000, 0) { }
 
-struct ROM : public IROM {
-    unsigned short *data;
-    static const unsigned int size = 0x8000;
-    ROM() {
-        data = new unsigned short[size];
-    }
-    virtual ~ROM() {
-        delete[] data;
-    }
-
-    bool load(const char *filename) {
+    bool load(const char *filename)
+    {
         std::ifstream input(filename);
         std::string line;
-        unsigned int counter = 0;
-        while (input.good() && counter < size) {
+        auto it = begin(data);
+        while (input.good() && it != end(data)) {
             getline(input, line);
-            if (line.size() == 0)
+            if (line.size() == 0) {
                 continue;
-            if (line.size() != 16)
+            }
+            if (line.size() != 16) {
                 return false;
+            }
 
             unsigned int instruction = 0;
             for (unsigned int i = 0; i<16; ++i) {
@@ -45,26 +40,23 @@ struct ROM : public IROM {
                     return false;
                 }
             }
-            data[counter++] = instruction;
+            *it++ = instruction;
         }
+
         // clear the rest
-        while (counter < size) {
-            data[counter++] = 0;
+        while (it != end(data)) {
+            *it++ = 0;
         }
 
         return true;
     }
-    virtual unsigned short get(unsigned int address) const {
-        if (address < size) {
-            return data[address];
-        } else {
-            std::cerr << "requested memory at " << address << '\n';
-            throw std::runtime_error("Memory::get");
-        }
-    }
-};
 
-} // end namespace
+    unsigned short get(unsigned int address) const override
+    { return data.at(address); }
+
+private:
+    std::vector<unsigned short> data;
+};
 
 gboolean on_draw(GtkWidget*, cairo_t* cr, gpointer data)
 {
@@ -74,13 +66,12 @@ gboolean on_draw(GtkWidget*, cairo_t* cr, gpointer data)
     return FALSE;
 }
 
-struct GUIEmulatorRAM : public hcc::IRAM {
+struct RAM : public hcc::IRAM {
     static const unsigned int CHANNELS = 3;
     static const unsigned int SCREEN_WIDTH = 512;
     static const unsigned int SCREEN_HEIGHT = 256;
-    static const unsigned int size = 0x6001;
 
-    unsigned short *data;
+    std::vector<unsigned short> data;
     GdkPixbuf *pixbuf;
     GtkWidget *screen;
 
@@ -96,9 +87,8 @@ struct GUIEmulatorRAM : public hcc::IRAM {
         p[2] = color;
     }
 public:
-    GUIEmulatorRAM() {
-        data = new unsigned short[size];
-
+    RAM() : data(0x6001, 0)
+    {
         pixbuf = gdk_pixbuf_new(GDK_COLORSPACE_RGB, FALSE, 8, SCREEN_WIDTH, SCREEN_HEIGHT);
         gdk_pixbuf_fill(pixbuf, 0x0000000);
 
@@ -106,21 +96,18 @@ public:
         gtk_widget_set_size_request(screen, SCREEN_WIDTH, SCREEN_HEIGHT);
         g_signal_connect(screen, "draw", G_CALLBACK(on_draw), pixbuf);
     }
-    virtual ~GUIEmulatorRAM() {
-        delete[] data;
-    }
+
     void keyboard(unsigned short value) {
         data[0x6000] = value;
     }
+
     GtkWidget* getScreenWidget() {
         return screen;
     }
-    virtual void set(unsigned int address, unsigned short value) {
-        if (address >= size) {
-            throw std::runtime_error("RAM::set");
-        }
 
-        data[address] = value;
+    void set(unsigned int address, unsigned short value) override
+    {
+        data.at(address) = value;
 
         // check if we are writing to video RAM
         if (0x4000 <= address && address <0x6000) {
@@ -137,13 +124,9 @@ public:
             gdk_threads_leave();
         }
     }
-    virtual unsigned short get(unsigned int address) const {
-        if (address >= size) {
-            throw std::runtime_error("RAM::get");
-        }
 
-        return data[address];
-    }
+    unsigned short get(unsigned int address) const override
+    { return data.at(address); }
 };
 
 struct emulator {
@@ -155,8 +138,8 @@ struct emulator {
     void run_thread();
     GtkToolItem* create_button(const gchar* stock_id, const gchar* text, GCallback callback);
 
-    hcc::ROM rom;
-    GUIEmulatorRAM ram;
+    ROM rom;
+    RAM ram;
     hcc::CPU cpu;
 
     bool running = false;
