@@ -51,11 +51,11 @@ struct ROM : public hcc::IROM {
         return true;
     }
 
-    unsigned short get(unsigned int address) const override
+    uint16_t get(unsigned int address) const override
     { return data.at(address); }
 
 private:
-    std::vector<unsigned short> data;
+    std::vector<uint16_t> data;
 };
 
 gboolean on_draw(GtkWidget*, cairo_t* cr, gpointer data)
@@ -76,7 +76,7 @@ struct RAM : public hcc::IRAM {
     static const unsigned int SCREEN_WIDTH = 512;
     static const unsigned int SCREEN_HEIGHT = 256;
 
-    std::vector<unsigned short> data;
+    std::vector<uint16_t> data;
     GdkPixbuf *pixbuf;
     GtkWidget *screen;
 
@@ -91,7 +91,7 @@ public:
         g_signal_connect(screen, "draw", G_CALLBACK(on_draw), pixbuf);
     }
 
-    void keyboard(unsigned short value) {
+    void keyboard(uint16_t value) {
         data[0x6000] = value;
     }
 
@@ -99,7 +99,7 @@ public:
         return screen;
     }
 
-    void set(unsigned int address, unsigned short value) override
+    void set(unsigned int address, uint16_t value) override
     {
         data.at(address) = value;
     }
@@ -110,7 +110,7 @@ public:
         auto first = begin(data) + 0x4000;
         auto last  = begin(data) + 0x6000;
         guchar* row = gdk_pixbuf_get_pixels(pixbuf);
-        unsigned short value = 0;
+        uint16_t value = 0;
 
         for (unsigned int y = 0; y < SCREEN_HEIGHT; ++y) {
             guchar* p = row;
@@ -132,7 +132,7 @@ public:
         }
     }
 
-    unsigned short get(unsigned int address) const override
+    uint16_t get(unsigned int address) const override
     { return data.at(address); }
 };
 
@@ -185,7 +185,7 @@ gpointer c_screen_thread(gpointer user_data)
 }
 
 // Translate special keys. See Figure 5.6 in TECS book.
-unsigned short translate(guint keyval)
+uint16_t translate(guint keyval)
 {
     switch (keyval) {
     case GDK_KEY_Return:    return 128;
