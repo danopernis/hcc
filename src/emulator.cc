@@ -66,6 +66,12 @@ gboolean on_draw(GtkWidget*, cairo_t* cr, gpointer data)
     return FALSE;
 }
 
+gboolean queue_redraw(gpointer widget)
+{
+    gtk_widget_queue_draw(GTK_WIDGET(widget));
+    return FALSE;
+}
+
 struct RAM : public hcc::IRAM {
     static const unsigned int CHANNELS = 3;
     static const unsigned int SCREEN_WIDTH = 512;
@@ -119,9 +125,7 @@ public:
                 putpixel(x + bit, y, value & 1);
                 value = value >> 1;
             }
-            gdk_threads_enter();
-            gtk_widget_queue_draw(screen);
-            gdk_threads_leave();
+            gdk_threads_add_idle(queue_redraw, screen);
         }
     }
 
@@ -299,7 +303,7 @@ void emulator::run_clicked()
     gtk_widget_set_sensitive(GTK_WIDGET(button_pause), TRUE);
     gtk_widget_set_visible(GTK_WIDGET(button_pause), TRUE);
 
-    g_thread_create(c_run_thread, this, FALSE, NULL);
+    g_thread_new("c_run_thread", c_run_thread, this);
 }
 
 void emulator::pause_clicked()
