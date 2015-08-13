@@ -35,7 +35,7 @@ VM_OBJECTS = \
 	VMCommand.o \
 	CPU.o
 
-BIN := jack2vm emulator-gui hcc
+BIN := jack2vm emulator hcc
 
 all: $(BIN)
 
@@ -58,7 +58,7 @@ vm.a: $(VM_OBJECTS)
 jack2vm: jack2vm.cc jack.a vm.a
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
-emulator-gui: emulator-gui.cc CPU.o
+emulator: emulator.cc CPU.o
 	$(CXX) $(CXXFLAGS) -o $@ $^ `pkg-config --libs --cflags gtk+-3.0`
 
 hcc: hcc.cc asm.a jack.a ssa.a vm.a
