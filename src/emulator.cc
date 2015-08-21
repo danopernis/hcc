@@ -4,11 +4,16 @@
 #include "CPU.h"
 #include <cassert>
 #include <fstream>
-#include <glib.h>
-#include <gtk/gtk.h>
+#include <gtkmm.h>
 #include <iostream>
 #include <stdexcept>
 #include <vector>
+
+
+// sigc workaround
+namespace sigc {
+SIGC_FUNCTORS_DEDUCE_RESULT_TYPE_WITH_DECLTYPE
+}
 
 
 namespace {
@@ -45,16 +50,13 @@ struct RAM : public hcc::IRAM {
 };
 
 
-struct screen_widget {
+struct screen_widget : Gtk::DrawingArea {
     screen_widget(RAM& ram);
 
-    operator GtkWidget* () { return widget; }
-
-    gboolean draw(cairo_t* cr);
+    bool draw(const Cairo::RefPtr<Cairo::Context>& cr);
 
 private:
-    GtkWidget* widget;
-    GdkPixbuf* pixbuf;
+    Glib::RefPtr<Gdk::Pixbuf> pixbuf;
     RAM& ram;
 };
 
@@ -64,10 +66,10 @@ struct emulator {
     void load_clicked();
     void run_clicked();
     void pause_clicked();
-    gboolean keyboard_callback(GdkEventKey* event);
+    bool keyboard_callback(GdkEventKey* event);
     void cpu_thread();
     void screen_thread();
-    GtkToolItem* create_button(const gchar* stock_id, const gchar* text, GCallback callback);
+    void setup_button(Gtk::ToolButton& button, const gchar* stock_id, const gchar* text);
 
     ROM rom;
     RAM ram;
@@ -75,41 +77,18 @@ struct emulator {
 
     bool running = false;
 
-    GtkWidget* window;
-    GtkWidget* load_dialog;
-    GtkWidget* error_dialog;
-    GtkToolItem* button_load;
-    GtkToolItem* button_run;
-    GtkToolItem* button_pause;
+    Gtk::SeparatorToolItem separator;
+    Gtk::Toolbar toolbar;
+    Gtk::ToggleButton keyboard;
+    Gtk::Grid grid;
+    Gtk::Window window;
+    Gtk::FileChooserDialog load_dialog;
+    Gtk::MessageDialog error_dialog;
+    Gtk::ToolButton button_load;
+    Gtk::ToolButton button_run;
+    Gtk::ToolButton button_pause;
     screen_widget screen;
 };
-
-
-gboolean c_screen_widget_draw(GtkWidget*, cairo_t* cr, gpointer data)
-{ return reinterpret_cast<screen_widget*>(data)->draw(cr); }
-
-
-gboolean c_queue_redraw(gpointer widget)
-{
-    gtk_widget_queue_draw(GTK_WIDGET(widget));
-    return FALSE;
-}
-
-
-gboolean c_keyboard_callback(GtkWidget*, GdkEventKey *event, gpointer user_data)
-{ return reinterpret_cast<emulator*>(user_data)->keyboard_callback(event); }
-
-
-void c_load_clicked(GtkButton*, gpointer user_data)
-{ reinterpret_cast<emulator*>(user_data)->load_clicked(); }
-
-
-void c_run_clicked(GtkButton*, gpointer user_data)
-{ reinterpret_cast<emulator*>(user_data)->run_clicked(); }
-
-
-void c_pause_clicked(GtkButton*, gpointer user_data)
-{ reinterpret_cast<emulator*>(user_data)->pause_clicked(); }
 
 
 gpointer c_cpu_thread(gpointer user_data)
@@ -200,21 +179,21 @@ bool ROM::load(const char* filename)
 
 
 screen_widget::screen_widget(RAM& ram)
-    : widget(gtk_drawing_area_new())
-    , pixbuf(gdk_pixbuf_new(GDK_COLORSPACE_RGB, FALSE, 8, SCREEN_WIDTH, SCREEN_HEIGHT))
+    : pixbuf(
+        Gdk::Pixbuf::create(Gdk::Colorspace::COLORSPACE_RGB, false, 8, SCREEN_WIDTH, SCREEN_HEIGHT))
     , ram(ram)
 {
-    gtk_widget_set_size_request(widget, SCREEN_WIDTH, SCREEN_HEIGHT);
-    g_signal_connect(widget, "draw", G_CALLBACK(c_screen_widget_draw), this);
+    set_size_request(SCREEN_WIDTH, SCREEN_HEIGHT);
+    signal_draw().connect([&] (const Cairo::RefPtr<Cairo::Context>& cr) { return draw(cr); });
 }
 
 
-gboolean screen_widget::draw(cairo_t* cr)
+bool screen_widget::draw(const Cairo::RefPtr<Cairo::Context>& cr)
 {
-    const auto rowstride = gdk_pixbuf_get_rowstride(pixbuf);
+    const auto rowstride = pixbuf->get_rowstride();
     auto first = begin(ram.data) + 0x4000;
     auto last  = begin(ram.data) + 0x6000;
-    guchar* row = gdk_pixbuf_get_pixels(pixbuf);
+    guchar* row = pixbuf->get_pixels();
     uint16_t value = 0;
 
     for (unsigned int y = 0; y < SCREEN_HEIGHT; ++y) {
@@ -236,99 +215,92 @@ gboolean screen_widget::draw(cairo_t* cr)
         row += rowstride;
     }
 
-    gdk_cairo_set_source_pixbuf(cr, pixbuf, 0, 0);
-    cairo_paint(cr);
-    return FALSE;
+    Gdk::Cairo::set_source_pixbuf(cr, pixbuf, 0, 0);
+    cr->paint();
+    return false;
 }
 
 
 emulator::emulator()
-    : screen(ram)
+    : keyboard("Grab keyboard focus")
+    , load_dialog(window, "Load ROM")
+    , error_dialog(window, "Error loading program", false, Gtk::MessageType::MESSAGE_ERROR,
+        Gtk::ButtonsType::BUTTONS_CLOSE, true)
+    , screen(ram)
 {
     /* toolbar buttons */
-    button_load    = create_button("document-open",        "Load...", G_CALLBACK(c_load_clicked));
-    button_run     = create_button("media-playback-start", "Run",     G_CALLBACK(c_run_clicked));
-    button_pause   = create_button("media-playback-pause", "Pause",   G_CALLBACK(c_pause_clicked));
+    setup_button(button_load,  "document-open",        "Load...");
+    setup_button(button_run,   "media-playback-start", "Run");
+    setup_button(button_pause, "media-playback-pause", "Pause");
+    button_load.signal_clicked().connect([&] () { load_clicked(); });
+    button_run.signal_clicked().connect([&] () { run_clicked(); });
+    button_pause.signal_clicked().connect([&] () { pause_clicked(); });
 
-    GtkToolItem *separator1 = gtk_separator_tool_item_new();
-
-    gtk_widget_set_sensitive(GTK_WIDGET(button_run), FALSE);
-    gtk_widget_set_sensitive(GTK_WIDGET(button_pause), FALSE);
+    button_run.set_sensitive(false);
+    button_pause.set_sensitive(false);
 
     /* toolbar itself */
-    GtkWidget *toolbar = gtk_toolbar_new();
-    gtk_widget_set_hexpand(toolbar, TRUE);
-    gtk_toolbar_set_style(GTK_TOOLBAR(toolbar), GTK_TOOLBAR_ICONS);
-    gtk_toolbar_insert(GTK_TOOLBAR(toolbar), button_load,  -1);
-    gtk_toolbar_insert(GTK_TOOLBAR(toolbar), separator1,   -1);
-    gtk_toolbar_insert(GTK_TOOLBAR(toolbar), button_run,   -1);
-    gtk_toolbar_insert(GTK_TOOLBAR(toolbar), button_pause, -1);
+    toolbar.set_hexpand(true);
+    toolbar.set_toolbar_style(Gtk::ToolbarStyle::TOOLBAR_ICONS);
+    toolbar.insert(button_load,  -1);
+    toolbar.insert(separator,    -1);
+    toolbar.insert(button_run,   -1);
+    toolbar.insert(button_pause, -1);
 
     /* keyboard */
-    GtkWidget *keyboard = gtk_toggle_button_new_with_label("Grab keyboard focus");
-    gtk_widget_add_events(keyboard, GDK_KEY_PRESS_MASK | GDK_KEY_RELEASE_MASK);
-    g_signal_connect(keyboard, "key-press-event",   G_CALLBACK(c_keyboard_callback), this);
-    g_signal_connect(keyboard, "key-release-event", G_CALLBACK(c_keyboard_callback), this);
+    keyboard.add_events(Gdk::EventMask::KEY_PRESS_MASK | Gdk::EventMask::KEY_RELEASE_MASK);
+    keyboard.signal_key_press_event().connect([&] (GdkEventKey* event) {
+        return keyboard_callback(event);
+    });
+    keyboard.signal_key_release_event().connect([&] (GdkEventKey* event) {
+        return keyboard_callback(event);
+    });
 
     /* main layout */
-    GtkWidget *grid = gtk_grid_new();
-    gtk_grid_attach(GTK_GRID(grid), toolbar, 0, 0, 1, 1);
-    gtk_grid_attach(GTK_GRID(grid), screen, 0, 1, 1, 1);
-    gtk_grid_attach(GTK_GRID(grid), keyboard, 0, 2, 1, 1);
+    grid.attach(toolbar, 0, 0, 1, 1);
+    grid.attach(screen, 0, 1, 1, 1);
+    grid.attach(keyboard, 0, 2, 1, 1);
 
     /* main window */
-    window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    gtk_window_set_title(GTK_WINDOW(window), "HACK emulator");
-    gtk_window_set_resizable(GTK_WINDOW(window), FALSE);
-    gtk_window_set_focus(GTK_WINDOW(window), NULL);
-    g_signal_connect(window, "destroy", G_CALLBACK (gtk_main_quit), NULL);
-    gtk_container_add(GTK_CONTAINER(window), grid);
-    gtk_widget_show_all(window);
-    gtk_widget_set_visible(GTK_WIDGET(button_pause), FALSE);
+    window.set_title("HACK emulator");
+    window.set_resizable(false);
+    window.add(grid);
+    window.show_all();
+    button_pause.set_visible(false);
 
-    load_dialog = gtk_file_chooser_dialog_new(
-        "Load ROM", GTK_WINDOW(window), GTK_FILE_CHOOSER_ACTION_OPEN,
-        "gtk-cancel", GTK_RESPONSE_CANCEL,
-        "gtk-open", GTK_RESPONSE_ACCEPT,
-        NULL);
-
-    error_dialog = gtk_message_dialog_new(GTK_WINDOW(window),
-        GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE,
-        "Error loading program");
+    load_dialog.add_button("gtk-cancel", GTK_RESPONSE_CANCEL);
+    load_dialog.add_button("gtk-open", GTK_RESPONSE_ACCEPT);
 }
 
 
-GtkToolItem* emulator::create_button(const gchar* stock_id, const gchar* text, GCallback callback)
+void emulator::setup_button(Gtk::ToolButton& button, const gchar* stock_id, const gchar* text)
 {
-    GtkToolItem *button = gtk_tool_button_new(NULL, text);
-    gtk_tool_button_set_icon_name(GTK_TOOL_BUTTON(button), stock_id);
-    gtk_tool_item_set_tooltip_text(button, text);
-    g_signal_connect(button, "clicked", callback, this);
-    return button;
+    button.set_label(text);
+    button.set_tooltip_text(text);
+    button.set_icon_name(stock_id);
 }
 
 
 void emulator::load_clicked()
 {
-    const gint result = gtk_dialog_run(GTK_DIALOG(load_dialog));
-    gtk_widget_hide(load_dialog);
+    const gint result = load_dialog.run();
+    load_dialog.hide();
 
     if (result != GTK_RESPONSE_ACCEPT) {
         return;
     }
 
-    char *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(load_dialog));
-    const bool loaded = rom.load(filename);
-    g_free(filename);
+    auto filename = load_dialog.get_filename();
+    const bool loaded = rom.load(filename.c_str());
 
     if (!loaded) {
-        gtk_dialog_run(GTK_DIALOG(error_dialog));
-        gtk_widget_hide(error_dialog);
+        error_dialog.run();
+        error_dialog.hide();
         return;
     }
 
     cpu.reset();
-    gtk_widget_set_sensitive(GTK_WIDGET(button_run), TRUE);
+    button_run.set_sensitive(true);
 }
 
 
@@ -337,10 +309,10 @@ void emulator::run_clicked()
     assert(!running);
 
     running = true;
-    gtk_widget_set_sensitive(GTK_WIDGET(button_run), FALSE);
-    gtk_widget_set_visible(GTK_WIDGET(button_run), FALSE);
-    gtk_widget_set_sensitive(GTK_WIDGET(button_pause), TRUE);
-    gtk_widget_set_visible(GTK_WIDGET(button_pause), TRUE);
+    button_run.set_sensitive(false);
+    button_run.set_visible(false);
+    button_pause.set_sensitive(true);
+    button_pause.set_visible(true);
 
     g_thread_new("c_cpu_thread",    c_cpu_thread,    this);
     g_thread_new("c_screen_thread", c_screen_thread, this);
@@ -352,21 +324,21 @@ void emulator::pause_clicked()
     assert(running);
 
     running = false;
-    gtk_widget_set_sensitive(GTK_WIDGET(button_pause), FALSE);
-    gtk_widget_set_visible(GTK_WIDGET(button_pause), FALSE);
-    gtk_widget_set_sensitive(GTK_WIDGET(button_run), TRUE);
-    gtk_widget_set_visible(GTK_WIDGET(button_run), TRUE);
+    button_pause.set_sensitive(false);
+    button_pause.set_visible(false);
+    button_run.set_sensitive(true);
+    button_run.set_visible(true);
 }
 
 
-gboolean emulator::keyboard_callback(GdkEventKey* event)
+bool emulator::keyboard_callback(GdkEventKey* event)
 {
     if (event->type == GDK_KEY_RELEASE) {
         ram.keyboard(0);
     } else {
         ram.keyboard(translate(event->keyval));
     }
-    return TRUE;
+    return true;
 }
 
 
@@ -387,7 +359,7 @@ void emulator::cpu_thread()
 void emulator::screen_thread()
 {
     while (running) {
-        gdk_threads_add_idle(c_queue_redraw, screen);
+        Glib::signal_idle().connect_once([&] () { screen.queue_draw(); });
         g_usleep(10000);
     }
 }
@@ -398,8 +370,8 @@ void emulator::screen_thread()
 
 int main(int argc, char *argv[])
 {
-    gtk_init(&argc, &argv);
+    Glib::RefPtr<Gtk::Application> app = Gtk::Application::create(
+        argc, argv, "hcc.emulator");
     emulator e;
-    gtk_main();
-    return 0;
+    return app->run(e.window);
 }
