@@ -6,7 +6,9 @@
 #include <fstream>
 #include <gtkmm.h>
 #include <iostream>
+#include <mutex>
 #include <stdexcept>
+#include <thread>
 #include <vector>
 
 
@@ -63,6 +65,7 @@ private:
 
 struct emulator {
     emulator();
+    ~emulator() { pause(); }
     void load_clicked();
     void run_clicked();
     void pause_clicked();
@@ -75,7 +78,32 @@ struct emulator {
     RAM ram;
     hcc::CPU cpu;
 
+private:
+    std::thread thread_cpu;
+    std::thread thread_screen;
+    std::mutex running_mutex;
     bool running = false;
+public:
+    void run()
+    {
+        std::lock_guard<std::mutex> lock(running_mutex);
+        if (running) {
+            return;
+        }
+        running = true;
+        thread_cpu = std::thread([&] { cpu_thread(); });
+        thread_screen = std::thread([&] { screen_thread(); });
+    }
+    void pause()
+    {
+         std::lock_guard<std::mutex> lock(running_mutex);
+         if (!running) {
+             return;
+         }
+         running = false;
+         thread_cpu.join();
+         thread_screen.join();
+    }
 
     Gtk::SeparatorToolItem separator;
     Gtk::Toolbar toolbar;
@@ -89,20 +117,6 @@ struct emulator {
     Gtk::ToolButton button_pause;
     screen_widget screen;
 };
-
-
-gpointer c_cpu_thread(gpointer user_data)
-{
-    reinterpret_cast<emulator*>(user_data)->cpu_thread();
-    return NULL;
-}
-
-
-gpointer c_screen_thread(gpointer user_data)
-{
-    reinterpret_cast<emulator*>(user_data)->screen_thread();
-    return NULL;
-}
 
 
 // Translate special keys. See Figure 5.6 in TECS book.
@@ -306,24 +320,19 @@ void emulator::load_clicked()
 
 void emulator::run_clicked()
 {
-    assert(!running);
+    run();
 
-    running = true;
     button_run.set_sensitive(false);
     button_run.set_visible(false);
     button_pause.set_sensitive(true);
     button_pause.set_visible(true);
-
-    g_thread_new("c_cpu_thread",    c_cpu_thread,    this);
-    g_thread_new("c_screen_thread", c_screen_thread, this);
 }
 
 
 void emulator::pause_clicked()
 {
-    assert(running);
+    pause();
 
-    running = false;
     button_pause.set_sensitive(false);
     button_pause.set_visible(false);
     button_run.set_sensitive(true);
@@ -348,7 +357,7 @@ void emulator::cpu_thread()
     while (running) {
         cpu.step(&rom, &ram);
         if (steps>100) {
-            g_usleep(10);
+            std::this_thread::sleep_for(std::chrono::microseconds(10));
             steps = 0;
         }
         ++steps;
@@ -360,7 +369,7 @@ void emulator::screen_thread()
 {
     while (running) {
         Glib::signal_idle().connect_once([&] () { screen.queue_draw(); });
-        g_usleep(10000);
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 }
 
