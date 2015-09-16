@@ -81,12 +81,8 @@ struct reg {
     std::string save_fast() const;
 private:
     reg(int index) : index(index) { }
-    int index; // index to the subroutine's table of registers
-friend struct regs_table;
-};
-
-struct regs_table : index_table<regs_table, std::string, reg> {
-    static reg construct(int index) { return reg(index); }
+    int index;
+friend struct subroutine_ir;
 };
 
 // ============================================================================
@@ -113,12 +109,8 @@ struct local {
     std::string save_fast() const;
 private:
     local(int index) : index(index) { }
-    int index; // index to the subroutine's table of locals
-friend struct locals_table;
-};
-
-struct locals_table : index_table<locals_table, std::string, local> {
-    static local construct(int index) { return local(index); }
+    int index;
+friend struct subroutine_ir;
 };
 
 // ============================================================================
@@ -128,10 +120,9 @@ struct label {
     bool operator==(const label& other) const { return index == other.index; }
     std::string save_fast() const;
 private:
+    label(int index) : index(index) { }
     int index;
-friend struct subroutine_builder;
 friend struct subroutine_ir;
-friend struct argument;
 };
 
 // ============================================================================
@@ -279,6 +270,8 @@ struct instruction {
 using instruction_list = std::list<instruction>;
 
 struct basic_block {
+    basic_block(const label& name) : name(name) { }
+
     instruction_list instructions;
 
     label name;
@@ -294,13 +287,16 @@ struct basic_block {
 
 /** Intermediate representation */
 struct subroutine_ir {
+    subroutine_ir()
+        : exit_node_  {create_label()}
+        , entry_node_ {create_label()}
+    { }
+
     template<typename F>
     void for_each_domtree_successor(const label& l, F&& f)
     {
         for (int i : dominance->tree.successors()[l.index]) {
-            label l;
-            l.index = i;
-            f(basic_blocks.at(l));
+            f(basic_blocks.at({i}));
         }
     }
 
@@ -308,9 +304,7 @@ struct subroutine_ir {
     void for_each_cfg_successor(const label& l, F&& f)
     {
         for (int i : g.successors()[l.index]) {
-            label l;
-            l.index = i;
-            f(basic_blocks.at(l));
+            f(basic_blocks.at({i}));
         }
     }
 
@@ -318,9 +312,7 @@ struct subroutine_ir {
     void for_each_reverse_dfs(const label& l, F&& f)
     {
         for (int i : reverse_dominance->dfs[l.index]) {
-            label l;
-            l.index = i;
-            f(basic_blocks.at(l));
+            f(basic_blocks.at({i}));
         }
     }
 
@@ -328,9 +320,7 @@ struct subroutine_ir {
     void for_each_bb_in_dfs(const label& l, F&& f)
     {
         for (int i : dominance->dfs[l.index]) {
-            label l;
-            l.index = i;
-            f(basic_blocks.at(l));
+            f(basic_blocks.at({i}));
         }
     }
 
@@ -339,9 +329,7 @@ struct subroutine_ir {
     {
         depth_first_search dfs(dominance->tree.successors(), dominance->root);
         for (int i : dfs.preorder()) {
-            label l;
-            l.index = i;
-            f(basic_blocks.at(l));
+            f(basic_blocks.at({i}));
         }
     }
 
@@ -369,13 +357,31 @@ struct subroutine_ir {
     unit& get_unit() {return *u;}
     unit* u;
 
-    regs_table regs;
-    locals_table locals;
+    void add_edge(const label& from, const label& to)
+    { g.add_edge(from.index, to.index); }
+
+    label create_label()
+    {
+        assert(g.node_count() == label_counter);
+        g.add_node();
+        label l {label_counter++};
+        basic_blocks.emplace(l, l);
+        return l;
+    }
+    local create_local() { return {local_counter++}; }
+    reg create_reg()     { return {reg_counter++  }; }
+    template<typename... T> void add_debug(const argument& a, T&&... t) { /* TODO */ }
+
 private:
     graph g;
+    std::map<label, basic_block> basic_blocks;
+
+    int label_counter {0};
+    int local_counter {0};
+    int reg_counter   {0};
+
     label exit_node_;
     label entry_node_;
-    std::map<label, basic_block> basic_blocks;
     std::unique_ptr<graph_dominance> reverse_dominance;
     std::unique_ptr<graph_dominance> dominance;
 

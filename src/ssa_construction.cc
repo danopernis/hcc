@@ -76,24 +76,26 @@ void insert_temp_phi(subroutine& s)
 }
 
 struct name_manager {
-    name_manager(regs_table& regs, const std::set<reg>& variables)
-        : regs(regs)
+    name_manager(subroutine_ir& subroutine_, const std::set<reg>& variables)
+        : subroutine(subroutine_)
     {
         for (const auto& v : variables) {
-            entries.emplace(v, map_entry(v));
+            entries[v].emplace(v);
             backref.emplace(v, v);
         }
     }
 
     reg current_name(const reg& name)
     {
-        return entries.at(backref.at(name)).current_name();
+        return entries.at(backref.at(name)).top();
     }
 
     reg new_name(const reg& name)
     {
         const auto a = backref.at(name);
-        const auto r = entries.at(a).new_name(regs, a);
+        const auto r = subroutine.create_reg();
+        subroutine.add_debug(r, "ssa_construction", a);
+        entries.at(a).emplace(r);
         backref.emplace(r, a);
         return r;
     }
@@ -104,27 +106,9 @@ struct name_manager {
     }
 
 private:
-    struct map_entry {
-        map_entry(const reg& a) : counter{0}
-        {
-            stack.emplace(a);
-        }
-        reg current_name() const {return stack.top(); }
-        reg new_name(regs_table& regs, const reg& a)
-        {
-            const auto n = regs.get(a) + "_" + std::to_string(counter++);
-            const auto r = regs.put(n);
-            stack.emplace(r);
-            return current_name();
-        }
-        void pop() { stack.pop(); }
-    private:
-        std::stack<reg> stack;
-        int counter;
-    };
-    std::map<reg, map_entry> entries;
+    std::map<reg, std::stack<reg>> entries;
     std::map<reg, reg> backref;
-    regs_table& regs;
+    subroutine_ir& subroutine;
 };
 
 } // anonymous namespace
@@ -140,7 +124,7 @@ void subroutine::construct_minimal_ssa()
     insert_temp_phi(*this);
 
     // Step 2: append indices to variable names
-    name_manager names(this->regs, variables);
+    name_manager names(*this, variables);
     std::function<void(basic_block&)> rename = [&] (basic_block& x)
     {
         for (auto& instr : x.instructions) {

@@ -13,12 +13,12 @@ using hcc::ssa::tokenizer;
 auto example = R"(
 define @Sys.init
 block $1
-	call %0_0 @Sys.identity 42 ;
+	call %0_0 @Sys.identity #42 ;
 	store @Sys.a %0_0 ;
-	return 0 ;
+	return #0 ;
 define @Sys.identity
 	block $1
-	argument %x_0 0 ;
+	argument %x_0 #0 ;
 	return %x_0 ;
 )";
 void test_example()

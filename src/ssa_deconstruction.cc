@@ -2,7 +2,6 @@
 // See LICENSE for details
 
 #include "ssa.h"
-#include <sstream>
 
 
 namespace hcc { namespace ssa {
@@ -12,15 +11,7 @@ namespace {
 
 
 struct congruence_classes {
-    congruence_classes(regs_table& regs) : regs(regs) { }
-
-    regs_table& regs;
-    int last_class = 0;
-    std::map<argument, int> classes;
-
-    void insert(const argument& a) {
-        classes.emplace(a, last_class);
-    }
+    std::map<argument, reg> classes;
 
     std::function<void(argument&)> replacer() {
         return [&](argument& arg) {
@@ -30,7 +21,7 @@ struct congruence_classes {
 
             auto it = classes.find(arg);
             if (it != classes.end()) {
-                arg = regs.put("class" + std::to_string(it->second));
+                arg = it->second;
             }
         };
     }
@@ -42,7 +33,6 @@ struct congruence_classes {
 // FIXME copies are not parallel
 void naive_copy_insertion(subroutine& s, congruence_classes& cc)
 {
-    auto& regs = s.regs;
     // worklist of MOV instructions to be inserted at the end of basic block,
     // indexed by basic block
     std::map<label, instruction_list> worklist;
@@ -56,12 +46,13 @@ void naive_copy_insertion(subroutine& s, congruence_classes& cc)
         auto arg = i->arguments.begin();
 
         // invent a new primed name
-        const auto base = regs.put(regs.get(arg->get_reg()) + "'");
+        const auto base = s.create_reg();
+        s.add_debug(base, "phi_dst_reg", *arg);
 
         // insert MOV after PHI
         bb.instructions.insert(++decltype(i)(i), instruction(instruction_type::MOV, {*arg, base}));
-        cc.insert(*arg);
-        cc.insert(base);
+        cc.classes.emplace(base, base);
+        cc.classes.emplace(*arg, base);
 
         // rename PHI's dest
         *arg++ = base;
@@ -70,19 +61,17 @@ void naive_copy_insertion(subroutine& s, congruence_classes& cc)
             auto label = *arg++;
             auto value = *arg;
 
-            std::stringstream name_builder;
-            name_builder << regs.get(base);
-            label.save(name_builder, s.get_unit(), s);
-            const auto name = regs.put(name_builder.str()); // unique name
+            const auto name = s.create_reg();
+            s.add_debug(name, "phi_src_reg", base);
+            s.add_debug(name, "phi_src_label", label);
 
             // insert MOV into worklist
             worklist[label.get_label()].emplace_back(instruction(instruction_type::MOV, {name, value}));
-            cc.insert(name);
+            cc.classes.emplace(name, base);
 
             // rename PHI's src
             *arg++ = name;
         }
-        ++cc.last_class;
     }
     });
 
@@ -158,7 +147,7 @@ void subroutine::ssa_deconstruct()
 {
     recompute_dominance();
 
-    congruence_classes cc(this->regs);
+    congruence_classes cc;
     naive_copy_insertion(*this, cc);
 
     // incidental classes, rising from the code
@@ -175,12 +164,13 @@ void subroutine::ssa_deconstruct()
             if (src.is_reg() && dest.is_reg()) {
                 if (!interfere(src, dest, *this)) {
                     if (!has_src_class && !has_dest_class) {
-                        cc.insert(src);
-                        cc.insert(dest);
-                        ++cc.last_class;
+                        const auto r = create_reg();
+                        add_debug(r, "congruence_class");
+                        cc.classes.emplace(src, r);
+                        cc.classes.emplace(dest, r);
                     } else if (has_src_class && has_dest_class) {
-                        int keep_class = cc.classes.at(src);
-                        int remove_class = cc.classes.at(dest);
+                        auto keep_class = cc.classes.at(src);
+                        auto remove_class = cc.classes.at(dest);
                         for (auto& kv : cc.classes) {
                             if (kv.second == remove_class)
                                 kv.second = keep_class;

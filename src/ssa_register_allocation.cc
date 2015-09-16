@@ -41,12 +41,13 @@ interference_graph_type build_interference_graph(subroutine& s, const std::vecto
 
 void do_spill(subroutine& s, const reg& r)
 {
-    int spill_counter = 0;
+    const argument storage = s.create_local();
+    s.add_debug(storage, "spilled", r);
+
     s.for_each_bb([&] (basic_block& bb) {
         for (auto i = bb.instructions.begin(), e = bb.instructions.end(); i != e;) {
-            const auto x = s.regs.get(r);
-            const argument spill_first = argument(s.locals.put("SPILLED_" + x));
-            const argument spill_second = argument(s.regs.put(x + "_" + std::to_string(++spill_counter)));
+            const argument temporary = s.create_reg();
+            s.add_debug(temporary, "spilled", r);
             bool did_spill_load = false;
             bool did_spill_store = false;
 
@@ -57,7 +58,7 @@ void do_spill(subroutine& s, const reg& r)
                 }
                 auto& x = arg.get_reg();
                 if (x == r) {
-                    arg = spill_second;
+                    arg = temporary;
                     did_spill_load = true;
                 }
             });
@@ -67,21 +68,21 @@ void do_spill(subroutine& s, const reg& r)
                 }
                 auto& x = arg.get_reg();
                 if (x == r) {
-                    arg = spill_second;
+                    arg = temporary;
                     did_spill_store = true;
                 }
             });
             if (did_spill_load) {
-                bb.instructions.insert(i, hcc::ssa::instruction(instruction_type::LOAD, {spill_second, spill_first}));
+                bb.instructions.insert(i, hcc::ssa::instruction(instruction_type::LOAD, {temporary, storage}));
             }
             if (did_spill_store) {
-                if (instruction.type == instruction_type::MOV && instruction.arguments[0] == spill_second) {
+                if (instruction.type == instruction_type::MOV && instruction.arguments[0] == temporary) {
                     instruction.type = instruction_type::STORE;
-                    instruction.arguments[0] = spill_first;
+                    instruction.arguments[0] = storage;
                     ++i;
                 } else {
                     ++i;
-                    bb.instructions.insert(i, hcc::ssa::instruction(instruction_type::STORE, {spill_first, spill_second}));
+                    bb.instructions.insert(i, hcc::ssa::instruction(instruction_type::STORE, {storage, temporary}));
                 }
             } else {
                 ++i;
@@ -116,7 +117,9 @@ void subroutine::allocate_registers()
 {
     std::vector<reg> colors;
     for (int i = 0; i < 7; ++i) {
-        colors.push_back(regs.put("R" + std::to_string(i)));
+        const auto r = create_reg();
+        add_debug(r, "register");
+        colors.push_back(r);
     }
 
     for (;;) {
