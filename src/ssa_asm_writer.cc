@@ -105,9 +105,7 @@ private:
 
     void write_instruction(hcc::ssa::instruction& instruction)
     {
-        std::stringstream ss;
-        instruction.save(ss, u, s);
-        out.emitComment(ss.str());
+        out.emitComment(instruction.save_fast());
 
         switch (instruction.type) {
         // basic block boundary handling
@@ -306,13 +304,7 @@ private:
         }
     }
 
-    std::string handle_label(const label& l)
-    {
-        std::stringstream ss;
-        ss << prefix << ".";
-        argument(l).save(ss, u, s);
-        return ss.str();
-    }
+    std::string handle_label(const label& l) { return prefix + argument(l).save_fast(); }
 
     void reg_store(const argument& x)
     {

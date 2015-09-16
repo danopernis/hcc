@@ -83,13 +83,13 @@ std::string to_string(const token_type& tt)
 {
     switch (tt) {
     case token_type::CONSTANT:
-        return "integer constant";
+        return "#integer constant";
     case token_type::REG:
         return "%register";
     case token_type::GLOBAL:
         return "@global";
     case token_type::LOCAL:
-        return "#local";
+        return "&local";
     case token_type::LABEL:
         return "$label";
     case token_type::DEFINE:
@@ -152,14 +152,13 @@ token_type next_impl(std::istreambuf_iterator<char>& current, unsigned& line_num
         switch (current_state) {
         case state::START:
             t.token = "";
-            if (isdigit(c) || c == '-') {
+            if (c == '#') {
                 current_state = state::CONSTANT;
-                t.token.push_back(c);
             } else if (c == '%') {
                 current_state = state::REG;
             } else if (c == '@') {
                 current_state = state::GLOBAL;
-            } else if (c == '#') {
+            } else if (c == '&') {
                 current_state = state::LOCAL;
             } else if (c == '$') {
                 current_state = state::LABEL;

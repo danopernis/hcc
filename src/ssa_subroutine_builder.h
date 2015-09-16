@@ -24,6 +24,10 @@ struct subroutine_builder {
      */
     label add_bb(const std::string& name, bool is_entry = false);
 
+    reg add_reg(const std::string& name);
+
+    local add_local(const std::string& name);
+
     /**
      * Add instruction to given basic block.
      */
@@ -33,11 +37,10 @@ struct subroutine_builder {
                     const argument& variable2, const label& positive, const label& negative);
     void add_return(const label& bb, const argument& variable);
 
-    reg add_reg(const std::string& name) { return s.regs.put(name); }
-    local add_local(const std::string& name) { return s.locals.put(name); }
-
 private:
-    std::map<std::string, label> name_to_index;
+    std::map<std::string, label> lookup_label;
+    std::map<std::string, reg> lookup_reg;
+    std::map<std::string, local> lookup_local;
     subroutine_ir& s;
 };
 
