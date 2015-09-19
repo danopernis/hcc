@@ -372,9 +372,9 @@ struct subroutine_ir {
     reg create_reg()     { return {reg_counter++  }; }
     template<typename... T> void add_debug(const argument& a, T&&... t) { /* TODO */ }
 
+    std::map<label, basic_block> basic_blocks;
 private:
     graph g;
-    std::map<label, basic_block> basic_blocks;
 
     int label_counter {0};
     int local_counter {0};
@@ -395,6 +395,7 @@ struct subroutine : public subroutine_ir {
     void copy_propagation();
     void ssa_deconstruct();
     void allocate_registers();
+    void superblock_clone();
 };
 
 using subroutine_map = std::map<global, subroutine>;
