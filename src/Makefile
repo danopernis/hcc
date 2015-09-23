@@ -24,6 +24,7 @@ SSA_OBJECTS = \
 	ssa_jack_reader.o \
 	ssa_reader.o \
 	ssa_register_allocation.o \
+	ssa_sccp.o \
 	ssa_subroutine_builder.o \
 	ssa_superblock_clone.o \
 	ssa_tokenizer.o \

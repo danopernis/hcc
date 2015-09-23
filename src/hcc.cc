@@ -145,6 +145,9 @@ void jack_to_asm(const std::vector<std::string>& jack_input_files, hcc::asm_prog
         subroutine.dead_code_elimination();
         subroutine.copy_propagation();
         subroutine.dead_code_elimination();
+        subroutine.superblock_clone();
+        subroutine.copy_propagation();
+        subroutine.dead_code_elimination();
     }
     {
         std::ofstream o {"dump.before.ssa"};
@@ -152,9 +155,7 @@ void jack_to_asm(const std::vector<std::string>& jack_input_files, hcc::asm_prog
     }
     for (auto& subroutine_entry : u.subroutines) {
         auto& subroutine = subroutine_entry.second;
-        subroutine.superblock_clone();
-        subroutine.copy_propagation();
-        subroutine.dead_code_elimination();
+        subroutine.sccp();
     }
     {
         std::ofstream o {"dump.after.ssa"};

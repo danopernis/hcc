@@ -396,6 +396,7 @@ struct subroutine : public subroutine_ir {
     void ssa_deconstruct();
     void allocate_registers();
     void superblock_clone();
+    void sccp();
 };
 
 using subroutine_map = std::map<global, subroutine>;
