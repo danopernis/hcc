@@ -1,9 +1,7 @@
 // Copyright (c) 2012-2015 Dano Pernis
 // See LICENSE for details
 
-#ifndef INDEX_TABLE_H
-#define INDEX_TABLE_H
-
+#pragma once
 #include <cassert>
 #include <algorithm>
 #include <vector>
@@ -35,5 +33,3 @@ private:
     std::vector<Pair> pairs;
     int counter{0};
 };
-
-#endif // INDEX_TABLE_H

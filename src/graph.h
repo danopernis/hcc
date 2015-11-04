@@ -1,9 +1,7 @@
 // Copyright (c) 2012-2015 Dano Pernis
 // See LICENSE for details
 
-#ifndef GRAPH_H
-#define GRAPH_H
-
+#pragma once
 #include <cassert>
 #include <functional>
 #include <set>
@@ -129,5 +127,3 @@ private:
     std::vector<int> postorder_;
     std::vector<bool> visited_;
 };
-
-#endif // GRAPH_H

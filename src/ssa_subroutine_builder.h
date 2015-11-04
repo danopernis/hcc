@@ -1,9 +1,7 @@
 // Copyright (c) 2012-2015 Dano Pernis
 // See LICENSE for details
 
-#ifndef SSA_SUBROUTINE_BUILDER_H
-#define SSA_SUBROUTINE_BUILDER_H
-
+#pragma once
 #include "ssa.h"
 #include <map>
 #include <string>
@@ -44,5 +42,3 @@ private:
 };
 }
 } // namespace hcc::ssa
-
-#endif // SSA_SUBROUTINE_BUILDER_H

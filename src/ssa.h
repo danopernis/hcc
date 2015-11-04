@@ -1,9 +1,7 @@
 // Copyright (c) 2012-2015 Dano Pernis
 // See LICENSE for details
 
-#ifndef SSA_H
-#define SSA_H
-
+#pragma once
 #include "graph.h"
 #include "graph_dominance.h"
 #include "index_table.h"
@@ -490,5 +488,3 @@ struct unit {
 };
 }
 } // namespace hcc::ssa
-
-#endif // SSA_H
