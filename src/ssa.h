@@ -32,9 +32,9 @@ struct Class;
 
 namespace ssa {
 
-
 struct unit;
-struct subroutine_ir;;
+struct subroutine_ir;
+;
 
 enum class instruction_type {
     ARGUMENT,
@@ -66,9 +66,12 @@ enum class argument_type {
 };
 
 struct constant {
-    constant(int value) : value(value) { }
+    constant(int value)
+        : value(value)
+    {
+    }
     int value;
-    bool operator< (const constant& other) const { return value <  other.value; }
+    bool operator<(const constant& other) const { return value < other.value; }
     bool operator==(const constant& other) const { return value == other.value; }
     std::string save_fast() const;
 };
@@ -76,13 +79,17 @@ struct constant {
 // ============================================================================
 
 struct reg {
-    bool operator< (const reg& other) const { return index <  other.index; }
+    bool operator<(const reg& other) const { return index < other.index; }
     bool operator==(const reg& other) const { return index == other.index; }
     std::string save_fast() const;
+
 private:
-    reg(int index) : index(index) { }
+    reg(int index)
+        : index(index)
+    {
+    }
     int index; // index to the subroutine's table of registers
-friend struct regs_table;
+    friend struct regs_table;
 };
 
 struct regs_table : index_table<regs_table, std::string, reg> {
@@ -92,13 +99,17 @@ struct regs_table : index_table<regs_table, std::string, reg> {
 // ============================================================================
 
 struct global {
-    bool operator< (const global& other) const { return index <  other.index; }
+    bool operator<(const global& other) const { return index < other.index; }
     bool operator==(const global& other) const { return index == other.index; }
     std::string save_fast() const;
+
 private:
-    global(int index) : index(index) { }
+    global(int index)
+        : index(index)
+    {
+    }
     int index; // index to the compilation unit's table of globals
-friend struct globals_table;
+    friend struct globals_table;
 };
 
 struct globals_table : index_table<globals_table, std::string, global> {
@@ -108,13 +119,17 @@ struct globals_table : index_table<globals_table, std::string, global> {
 // ============================================================================
 
 struct local {
-    bool operator< (const local& other) const { return index <  other.index; }
+    bool operator<(const local& other) const { return index < other.index; }
     bool operator==(const local& other) const { return index == other.index; }
     std::string save_fast() const;
+
 private:
-    local(int index) : index(index) { }
+    local(int index)
+        : index(index)
+    {
+    }
     int index; // index to the subroutine's table of locals
-friend struct locals_table;
+    friend struct locals_table;
 };
 
 struct locals_table : index_table<locals_table, std::string, local> {
@@ -124,37 +139,78 @@ struct locals_table : index_table<locals_table, std::string, local> {
 // ============================================================================
 
 struct label {
-    bool operator< (const label& other) const { return index <  other.index; }
+    bool operator<(const label& other) const { return index < other.index; }
     bool operator==(const label& other) const { return index == other.index; }
     std::string save_fast() const;
+
 private:
     int index;
-friend struct subroutine_builder;
-friend struct subroutine_ir;
-friend struct argument;
+    friend struct subroutine_builder;
+    friend struct subroutine_ir;
+    friend struct argument;
 };
 
 // ============================================================================
 
 struct argument {
 
-    argument(const constant& v) : type(argument_type::CONSTANT), value(v) { }
-    argument(const reg&      v) : type(argument_type::REG     ), value(v) { }
-    argument(const global&   v) : type(argument_type::GLOBAL  ), value(v) { }
-    argument(const local&    v) : type(argument_type::LOCAL   ), value(v) { }
-    argument(const label&    v) : type(argument_type::LABEL   ), value(v) { }
+    argument(const constant& v)
+        : type(argument_type::CONSTANT)
+        , value(v)
+    {
+    }
+    argument(const reg& v)
+        : type(argument_type::REG)
+        , value(v)
+    {
+    }
+    argument(const global& v)
+        : type(argument_type::GLOBAL)
+        , value(v)
+    {
+    }
+    argument(const local& v)
+        : type(argument_type::LOCAL)
+        , value(v)
+    {
+    }
+    argument(const label& v)
+        : type(argument_type::LABEL)
+        , value(v)
+    {
+    }
 
     bool is_constant() const { return type == argument_type::CONSTANT; }
-    bool is_reg()      const { return type == argument_type::REG;      }
-    bool is_global()   const { return type == argument_type::GLOBAL;   }
-    bool is_local()    const { return type == argument_type::LOCAL;    }
-    bool is_label()    const { return type == argument_type::LABEL;    }
+    bool is_reg() const { return type == argument_type::REG; }
+    bool is_global() const { return type == argument_type::GLOBAL; }
+    bool is_local() const { return type == argument_type::LOCAL; }
+    bool is_label() const { return type == argument_type::LABEL; }
 
-    const constant& get_constant() const { assert(is_constant()); return value.constant_value; }
-    const reg&      get_reg()      const { assert(is_reg());      return value.reg_value;      }
-    const global&   get_global()   const { assert(is_global());   return value.global_value;   }
-    const local&    get_local()    const { assert(is_local());    return value.local_value;    }
-    const label&    get_label()    const { assert(is_label());    return value.label_value;    }
+    const constant& get_constant() const
+    {
+        assert(is_constant());
+        return value.constant_value;
+    }
+    const reg& get_reg() const
+    {
+        assert(is_reg());
+        return value.reg_value;
+    }
+    const global& get_global() const
+    {
+        assert(is_global());
+        return value.global_value;
+    }
+    const local& get_local() const
+    {
+        assert(is_local());
+        return value.local_value;
+    }
+    const label& get_label() const
+    {
+        assert(is_label());
+        return value.label_value;
+    }
 
     void save(std::ostream&, unit&, subroutine_ir&) const;
     std::string save_fast() const;
@@ -164,12 +220,27 @@ private:
 
     argument_type type;
     union value {
-        value() { }
-        value(const constant& v) : constant_value(v) { }
-        value(const reg&      v) : reg_value     (v) { }
-        value(const global&   v) : global_value  (v) { }
-        value(const local&    v) : local_value   (v) { }
-        value(const label&    v) : label_value   (v) { }
+        value() {}
+        value(const constant& v)
+            : constant_value(v)
+        {
+        }
+        value(const reg& v)
+            : reg_value(v)
+        {
+        }
+        value(const global& v)
+            : global_value(v)
+        {
+        }
+        value(const local& v)
+            : local_value(v)
+        {
+        }
+        value(const label& v)
+            : label_value(v)
+        {
+        }
 
         constant constant_value;
         reg reg_value;
@@ -178,8 +249,8 @@ private:
         label label_value;
     } value;
 
-friend bool operator<(const argument& a, const argument& b);
-friend bool operator==(const argument& a, const argument& b);
+    friend bool operator<(const argument& a, const argument& b);
+    friend bool operator==(const argument& a, const argument& b);
 };
 inline bool operator<(const argument& a, const argument& b)
 {
@@ -225,7 +296,8 @@ struct instruction {
     instruction(instruction_type type, std::vector<argument> arguments)
         : type{type}
         , arguments{std::move(arguments)}
-    {}
+    {
+    }
 
     instruction_type type;
     std::vector<argument> arguments;
@@ -235,7 +307,7 @@ struct instruction {
 
     void use_apply(std::function<void(argument&)>);
 
-    template<typename F>
+    template <typename F>
     void def_apply(F&& f)
     {
         switch (type) {
@@ -267,9 +339,9 @@ struct instruction {
     bool operator<(const instruction& other) const
     {
         if (type == other.type)
-           return arguments < other.arguments;
+            return arguments < other.arguments;
         else
-           return type < other.type;
+            return type < other.type;
     }
 
     void save(std::ostream&, unit&, subroutine_ir&) const;
@@ -294,7 +366,7 @@ struct basic_block {
 
 /** Intermediate representation */
 struct subroutine_ir {
-    template<typename F>
+    template <typename F>
     void for_each_domtree_successor(const label& l, F&& f)
     {
         for (int i : dominance->tree.successors()[l.index]) {
@@ -304,7 +376,7 @@ struct subroutine_ir {
         }
     }
 
-    template<typename F>
+    template <typename F>
     void for_each_cfg_successor(const label& l, F&& f)
     {
         for (int i : g.successors()[l.index]) {
@@ -314,7 +386,7 @@ struct subroutine_ir {
         }
     }
 
-    template<typename F>
+    template <typename F>
     void for_each_reverse_dfs(const label& l, F&& f)
     {
         for (int i : reverse_dominance->dfs[l.index]) {
@@ -324,7 +396,7 @@ struct subroutine_ir {
         }
     }
 
-    template<typename F>
+    template <typename F>
     void for_each_bb_in_dfs(const label& l, F&& f)
     {
         for (int i : dominance->dfs[l.index]) {
@@ -334,7 +406,7 @@ struct subroutine_ir {
         }
     }
 
-    template<typename F>
+    template <typename F>
     void for_each_bb_in_domtree_preorder(F&& f)
     {
         depth_first_search dfs(dominance->tree.successors(), dominance->root);
@@ -345,7 +417,7 @@ struct subroutine_ir {
         }
     }
 
-    template<typename F>
+    template <typename F>
     void for_each_bb(F&& f)
     {
         for (auto& block : basic_blocks) {
@@ -353,24 +425,26 @@ struct subroutine_ir {
         }
     }
 
-    template<typename F>
-    void for_each_bb(F&& f) const { for_each_bb(std::forward<F>(f)); }
+    template <typename F>
+    void for_each_bb(F&& f) const
+    {
+        for_each_bb(std::forward<F>(f));
+    }
 
     void recompute_dominance();
     void recompute_liveness();
     std::set<reg> collect_variable_names();
 
-    basic_block& entry_node()
-    { return basic_blocks.at(entry_node_); }
+    basic_block& entry_node() { return basic_blocks.at(entry_node_); }
 
-    basic_block& exit_node()
-    { return basic_blocks.at(exit_node_); }
+    basic_block& exit_node() { return basic_blocks.at(exit_node_); }
 
-    unit& get_unit() {return *u;}
+    unit& get_unit() { return *u; }
     unit* u;
 
     regs_table regs;
     locals_table locals;
+
 private:
     graph g;
     label exit_node_;
@@ -379,7 +453,7 @@ private:
     std::unique_ptr<graph_dominance> reverse_dominance;
     std::unique_ptr<graph_dominance> dominance;
 
-friend struct subroutine_builder;
+    friend struct subroutine_builder;
 };
 
 /** Transformations */
@@ -414,7 +488,7 @@ struct unit {
     void translate_to_asm(hcc::asm_program&);
     void translate_from_jack(const hcc::jack::ast::Class&);
 };
-
-}} // namespace hcc::ssa
+}
+} // namespace hcc::ssa
 
 #endif // SSA_H

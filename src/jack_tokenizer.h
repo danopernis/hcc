@@ -7,20 +7,18 @@
 #include <string>
 #include <cassert>
 
-
 namespace hcc {
 namespace jack {
 
-
 struct token {
-    token_type type {token_type::EOF_};
+    token_type type{token_type::EOF_};
     std::string string_value;
-    int int_value {0};
+    int int_value{0};
 };
 
 struct position {
-    unsigned line {1};
-    unsigned column {0};
+    unsigned line{1};
+    unsigned column{0};
 
     void update(char c)
     {
@@ -36,17 +34,17 @@ struct position {
 struct tokenizer {
     position pos;
 
-    explicit tokenizer(
-        std::istreambuf_iterator<char> current,
-        std::istreambuf_iterator<char> last)
-            : current(current), last(last)
-    { }
+    explicit tokenizer(std::istreambuf_iterator<char> current, std::istreambuf_iterator<char> last)
+        : current(current)
+        , last(last)
+    {
+    }
 
     token advance();
 
     void put_char(char c)
     {
-        assert (!has_previous_char);
+        assert(!has_previous_char);
         previous_char = c;
         has_previous_char = true;
     }
@@ -76,11 +74,10 @@ struct tokenizer {
     }
 
     char previous_char;
-    bool has_previous_char {false};
+    bool has_previous_char{false};
     std::istreambuf_iterator<char> current;
     std::istreambuf_iterator<char> last;
 };
-
 
 } // end namespace jack
 } // end namespace hcc

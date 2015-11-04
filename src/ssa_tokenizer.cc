@@ -13,25 +13,25 @@ namespace ssa {
 namespace {
 
 const std::map<std::string, token_type> string_to_token = {
-    { "global",     token_type::GLOBAL },
-    { "define",     token_type::DEFINE },
-    { "block",      token_type::BLOCK },
-    { "return",     token_type::RETURN },
-    { "jump",       token_type::JUMP },
-    { "jlt",        token_type::JLT },
-    { "jeq",        token_type::JEQ },
-    { "call",       token_type::CALL },
-    { "argument",   token_type::ARGUMENT },
-    { "load",       token_type::LOAD },
-    { "store",      token_type::STORE },
-    { "mov",        token_type::MOV },
-    { "add",        token_type::ADD },
-    { "sub",        token_type::SUB },
-    { "and",        token_type::AND },
-    { "or",         token_type::OR },
-    { "neg",        token_type::NEG },
-    { "not",        token_type::NOT },
-    { "phi",        token_type::PHI },
+    {"global", token_type::GLOBAL},
+    {"define", token_type::DEFINE},
+    {"block", token_type::BLOCK},
+    {"return", token_type::RETURN},
+    {"jump", token_type::JUMP},
+    {"jlt", token_type::JLT},
+    {"jeq", token_type::JEQ},
+    {"call", token_type::CALL},
+    {"argument", token_type::ARGUMENT},
+    {"load", token_type::LOAD},
+    {"store", token_type::STORE},
+    {"mov", token_type::MOV},
+    {"add", token_type::ADD},
+    {"sub", token_type::SUB},
+    {"and", token_type::AND},
+    {"or", token_type::OR},
+    {"neg", token_type::NEG},
+    {"not", token_type::NOT},
+    {"phi", token_type::PHI},
 };
 
 enum class state {
@@ -48,7 +48,8 @@ token_type keyword_to_token_type(const token& t)
 {
     try {
         return string_to_token.at(t.token);
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception& e) {
         std::stringstream message;
         message << "Unexpected '" << t.token << "' at line " << t.line_number;
         throw std::runtime_error(message.str());
@@ -58,13 +59,20 @@ token_type keyword_to_token_type(const token& t)
 token_type get_token_type(const state& current_state, const token& t)
 {
     switch (current_state) {
-    case state::CONSTANT:   return token_type::CONSTANT;
-    case state::REG:        return token_type::REG;
-    case state::GLOBAL:     return token_type::GLOBAL;
-    case state::LOCAL:      return token_type::LOCAL;
-    case state::LABEL:      return token_type::LABEL;
-    case state::KEYWORD:    return keyword_to_token_type(t);
-    default:                assert (false);
+    case state::CONSTANT:
+        return token_type::CONSTANT;
+    case state::REG:
+        return token_type::REG;
+    case state::GLOBAL:
+        return token_type::GLOBAL;
+    case state::LOCAL:
+        return token_type::LOCAL;
+    case state::LABEL:
+        return token_type::LABEL;
+    case state::KEYWORD:
+        return keyword_to_token_type(t);
+    default:
+        assert(false);
     }
 }
 
@@ -75,39 +83,61 @@ std::istreambuf_iterator<char> last;
 std::string to_string(const token_type& tt)
 {
     switch (tt) {
-    case token_type::CONSTANT:  return "integer constant";
-    case token_type::REG:       return "%register";
-    case token_type::GLOBAL:    return "@global";
-    case token_type::LOCAL:     return "#local";
-    case token_type::LABEL:     return "$label";
-    case token_type::DEFINE:    return "define";
-    case token_type::BLOCK:     return "block";
-    case token_type::RETURN:    return "return";
-    case token_type::JUMP:      return "jump";
-    case token_type::JLT:       return "jlt";
-    case token_type::JEQ:       return "jeq";
-    case token_type::CALL:      return "call";
-    case token_type::ARGUMENT:  return "argument";
-    case token_type::LOAD:      return "load";
-    case token_type::STORE:     return "store";
-    case token_type::MOV:       return "mov";
-    case token_type::ADD:       return "add";
-    case token_type::SUB:       return "sub";
-    case token_type::AND:       return "and";
-    case token_type::OR:        return "or";
-    case token_type::NEG:       return "neg";
-    case token_type::NOT:       return "not";
-    case token_type::PHI:       return "phi";
-    case token_type::SEMICOLON: return ";";
-    case token_type::END:       return "end of file";
+    case token_type::CONSTANT:
+        return "integer constant";
+    case token_type::REG:
+        return "%register";
+    case token_type::GLOBAL:
+        return "@global";
+    case token_type::LOCAL:
+        return "#local";
+    case token_type::LABEL:
+        return "$label";
+    case token_type::DEFINE:
+        return "define";
+    case token_type::BLOCK:
+        return "block";
+    case token_type::RETURN:
+        return "return";
+    case token_type::JUMP:
+        return "jump";
+    case token_type::JLT:
+        return "jlt";
+    case token_type::JEQ:
+        return "jeq";
+    case token_type::CALL:
+        return "call";
+    case token_type::ARGUMENT:
+        return "argument";
+    case token_type::LOAD:
+        return "load";
+    case token_type::STORE:
+        return "store";
+    case token_type::MOV:
+        return "mov";
+    case token_type::ADD:
+        return "add";
+    case token_type::SUB:
+        return "sub";
+    case token_type::AND:
+        return "and";
+    case token_type::OR:
+        return "or";
+    case token_type::NEG:
+        return "neg";
+    case token_type::NOT:
+        return "not";
+    case token_type::PHI:
+        return "phi";
+    case token_type::SEMICOLON:
+        return ";";
+    case token_type::END:
+        return "end of file";
     }
-    assert (false);
+    assert(false);
 }
 
-token_type next_impl(
-    std::istreambuf_iterator<char>& current,
-    unsigned& line_number,
-    token& t)
+token_type next_impl(std::istreambuf_iterator<char>& current, unsigned& line_number, token& t)
 {
     auto current_state = state::START;
 
@@ -157,7 +187,7 @@ token_type next_impl(
             }
             break;
         default:
-            assert (false);
+            assert(false);
         }
     }
 }

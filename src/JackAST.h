@@ -33,36 +33,32 @@ struct VariableTypeBase {
 };
 using VariableType = std::unique_ptr<VariableTypeBase>;
 
-struct IntType : VariableTypeBase
-{
-    virtual void accept(VariableTypeVisitor* visitor) {visitor->visit(this);}
-    virtual VariableType clone() {return make_unique<IntType>();}
+struct IntType : VariableTypeBase {
+    virtual void accept(VariableTypeVisitor* visitor) { visitor->visit(this); }
+    virtual VariableType clone() { return make_unique<IntType>(); }
 };
 
-struct CharType : VariableTypeBase
-{
-    virtual void accept(VariableTypeVisitor* visitor) {visitor->visit(this);}
-    virtual VariableType clone() {return make_unique<CharType>();}
+struct CharType : VariableTypeBase {
+    virtual void accept(VariableTypeVisitor* visitor) { visitor->visit(this); }
+    virtual VariableType clone() { return make_unique<CharType>(); }
 };
 
-struct BooleanType : VariableTypeBase
-{
-    virtual void accept(VariableTypeVisitor* visitor) {visitor->visit(this);}
-    virtual VariableType clone() {return make_unique<BooleanType>();}
+struct BooleanType : VariableTypeBase {
+    virtual void accept(VariableTypeVisitor* visitor) { visitor->visit(this); }
+    virtual VariableType clone() { return make_unique<BooleanType>(); }
 };
 
-struct UnresolvedType : VariableTypeBase
-{
+struct UnresolvedType : VariableTypeBase {
     UnresolvedType(const std::string& name)
         : name(name)
-    {}
+    {
+    }
 
-    virtual void accept(VariableTypeVisitor* visitor){visitor->visit(this);}
-    virtual VariableType clone() {return make_unique<UnresolvedType>(name);}
+    virtual void accept(VariableTypeVisitor* visitor) { visitor->visit(this); }
+    virtual VariableType clone() { return make_unique<UnresolvedType>(name); }
 
     std::string name;
 };
-
 
 struct VariableDeclaration {
     VariableType type;
@@ -107,21 +103,16 @@ typedef std::unique_ptr<ExpressionBase> Expression;
 typedef std::vector<Expression> ExpressionList;
 
 struct ThisConstant : ExpressionBase {
-    virtual void accept(ExpressionVisitor* visitor)
-    {
-        visitor->visit(this);
-    }
+    virtual void accept(ExpressionVisitor* visitor) { visitor->visit(this); }
 };
 
 struct IntegerConstant : ExpressionBase {
     IntegerConstant(int value)
         : value(value)
-    {}
-
-    virtual void accept(ExpressionVisitor* visitor)
     {
-        visitor->visit(this);
     }
+
+    virtual void accept(ExpressionVisitor* visitor) { visitor->visit(this); }
 
     int value;
 };
@@ -129,59 +120,36 @@ struct IntegerConstant : ExpressionBase {
 struct StringConstant : ExpressionBase {
     StringConstant(std::string value)
         : value(value)
-    {}
-
-    virtual void accept(ExpressionVisitor* visitor)
     {
-        visitor->visit(this);
     }
+
+    virtual void accept(ExpressionVisitor* visitor) { visitor->visit(this); }
 
     std::string value;
 };
 
 struct UnaryExpression : ExpressionBase {
-    enum class Type {
-        MINUS,
-        NOT
-    };
+    enum class Type { MINUS, NOT };
 
     UnaryExpression(Type type, Expression argument)
         : type(type)
-        , argument(std::move(argument))
-    {};
+        , argument(std::move(argument)){};
 
-    virtual void accept(ExpressionVisitor* visitor)
-    {
-        visitor->visit(this);
-    }
+    virtual void accept(ExpressionVisitor* visitor) { visitor->visit(this); }
 
     Type type;
     Expression argument;
 };
 
 struct BinaryExpression : ExpressionBase {
-    enum class Type {
-        ADD,
-        SUBSTRACT,
-        MULTIPLY,
-        DIVIDE,
-        AND,
-        OR,
-        GREATER,
-        LESSER,
-        EQUAL
-    };
+    enum class Type { ADD, SUBSTRACT, MULTIPLY, DIVIDE, AND, OR, GREATER, LESSER, EQUAL };
 
     BinaryExpression(Type type, Expression argument1, Expression argument2)
         : type(type)
         , argument1(std::move(argument1))
-        , argument2(std::move(argument2))
-    {};
+        , argument2(std::move(argument2)){};
 
-    virtual void accept(ExpressionVisitor* visitor)
-    {
-        visitor->visit(this);
-    }
+    virtual void accept(ExpressionVisitor* visitor) { visitor->visit(this); }
 
     Type type;
     Expression argument1;
@@ -191,12 +159,10 @@ struct BinaryExpression : ExpressionBase {
 struct ScalarVariable : ExpressionBase {
     ScalarVariable(std::string name)
         : name(name)
-    {}
-
-    virtual void accept(ExpressionVisitor* visitor)
     {
-        visitor->visit(this);
     }
+
+    virtual void accept(ExpressionVisitor* visitor) { visitor->visit(this); }
 
     std::string name;
 };
@@ -205,12 +171,10 @@ struct VectorVariable : ExpressionBase {
     VectorVariable(std::string name, Expression subscript)
         : name(name)
         , subscript(std::move(subscript))
-    {}
-
-    virtual void accept(ExpressionVisitor* visitor)
     {
-        visitor->visit(this);
     }
+
+    virtual void accept(ExpressionVisitor* visitor) { visitor->visit(this); }
 
     std::string name;
     Expression subscript;
@@ -221,12 +185,10 @@ struct SubroutineCall : ExpressionBase {
         : base(base)
         , name(name)
         , arguments(std::move(arguments))
-    {}
-
-    virtual void accept(ExpressionVisitor* visitor)
     {
-        visitor->visit(this);
     }
+
+    virtual void accept(ExpressionVisitor* visitor) { visitor->visit(this); }
 
     std::string base;
     std::string name;
@@ -269,12 +231,10 @@ struct LetScalar : StatementBase {
     LetScalar(std::string name, Expression rvalue)
         : name(name)
         , rvalue(std::move(rvalue))
-    {}
-
-    virtual void accept(StatementVisitor* visitor)
     {
-        visitor->visit(this);
     }
+
+    virtual void accept(StatementVisitor* visitor) { visitor->visit(this); }
 
     std::string name;
     Expression rvalue;
@@ -285,12 +245,10 @@ struct LetVector : StatementBase {
         : name(name)
         , subscript(std::move(subscript))
         , rvalue(std::move(rvalue))
-    {}
-
-    virtual void accept(StatementVisitor* visitor)
     {
-        visitor->visit(this);
     }
+
+    virtual void accept(StatementVisitor* visitor) { visitor->visit(this); }
 
     std::string name;
     Expression subscript;
@@ -302,12 +260,10 @@ struct IfStatement : StatementBase {
         : condition(std::move(condition))
         , positiveBranch(std::move(positiveBranch))
         , negativeBranch(std::move(negativeBranch))
-    {}
-
-    virtual void accept(StatementVisitor* visitor)
     {
-        visitor->visit(this);
     }
+
+    virtual void accept(StatementVisitor* visitor) { visitor->visit(this); }
 
     Expression condition;
     StatementList positiveBranch;
@@ -318,12 +274,10 @@ struct WhileStatement : StatementBase {
     WhileStatement(Expression condition, StatementList body)
         : condition(std::move(condition))
         , body(std::move(body))
-    {}
-
-    virtual void accept(StatementVisitor* visitor)
     {
-        visitor->visit(this);
     }
+
+    virtual void accept(StatementVisitor* visitor) { visitor->visit(this); }
 
     Expression condition;
     StatementList body;
@@ -334,28 +288,23 @@ struct DoStatement : StatementBase {
         : base(base)
         , name(name)
         , arguments(std::move(arguments))
-    {}
-
-    virtual void accept(StatementVisitor* visitor)
     {
-        visitor->visit(this);
     }
+
+    virtual void accept(StatementVisitor* visitor) { visitor->visit(this); }
 
     std::string base;
     std::string name;
     ExpressionList arguments;
 };
 
-
 struct ReturnStatement : StatementBase {
     ReturnStatement(Expression value = 0)
         : value(std::move(value))
-    {}
-
-    virtual void accept(StatementVisitor* visitor)
     {
-        visitor->visit(this);
     }
+
+    virtual void accept(StatementVisitor* visitor) { visitor->visit(this); }
 
     Expression value;
 };
@@ -366,11 +315,7 @@ struct ReturnStatement : StatementBase {
  *
  *****************************************************************************/
 struct Subroutine {
-    enum class Kind {
-        CONSTRUCTOR,
-        FUNCTION,
-        METHOD
-    };
+    enum class Kind { CONSTRUCTOR, FUNCTION, METHOD };
 
     Kind kind;
     VariableType returnType;

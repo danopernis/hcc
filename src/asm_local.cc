@@ -30,12 +30,11 @@ enum class constant_value_type {
     OTHER,
 };
 struct constant_value {
-    constant_value(
-        constant_value_type type = constant_value_type::UNKNOWN,
-        std::string other = "")
-            : type(std::move(type))
-            , other(std::move(other))
-    { }
+    constant_value(constant_value_type type = constant_value_type::UNKNOWN, std::string other = "")
+        : type(std::move(type))
+        , other(std::move(other))
+    {
+    }
 
     constant_value_type type;
     std::string other;
@@ -75,213 +74,318 @@ uint16_t simplify(uint16_t comp, const registers& r)
     // unary
     case COMP_D:
         switch (r.D.type) {
-        case constant_value_type::ZERO:             return COMP_ZERO;
-        case constant_value_type::POSITIVE_ONE:     return COMP_ONE;
-        case constant_value_type::NEGATIVE_ONE:     return COMP_MINUS_ONE;
-        default:                                    return comp;
+        case constant_value_type::ZERO:
+            return COMP_ZERO;
+        case constant_value_type::POSITIVE_ONE:
+            return COMP_ONE;
+        case constant_value_type::NEGATIVE_ONE:
+            return COMP_MINUS_ONE;
+        default:
+            return comp;
         }
     case COMP_A:
         switch (r.A.type) {
-        case constant_value_type::ZERO:             return COMP_ZERO;
-        case constant_value_type::POSITIVE_ONE:     return COMP_ONE;
-        case constant_value_type::NEGATIVE_ONE:     return COMP_MINUS_ONE;
-        default:                                    return comp;
+        case constant_value_type::ZERO:
+            return COMP_ZERO;
+        case constant_value_type::POSITIVE_ONE:
+            return COMP_ONE;
+        case constant_value_type::NEGATIVE_ONE:
+            return COMP_MINUS_ONE;
+        default:
+            return comp;
         }
     case COMP_M:
         switch (r.M.type) {
-        case constant_value_type::ZERO:             return COMP_ZERO;
-        case constant_value_type::POSITIVE_ONE:     return COMP_ONE;
-        case constant_value_type::NEGATIVE_ONE:     return COMP_MINUS_ONE;
-        default:                                    return comp;
+        case constant_value_type::ZERO:
+            return COMP_ZERO;
+        case constant_value_type::POSITIVE_ONE:
+            return COMP_ONE;
+        case constant_value_type::NEGATIVE_ONE:
+            return COMP_MINUS_ONE;
+        default:
+            return comp;
         }
     case COMP_NOT_D:
         switch (r.D.type) {
-        case constant_value_type::ZERO:             return COMP_MINUS_ONE;
-        case constant_value_type::NEGATIVE_ONE:     return COMP_ZERO;
-        default:                                    return comp;
+        case constant_value_type::ZERO:
+            return COMP_MINUS_ONE;
+        case constant_value_type::NEGATIVE_ONE:
+            return COMP_ZERO;
+        default:
+            return comp;
         }
     case COMP_NOT_A:
         switch (r.A.type) {
-        case constant_value_type::ZERO:             return COMP_MINUS_ONE;
-        case constant_value_type::NEGATIVE_ONE:     return COMP_ZERO;
-        default:                                    return comp;
+        case constant_value_type::ZERO:
+            return COMP_MINUS_ONE;
+        case constant_value_type::NEGATIVE_ONE:
+            return COMP_ZERO;
+        default:
+            return comp;
         }
     case COMP_NOT_M:
         switch (r.M.type) {
-        case constant_value_type::ZERO:             return COMP_MINUS_ONE;
-        case constant_value_type::NEGATIVE_ONE:     return COMP_ZERO;
-        default:                                    return comp;
+        case constant_value_type::ZERO:
+            return COMP_MINUS_ONE;
+        case constant_value_type::NEGATIVE_ONE:
+            return COMP_ZERO;
+        default:
+            return comp;
         }
     case COMP_MINUS_D:
         switch (r.D.type) {
-        case constant_value_type::ZERO:             return COMP_ZERO;
-        case constant_value_type::NEGATIVE_ONE:     return COMP_ONE;
-        case constant_value_type::POSITIVE_ONE:     return COMP_MINUS_ONE;
-        default:                                    return comp;
+        case constant_value_type::ZERO:
+            return COMP_ZERO;
+        case constant_value_type::NEGATIVE_ONE:
+            return COMP_ONE;
+        case constant_value_type::POSITIVE_ONE:
+            return COMP_MINUS_ONE;
+        default:
+            return comp;
         }
     case COMP_MINUS_A:
         switch (r.A.type) {
-        case constant_value_type::ZERO:             return COMP_ZERO;
-        case constant_value_type::NEGATIVE_ONE:     return COMP_ONE;
-        case constant_value_type::POSITIVE_ONE:     return COMP_MINUS_ONE;
-        default:                                    return comp;
+        case constant_value_type::ZERO:
+            return COMP_ZERO;
+        case constant_value_type::NEGATIVE_ONE:
+            return COMP_ONE;
+        case constant_value_type::POSITIVE_ONE:
+            return COMP_MINUS_ONE;
+        default:
+            return comp;
         }
     case COMP_MINUS_M:
         switch (r.M.type) {
-        case constant_value_type::ZERO:             return COMP_ZERO;
-        case constant_value_type::NEGATIVE_ONE:     return COMP_ONE;
-        case constant_value_type::POSITIVE_ONE:     return COMP_MINUS_ONE;
-        default:                                    return comp;
+        case constant_value_type::ZERO:
+            return COMP_ZERO;
+        case constant_value_type::NEGATIVE_ONE:
+            return COMP_ONE;
+        case constant_value_type::POSITIVE_ONE:
+            return COMP_MINUS_ONE;
+        default:
+            return comp;
         }
     case COMP_D_PLUS_ONE:
         switch (r.D.type) {
-        case constant_value_type::ZERO:             return COMP_ONE;
-        case constant_value_type::NEGATIVE_ONE:     return COMP_ZERO;
-        default:                                    return comp;
+        case constant_value_type::ZERO:
+            return COMP_ONE;
+        case constant_value_type::NEGATIVE_ONE:
+            return COMP_ZERO;
+        default:
+            return comp;
         }
     case COMP_A_PLUS_ONE:
         switch (r.A.type) {
-        case constant_value_type::ZERO:             return COMP_ONE;
-        case constant_value_type::NEGATIVE_ONE:     return COMP_ZERO;
-        default:                                    return comp;
+        case constant_value_type::ZERO:
+            return COMP_ONE;
+        case constant_value_type::NEGATIVE_ONE:
+            return COMP_ZERO;
+        default:
+            return comp;
         }
     case COMP_M_PLUS_ONE:
         switch (r.M.type) {
-        case constant_value_type::ZERO:             return COMP_ONE;
-        case constant_value_type::NEGATIVE_ONE:     return COMP_ZERO;
-        default:                                    return comp;
+        case constant_value_type::ZERO:
+            return COMP_ONE;
+        case constant_value_type::NEGATIVE_ONE:
+            return COMP_ZERO;
+        default:
+            return comp;
         }
     case COMP_D_MINUS_ONE:
         switch (r.D.type) {
-        case constant_value_type::ZERO:             return COMP_MINUS_ONE;
-        case constant_value_type::POSITIVE_ONE:     return COMP_ZERO;
-        default:                                    return comp;
+        case constant_value_type::ZERO:
+            return COMP_MINUS_ONE;
+        case constant_value_type::POSITIVE_ONE:
+            return COMP_ZERO;
+        default:
+            return comp;
         }
     case COMP_A_MINUS_ONE:
         switch (r.A.type) {
-        case constant_value_type::ZERO:             return COMP_MINUS_ONE;
-        case constant_value_type::POSITIVE_ONE:     return COMP_ZERO;
-        default:                                    return comp;
+        case constant_value_type::ZERO:
+            return COMP_MINUS_ONE;
+        case constant_value_type::POSITIVE_ONE:
+            return COMP_ZERO;
+        default:
+            return comp;
         }
     case COMP_M_MINUS_ONE:
         switch (r.M.type) {
-        case constant_value_type::ZERO:             return COMP_MINUS_ONE;
-        case constant_value_type::POSITIVE_ONE:     return COMP_ZERO;
-        default:                                    return comp;
+        case constant_value_type::ZERO:
+            return COMP_MINUS_ONE;
+        case constant_value_type::POSITIVE_ONE:
+            return COMP_ZERO;
+        default:
+            return comp;
         }
     case COMP_D_PLUS_A:
         switch (r.D.type) {
-        case constant_value_type::POSITIVE_ONE:     return COMP_A_PLUS_ONE;
-        case constant_value_type::ZERO:             return COMP_A;
-        case constant_value_type::NEGATIVE_ONE:     return COMP_A_MINUS_ONE;
+        case constant_value_type::POSITIVE_ONE:
+            return COMP_A_PLUS_ONE;
+        case constant_value_type::ZERO:
+            return COMP_A;
+        case constant_value_type::NEGATIVE_ONE:
+            return COMP_A_MINUS_ONE;
         default:
             switch (r.A.type) {
-            case constant_value_type::POSITIVE_ONE: return COMP_D_PLUS_ONE;
-            case constant_value_type::ZERO:         return COMP_D;
-            case constant_value_type::NEGATIVE_ONE: return COMP_D_MINUS_ONE;
-            default:                                return comp;
+            case constant_value_type::POSITIVE_ONE:
+                return COMP_D_PLUS_ONE;
+            case constant_value_type::ZERO:
+                return COMP_D;
+            case constant_value_type::NEGATIVE_ONE:
+                return COMP_D_MINUS_ONE;
+            default:
+                return comp;
             }
         }
     // binary
     case COMP_D_MINUS_A:
         switch (r.A.type) {
-        case constant_value_type::POSITIVE_ONE:     return COMP_D_MINUS_ONE;
-        case constant_value_type::ZERO:             return COMP_D;
-        case constant_value_type::NEGATIVE_ONE:     return COMP_D_PLUS_ONE;
+        case constant_value_type::POSITIVE_ONE:
+            return COMP_D_MINUS_ONE;
+        case constant_value_type::ZERO:
+            return COMP_D;
+        case constant_value_type::NEGATIVE_ONE:
+            return COMP_D_PLUS_ONE;
         default:
             switch (r.D.type) {
-            case constant_value_type::ZERO:         return COMP_MINUS_A;
-            default:                                return comp;
+            case constant_value_type::ZERO:
+                return COMP_MINUS_A;
+            default:
+                return comp;
             }
         }
     case COMP_A_MINUS_D:
         switch (r.D.type) {
-        case constant_value_type::POSITIVE_ONE:     return COMP_A_MINUS_ONE;
-        case constant_value_type::ZERO:             return COMP_A;
-        case constant_value_type::NEGATIVE_ONE:     return COMP_A_PLUS_ONE;
+        case constant_value_type::POSITIVE_ONE:
+            return COMP_A_MINUS_ONE;
+        case constant_value_type::ZERO:
+            return COMP_A;
+        case constant_value_type::NEGATIVE_ONE:
+            return COMP_A_PLUS_ONE;
         default:
             switch (r.A.type) {
-            case constant_value_type::ZERO:         return COMP_MINUS_D;
-            default:                                return comp;
+            case constant_value_type::ZERO:
+                return COMP_MINUS_D;
+            default:
+                return comp;
             }
         }
     case COMP_D_AND_A:
         switch (r.D.type) {
-        case constant_value_type::ZERO:             return COMP_ZERO;
-        case constant_value_type::NEGATIVE_ONE:     return COMP_A;
+        case constant_value_type::ZERO:
+            return COMP_ZERO;
+        case constant_value_type::NEGATIVE_ONE:
+            return COMP_A;
         default:
             switch (r.A.type) {
-            case constant_value_type::ZERO:         return COMP_ZERO;
-            case constant_value_type::NEGATIVE_ONE: return COMP_D;
-            default:                                return comp;
+            case constant_value_type::ZERO:
+                return COMP_ZERO;
+            case constant_value_type::NEGATIVE_ONE:
+                return COMP_D;
+            default:
+                return comp;
             }
         }
     case COMP_D_OR_A:
         switch (r.D.type) {
-        case constant_value_type::ZERO:             return COMP_A;
-        case constant_value_type::NEGATIVE_ONE:     return COMP_MINUS_ONE;
+        case constant_value_type::ZERO:
+            return COMP_A;
+        case constant_value_type::NEGATIVE_ONE:
+            return COMP_MINUS_ONE;
         default:
             switch (r.A.type) {
-            case constant_value_type::ZERO:         return COMP_D;
-            case constant_value_type::NEGATIVE_ONE: return COMP_MINUS_ONE;
-            default:                                return comp;
+            case constant_value_type::ZERO:
+                return COMP_D;
+            case constant_value_type::NEGATIVE_ONE:
+                return COMP_MINUS_ONE;
+            default:
+                return comp;
             }
         }
     case COMP_D_PLUS_M:
         switch (r.D.type) {
-        case constant_value_type::POSITIVE_ONE:     return COMP_M_PLUS_ONE;
-        case constant_value_type::ZERO:             return COMP_M;
-        case constant_value_type::NEGATIVE_ONE:     return COMP_M_MINUS_ONE;
+        case constant_value_type::POSITIVE_ONE:
+            return COMP_M_PLUS_ONE;
+        case constant_value_type::ZERO:
+            return COMP_M;
+        case constant_value_type::NEGATIVE_ONE:
+            return COMP_M_MINUS_ONE;
         default:
             switch (r.M.type) {
-            case constant_value_type::POSITIVE_ONE: return COMP_D_PLUS_ONE;
-            case constant_value_type::ZERO:         return COMP_D;
-            case constant_value_type::NEGATIVE_ONE: return COMP_D_MINUS_ONE;
-            default:                                return comp;
+            case constant_value_type::POSITIVE_ONE:
+                return COMP_D_PLUS_ONE;
+            case constant_value_type::ZERO:
+                return COMP_D;
+            case constant_value_type::NEGATIVE_ONE:
+                return COMP_D_MINUS_ONE;
+            default:
+                return comp;
             }
         }
     case COMP_D_MINUS_M:
         switch (r.M.type) {
-        case constant_value_type::POSITIVE_ONE:     return COMP_D_MINUS_ONE;
-        case constant_value_type::ZERO:             return COMP_D;
-        case constant_value_type::NEGATIVE_ONE:     return COMP_D_PLUS_ONE;
+        case constant_value_type::POSITIVE_ONE:
+            return COMP_D_MINUS_ONE;
+        case constant_value_type::ZERO:
+            return COMP_D;
+        case constant_value_type::NEGATIVE_ONE:
+            return COMP_D_PLUS_ONE;
         default:
             switch (r.D.type) {
-            case constant_value_type::ZERO:         return COMP_MINUS_M;
-            default:                                return comp;
+            case constant_value_type::ZERO:
+                return COMP_MINUS_M;
+            default:
+                return comp;
             }
         }
     case COMP_M_MINUS_D:
         switch (r.D.type) {
-        case constant_value_type::POSITIVE_ONE:     return COMP_M_MINUS_ONE;
-        case constant_value_type::ZERO:             return COMP_M;
-        case constant_value_type::NEGATIVE_ONE:     return COMP_M_PLUS_ONE;
+        case constant_value_type::POSITIVE_ONE:
+            return COMP_M_MINUS_ONE;
+        case constant_value_type::ZERO:
+            return COMP_M;
+        case constant_value_type::NEGATIVE_ONE:
+            return COMP_M_PLUS_ONE;
         default:
             switch (r.M.type) {
-            case constant_value_type::ZERO:         return COMP_MINUS_D;
-            default:                                return comp;
+            case constant_value_type::ZERO:
+                return COMP_MINUS_D;
+            default:
+                return comp;
             }
         }
     case COMP_D_AND_M:
         switch (r.D.type) {
-        case constant_value_type::ZERO:             return COMP_ZERO;
-        case constant_value_type::NEGATIVE_ONE:     return COMP_M;
+        case constant_value_type::ZERO:
+            return COMP_ZERO;
+        case constant_value_type::NEGATIVE_ONE:
+            return COMP_M;
         default:
             switch (r.M.type) {
-            case constant_value_type::ZERO:         return COMP_ZERO;
-            case constant_value_type::NEGATIVE_ONE: return COMP_D;
-            default:                                return comp;
+            case constant_value_type::ZERO:
+                return COMP_ZERO;
+            case constant_value_type::NEGATIVE_ONE:
+                return COMP_D;
+            default:
+                return comp;
             }
         }
     case COMP_D_OR_M:
         switch (r.D.type) {
-        case constant_value_type::ZERO:             return COMP_M;
-        case constant_value_type::NEGATIVE_ONE:     return COMP_MINUS_ONE;
+        case constant_value_type::ZERO:
+            return COMP_M;
+        case constant_value_type::NEGATIVE_ONE:
+            return COMP_MINUS_ONE;
         default:
             switch (r.M.type) {
-            case constant_value_type::ZERO:         return COMP_D;
-            case constant_value_type::NEGATIVE_ONE: return COMP_MINUS_ONE;
-            default:                                return comp;
+            case constant_value_type::ZERO:
+                return COMP_D;
+            case constant_value_type::NEGATIVE_ONE:
+                return COMP_MINUS_ONE;
+            default:
+                return comp;
             }
         }
     default:
@@ -295,7 +399,7 @@ uint16_t simplify(uint16_t comp, const registers& r)
 struct constant_propagation {
     void operator()(hcc::asm_instruction& cmd)
     {
-        auto handle_ainstr = [&] (const constant_value& new_A) {
+        auto handle_ainstr = [&](const constant_value& new_A) {
             if (r.A == new_A) {
                 cmd = NOP;
             } else {
@@ -313,9 +417,7 @@ struct constant_propagation {
             // nothing to do here
             break;
         case hcc::asm_instruction_type::LOAD:
-            handle_ainstr(constant_value(
-                constant_value_type::OTHER,
-                "@" + cmd.symbol));
+            handle_ainstr(constant_value(constant_value_type::OTHER, "@" + cmd.symbol));
             break;
         case hcc::asm_instruction_type::VERBATIM:
             if (cmd.instr & COMPUTE) {
@@ -370,15 +472,12 @@ struct constant_propagation {
                 // A-instruction
 
                 if (cmd.instr == 0) {
-                    handle_ainstr(constant_value(
-                        constant_value_type::ZERO));
+                    handle_ainstr(constant_value(constant_value_type::ZERO));
                 } else if (cmd.instr == 1) {
-                    handle_ainstr(constant_value(
-                        constant_value_type::POSITIVE_ONE));
+                    handle_ainstr(constant_value(constant_value_type::POSITIVE_ONE));
                 } else {
-                    handle_ainstr(constant_value(
-                        constant_value_type::OTHER,
-                        std::to_string(cmd.instr)));
+                    handle_ainstr(
+                        constant_value(constant_value_type::OTHER, std::to_string(cmd.instr)));
                 }
             }
         }
@@ -434,9 +533,7 @@ struct dead_code_elimination {
         if (live) {
             if (command.type == hcc::asm_instruction_type::VERBATIM) {
                 if (command.instr & COMPUTE) {
-                    if ((command.instr & MASK_JUMP) ||
-                        (command.instr & DEST_M))
-                    {
+                    if ((command.instr & MASK_JUMP) || (command.instr & DEST_M)) {
                         require_A = true;
                     }
                     switch (command.instr & MASK_COMP) {
@@ -506,16 +603,13 @@ namespace hcc {
 void asm_program::local_optimization()
 {
     // two iterations are usually enough
-    for (int i = 0; i<2; ++i) {
-        std::for_each(instructions.begin(), instructions.end(),
-            constant_propagation());
+    for (int i = 0; i < 2; ++i) {
+        std::for_each(instructions.begin(), instructions.end(), constant_propagation());
 
-        std::for_each(instructions.rbegin(), instructions.rend(),
-            dead_code_elimination());
+        std::for_each(instructions.rbegin(), instructions.rend(), dead_code_elimination());
 
-        instructions.erase(
-            std::remove_if(instructions.begin(), instructions.end(), is_nop),
-            instructions.end());
+        instructions.erase(std::remove_if(instructions.begin(), instructions.end(), is_nop),
+                           instructions.end());
     }
 }
 

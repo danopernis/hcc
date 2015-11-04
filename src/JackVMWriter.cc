@@ -10,22 +10,17 @@
 #include <sstream>
 #include <fstream>
 
-
 namespace hcc {
 
 struct Symbol {
-    enum class Storage {
-        STATIC,
-        FIELD,
-        ARGUMENT,
-        LOCAL
-    };
+    enum class Storage { STATIC, FIELD, ARGUMENT, LOCAL };
 
     Symbol(Storage storage, jack::ast::VariableType type, unsigned index)
         : storage(storage)
         , type(std::move(type))
         , index(index)
-    {}
+    {
+    }
 
     Storage storage;
     jack::ast::VariableType type;
@@ -35,21 +30,16 @@ typedef std::map<std::string, Symbol> Scope;
 
 } // end namespace hcc
 
-
-
 namespace hcc {
 namespace jack {
 
-
-struct VMWriter::Impl
-    : public ast::StatementVisitor
-    , public ast::ExpressionVisitor
-{
+struct VMWriter::Impl : public ast::StatementVisitor, public ast::ExpressionVisitor {
     std::ofstream output;
 
     Impl(const std::string& filename)
         : output(filename)
-    {}
+    {
+    }
 
     /** statement visitor */
 
@@ -76,8 +66,7 @@ struct VMWriter::Impl
         const unsigned ifIndex = ifCounter++;
 
         ifStatement->condition->accept(this);
-        output << "if-goto IF_TRUE" << ifIndex << '\n'
-               << "goto IF_FALSE" << ifIndex << '\n'
+        output << "if-goto IF_TRUE" << ifIndex << '\n' << "goto IF_FALSE" << ifIndex << '\n'
                << "label IF_TRUE" << ifIndex << '\n';
         for (const auto& statement : ifStatement->positiveBranch) {
             statement->accept(this);
@@ -85,8 +74,7 @@ struct VMWriter::Impl
         if (ifStatement->negativeBranch.empty()) {
             output << "label IF_FALSE" << ifIndex << '\n';
         } else {
-            output << "goto IF_END" << ifIndex << '\n'
-                   << "label IF_FALSE" << ifIndex << '\n';
+            output << "goto IF_END" << ifIndex << '\n' << "label IF_FALSE" << ifIndex << '\n';
             for (const auto& statement : ifStatement->negativeBranch) {
                 statement->accept(this);
             }
@@ -105,8 +93,7 @@ struct VMWriter::Impl
         for (const auto& statement : whileStatement->body) {
             statement->accept(this);
         }
-        output << "goto WHILE_EXP" << whileIndex << '\n'
-               << "label WHILE_END" << whileIndex << '\n';
+        output << "goto WHILE_EXP" << whileIndex << '\n' << "label WHILE_END" << whileIndex << '\n';
     }
 
     virtual void visit(ast::DoStatement* doStatement)
@@ -122,10 +109,12 @@ struct VMWriter::Impl
         } else {
             if (contains(doStatement->base)) {
                 const Symbol& symbol = get(doStatement->base);
-                output << "push " << symbolToSegmentIndex(doStatement->base, argumentOffset) << '\n';
+                output << "push " << symbolToSegmentIndex(doStatement->base, argumentOffset)
+                       << '\n';
                 ++expressionsCount;
 
-                doCompoundStart = dynamic_cast<jack::ast::UnresolvedType*>(symbol.type->clone().get())->name;
+                doCompoundStart
+                    = dynamic_cast<jack::ast::UnresolvedType*>(symbol.type->clone().get())->name;
             } else {
                 doCompoundStart = doStatement->base;
             }
@@ -136,7 +125,8 @@ struct VMWriter::Impl
             ++expressionsCount;
         }
 
-        output << "call " << doCompoundStart << "." << doStatement->name << " " << expressionsCount << '\n';
+        output << "call " << doCompoundStart << "." << doStatement->name << " " << expressionsCount
+               << '\n';
         /* Do not spoil the stack!
          * Each subroutine has a return value. Had we not popped it, stack could grow
          * indefinitely if "do statement" is inside the loop */
@@ -156,10 +146,7 @@ struct VMWriter::Impl
 
     /** expression visitor */
 
-    virtual void visit(ast::ThisConstant*)
-    {
-        output << "push pointer 0\n";
-    }
+    virtual void visit(ast::ThisConstant*) { output << "push pointer 0\n"; }
 
     virtual void visit(ast::IntegerConstant* integerConstant)
     {
@@ -171,8 +158,7 @@ struct VMWriter::Impl
         output << "push constant " << stringConstant->value.length() << '\n'
                << "call String.new 1\n";
         for (char& c : stringConstant->value) {
-            output << "push constant " << (unsigned)c << '\n'
-                   << "call String.appendChar 2\n";
+            output << "push constant " << (unsigned)c << '\n' << "call String.appendChar 2\n";
         }
     }
 
@@ -249,7 +235,8 @@ struct VMWriter::Impl
             const Symbol& symbol = get(subroutineCall->base);
             output << "push " << symbolToSegmentIndex(subroutineCall->base, argumentOffset) << '\n';
             ++expressionsCount;
-            callCompoundStart = dynamic_cast<jack::ast::UnresolvedType*>(symbol.type->clone().get())->name;
+            callCompoundStart
+                = dynamic_cast<jack::ast::UnresolvedType*>(symbol.type->clone().get())->name;
         } else {
             callCompoundStart = subroutineCall->base;
             if (callCompoundStart == "") {
@@ -262,7 +249,8 @@ struct VMWriter::Impl
             ++expressionsCount;
         }
 
-        output << "call " << callCompoundStart << "." << subroutineCall->name << " " << expressionsCount << '\n';
+        output << "call " << callCompoundStart << "." << subroutineCall->name << " "
+               << expressionsCount << '\n';
     }
 
     void write(const ast::Class& clazz)
@@ -272,18 +260,16 @@ struct VMWriter::Impl
 
         unsigned staticVarsCount = 0;
         for (const auto& variable : clazz.staticVariables) {
-            classScope.insert(std::make_pair(variable.name, Symbol(
-                hcc::Symbol::Storage::STATIC,
-                variable.type->clone(),
-                staticVarsCount++)));
+            classScope.insert(
+                std::make_pair(variable.name, Symbol(hcc::Symbol::Storage::STATIC,
+                                                     variable.type->clone(), staticVarsCount++)));
         }
 
         unsigned fieldVarsCount = 0;
         for (const auto& variable : clazz.fieldVariables) {
-            classScope.insert(std::make_pair(variable.name, Symbol(
-                hcc::Symbol::Storage::FIELD,
-                variable.type->clone(),
-                fieldVarsCount++)));
+            classScope.insert(
+                std::make_pair(variable.name, Symbol(hcc::Symbol::Storage::FIELD,
+                                                     variable.type->clone(), fieldVarsCount++)));
         }
 
         for (const auto& subroutine : clazz.subroutines) {
@@ -293,25 +279,23 @@ struct VMWriter::Impl
 
             unsigned argumentVarsCount = 0;
             for (const auto& variable : subroutine.arguments) {
-                subroutineScope.insert(std::make_pair(variable.name, Symbol(
-                    hcc::Symbol::Storage::ARGUMENT,
-                    variable.type->clone(),
-                    argumentVarsCount++)));
+                subroutineScope.insert(std::make_pair(
+                    variable.name, Symbol(hcc::Symbol::Storage::ARGUMENT, variable.type->clone(),
+                                          argumentVarsCount++)));
             }
 
             unsigned localVarsCount = 0;
             for (const auto& variable : subroutine.variables) {
-                subroutineScope.insert(std::make_pair(variable.name, Symbol(
-                    hcc::Symbol::Storage::LOCAL,
-                    variable.type->clone(),
-                    localVarsCount++)));
+                subroutineScope.insert(std::make_pair(
+                    variable.name,
+                    Symbol(hcc::Symbol::Storage::LOCAL, variable.type->clone(), localVarsCount++)));
             }
 
-            output << "function " << clazz.name << "." << subroutine.name << " " << localVarsCount << '\n';
+            output << "function " << clazz.name << "." << subroutine.name << " " << localVarsCount
+                   << '\n';
             switch (subroutine.kind) {
             case ast::Subroutine::Kind::CONSTRUCTOR:
-                output << "push constant " << fieldVarsCount << '\n'
-                       << "call Memory.alloc 1\n"
+                output << "push constant " << fieldVarsCount << '\n' << "call Memory.alloc 1\n"
                        << "pop pointer 0\n";
                 argumentOffset = 0;
                 break;
@@ -343,11 +327,11 @@ struct VMWriter::Impl
     {
         if (classScope.find(key) != classScope.end()) {
             return true;
-	}
+        }
         if (subroutineScope.find(key) != subroutineScope.end()) {
             return true;
-	}
-	return false;
+        }
+        return false;
     }
 
     const Symbol& get(const std::string& key) const
@@ -355,19 +339,19 @@ struct VMWriter::Impl
         auto subroutineScopeResult = subroutineScope.find(key);
         if (subroutineScopeResult != subroutineScope.end()) {
             return subroutineScopeResult->second;
-	}
+        }
         auto classScopeResult = classScope.find(key);
         if (classScopeResult != classScope.end()) {
             return classScopeResult->second;
-	}
-	assert(false);
+        }
+        assert(false);
     }
 
     std::string symbolToSegmentIndex(std::string name, int argumentOffset) const
     {
         const auto& symbol = get(name);
 
-        //throw std::runtime_error("no such variable: " + name);
+        // throw std::runtime_error("no such variable: " + name);
 
         std::stringstream result;
 
@@ -391,21 +375,15 @@ struct VMWriter::Impl
     std::string className;
 };
 
-
-void VMWriter::write(const ast::Class& clazz)
-{
-    pimpl->write(clazz);
-}
-
+void VMWriter::write(const ast::Class& clazz) { pimpl->write(clazz); }
 
 VMWriter::VMWriter(const std::string& filename)
     : pimpl(new Impl(filename))
-{}
-
+{
+}
 
 // this needs to be in implementation file for pimpl + unique to work
 VMWriter::~VMWriter() = default;
-
 
 } // end namespace jack
 } // end namespace hcc

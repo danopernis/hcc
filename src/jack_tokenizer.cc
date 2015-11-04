@@ -7,67 +7,68 @@
 #include <map>
 #include <string>
 
-
 namespace {
-
 
 using hcc::jack::token;
 using hcc::jack::token_type;
 using hcc::jack::tokenizer;
 
-
 const std::map<std::string, token_type> keyword_map = {
-    {"boolean",     token_type::BOOLEAN},
-    {"char",        token_type::CHAR},
-    {"class",       token_type::CLASS},
+    {"boolean", token_type::BOOLEAN},
+    {"char", token_type::CHAR},
+    {"class", token_type::CLASS},
     {"constructor", token_type::CONSTRUCTOR},
-    {"do",          token_type::DO},
-    {"else",        token_type::ELSE},
-    {"false",       token_type::FALSE},
-    {"field",       token_type::FIELD},
-    {"function",    token_type::FUNCTION},
-    {"if",          token_type::IF},
-    {"int",         token_type::INT},
-    {"let",         token_type::LET},
-    {"method",      token_type::METHOD},
-    {"null",        token_type::NULL_},
-    {"return",      token_type::RETURN},
-    {"static",      token_type::STATIC},
-    {"this",        token_type::THIS},
-    {"true",        token_type::TRUE},
-    {"var",         token_type::VAR},
-    {"void",        token_type::VOID},
-    {"while",       token_type::WHILE},
+    {"do", token_type::DO},
+    {"else", token_type::ELSE},
+    {"false", token_type::FALSE},
+    {"field", token_type::FIELD},
+    {"function", token_type::FUNCTION},
+    {"if", token_type::IF},
+    {"int", token_type::INT},
+    {"let", token_type::LET},
+    {"method", token_type::METHOD},
+    {"null", token_type::NULL_},
+    {"return", token_type::RETURN},
+    {"static", token_type::STATIC},
+    {"this", token_type::THIS},
+    {"true", token_type::TRUE},
+    {"var", token_type::VAR},
+    {"void", token_type::VOID},
+    {"while", token_type::WHILE},
 };
 
 const std::map<char, token_type> punctuation_map = {
-    {'&',   token_type::AMPERSAND},
-    {'(',   token_type::PARENTHESIS_LEFT},
-    {')',   token_type::PARENTHESIS_RIGHT},
-    {'*',   token_type::ASTERISK},
-    {'+',   token_type::PLUS_SIGN},
-    {',',   token_type::COMMA},
-    {'-',   token_type::MINUS_SIGN},
-    {'.',   token_type::DOT},
+    {'&', token_type::AMPERSAND},
+    {'(', token_type::PARENTHESIS_LEFT},
+    {')', token_type::PARENTHESIS_RIGHT},
+    {'*', token_type::ASTERISK},
+    {'+', token_type::PLUS_SIGN},
+    {',', token_type::COMMA},
+    {'-', token_type::MINUS_SIGN},
+    {'.', token_type::DOT},
     // slash is intentionally left out
-    {';',   token_type::SEMICOLON},
-    {'<',   token_type::LESS_THAN_SIGN},
-    {'=',   token_type::EQUALS_SIGN},
-    {'>',   token_type::GREATER_THAN_SIGN},
-    {'[',   token_type::BRACKET_LEFT},
-    {']',   token_type::BRACKET_RIGHT},
-    {'{',   token_type::BRACE_LEFT},
-    {'|',   token_type::VERTICAL_BAR},
-    {'}',   token_type::BRACE_RIGHT},
-    {'~',   token_type::TILDE},
+    {';', token_type::SEMICOLON},
+    {'<', token_type::LESS_THAN_SIGN},
+    {'=', token_type::EQUALS_SIGN},
+    {'>', token_type::GREATER_THAN_SIGN},
+    {'[', token_type::BRACKET_LEFT},
+    {']', token_type::BRACKET_RIGHT},
+    {'{', token_type::BRACE_LEFT},
+    {'|', token_type::VERTICAL_BAR},
+    {'}', token_type::BRACE_RIGHT},
+    {'~', token_type::TILDE},
 };
 
 // Idiomatic type for function returning pointer to itself
 struct transition_;
 using transition = transition_ (*)(tokenizer&, token&);
 struct transition_ {
-    transition_(transition pp) : p(pp) { }
+    transition_(transition pp)
+        : p(pp)
+    {
+    }
     operator transition() { return p; }
+
 private:
     transition p;
 };
@@ -214,7 +215,7 @@ transition_ number(tokenizer& tokenizer_, token& token_)
     }
 
     if (isdigit(c)) {
-        token_.int_value = 10*token_.int_value + (c - '0');
+        token_.int_value = 10 * token_.int_value + (c - '0');
         return number;
     } else {
         tokenizer_.put_char(c);
@@ -243,12 +244,10 @@ transition_ identifier(tokenizer& tokenizer_, token& token_)
     }
 }
 
-} //anonymous namespace
-
+} // anonymous namespace
 
 namespace hcc {
 namespace jack {
-
 
 token tokenizer::advance()
 {
@@ -259,7 +258,6 @@ token tokenizer::advance()
     }
     return t;
 }
-
 
 } // end namespace jack
 } // end namespace hcc

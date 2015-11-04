@@ -5,30 +5,31 @@
 #include <ostream>
 #include <sstream>
 
-namespace hcc { namespace ssa {
+namespace hcc {
+namespace ssa {
 
 const std::map<instruction_type, std::string> type_to_string = {
-    { instruction_type::ARGUMENT,   "argument" },
-    { instruction_type::JUMP,       "jump" },
-    { instruction_type::JLT,        "jlt" },
-    { instruction_type::JEQ,        "jeq" },
-    { instruction_type::CALL,       "call" },
-    { instruction_type::RETURN,     "return" },
-    { instruction_type::LOAD,       "load" },
-    { instruction_type::STORE,      "store" },
-    { instruction_type::MOV,        "mov" },
-    { instruction_type::ADD,        "add" },
-    { instruction_type::SUB,        "sub" },
-    { instruction_type::AND,        "and" },
-    { instruction_type::OR,         "or" },
-    { instruction_type::NEG,        "neg" },
-    { instruction_type::NOT,        "not" },
-    { instruction_type::PHI,        "phi" },
+    {instruction_type::ARGUMENT, "argument"},
+    {instruction_type::JUMP, "jump"},
+    {instruction_type::JLT, "jlt"},
+    {instruction_type::JEQ, "jeq"},
+    {instruction_type::CALL, "call"},
+    {instruction_type::RETURN, "return"},
+    {instruction_type::LOAD, "load"},
+    {instruction_type::STORE, "store"},
+    {instruction_type::MOV, "mov"},
+    {instruction_type::ADD, "add"},
+    {instruction_type::SUB, "sub"},
+    {instruction_type::AND, "and"},
+    {instruction_type::OR, "or"},
+    {instruction_type::NEG, "neg"},
+    {instruction_type::NOT, "not"},
+    {instruction_type::PHI, "phi"},
 };
 
 void unit::save(std::ostream& output)
 {
-    auto write_bb = [&] (const basic_block& bb, subroutine_ir& s) {
+    auto write_bb = [&](const basic_block& bb, subroutine_ir& s) {
         output << "block ";
         argument(bb.name).save(output, *this, s);
         output << "\n";
@@ -46,11 +47,9 @@ void unit::save(std::ostream& output)
         auto& entry_block = subroutine.second.entry_node();
         auto& exit_block = subroutine.second.exit_node();
         write_bb(entry_block, subroutine.second);
-        subroutine.second.for_each_bb([&] (const basic_block& bb) {
-            if (bb.name == entry_block.name ||
-                bb.name == exit_block.name ||
-                bb.instructions.empty())
-            {
+        subroutine.second.for_each_bb([&](const basic_block& bb) {
+            if (bb.name == entry_block.name || bb.name == exit_block.name
+                || bb.instructions.empty()) {
                 return;
             }
 
@@ -101,14 +100,13 @@ std::string instruction::save_fast() const
     return os.str();
 }
 
-std::string save_fast_internal(char c, int index)
-{ return c + std::to_string(index); }
+std::string save_fast_internal(char c, int index) { return c + std::to_string(index); }
 
 std::string constant::save_fast() const { return save_fast_internal('!', value); }
-std::string reg     ::save_fast() const { return save_fast_internal('%', index); }
-std::string global  ::save_fast() const { return save_fast_internal('@', index); }
-std::string local   ::save_fast() const { return save_fast_internal('#', index); }
-std::string label   ::save_fast() const { return save_fast_internal('$', index); }
+std::string reg::save_fast() const { return save_fast_internal('%', index); }
+std::string global::save_fast() const { return save_fast_internal('@', index); }
+std::string local::save_fast() const { return save_fast_internal('#', index); }
+std::string label::save_fast() const { return save_fast_internal('$', index); }
 
 std::string argument::save_fast() const
 {
@@ -124,7 +122,7 @@ std::string argument::save_fast() const
     case argument_type::LABEL:
         return value.label_value.save_fast();
     }
-    assert (false);
+    assert(false);
 }
-
-}} // end namespace hcc::ssa
+}
+} // end namespace hcc::ssa

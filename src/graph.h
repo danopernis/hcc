@@ -13,7 +13,10 @@ struct graph {
     /**
      * Construct an empty graph.
      */
-    graph() : node_count_{ 0 } { }
+    graph()
+        : node_count_{0}
+    {
+    }
 
     /**
      * Add a node to graph.
@@ -34,8 +37,8 @@ struct graph {
      */
     void add_edge(const int from, const int to)
     {
-        assert (0 <= from && from < node_count_);
-        assert (0 <= to   && to   < node_count_);
+        assert(0 <= from && from < node_count_);
+        assert(0 <= to && to < node_count_);
 
         successors_[from].insert(to);
         predecessors_[to].insert(from);
@@ -48,8 +51,8 @@ struct graph {
      */
     void remove_edge(const int from, const int to)
     {
-        assert (0 <= from && from < node_count_);
-        assert (0 <= to   && to   < node_count_);
+        assert(0 <= from && from < node_count_);
+        assert(0 <= to && to < node_count_);
 
         successors_[from].erase(to);
         predecessors_[to].erase(from);
@@ -92,18 +95,18 @@ struct depth_first_search {
         assert(node_count > 0);
 
         // reset
-        preorder_  = std::vector<int>();
+        preorder_ = std::vector<int>();
         postorder_ = std::vector<int>();
         visited_ = std::vector<bool>(node_count, false);
 
         // define recurrsion
-        std::function<void(int)> search = [&] (int node) {
-            assert (0 <= node && node < node_count);
+        std::function<void(int)> search = [&](int node) {
+            assert(0 <= node && node < node_count);
 
             visited_[node] = true;
             preorder_.push_back(node);
             for (const int successor : successors[node]) {
-                assert (0 <= successor && successor < node_count);
+                assert(0 <= successor && successor < node_count);
 
                 if (!visited_[successor]) {
                     search(successor);

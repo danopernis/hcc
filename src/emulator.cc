@@ -11,46 +11,43 @@
 #include <thread>
 #include <vector>
 
-
 // sigc workaround
 namespace sigc {
 SIGC_FUNCTORS_DEDUCE_RESULT_TYPE_WITH_DECLTYPE
 }
 
-
 namespace {
-
 
 const unsigned int SCREEN_WIDTH = 512;
 const unsigned int SCREEN_HEIGHT = 256;
 
-
 struct ROM : public hcc::IROM {
-    ROM() : data(0x8000, 0) { }
+    ROM()
+        : data(0x8000, 0)
+    {
+    }
 
-    uint16_t get(unsigned int address) const override
-    { return data.at(address); }
+    uint16_t get(unsigned int address) const override { return data.at(address); }
 
     bool load(const char* filename);
 
     std::vector<uint16_t> data;
 };
 
-
 struct RAM : public hcc::IRAM {
-    RAM() : data(0x6001, 0) { }
+    RAM()
+        : data(0x6001, 0)
+    {
+    }
 
-    uint16_t get(unsigned int address) const override
-    { return data.at(address); }
+    uint16_t get(unsigned int address) const override { return data.at(address); }
 
-    void set(unsigned int address, uint16_t value) override
-    { data.at(address) = value; }
+    void set(unsigned int address, uint16_t value) override { data.at(address) = value; }
 
     void keyboard(uint16_t value) { set(0x6000, value); };
 
     std::vector<uint16_t> data;
 };
-
 
 struct screen_widget : Gtk::DrawingArea {
     screen_widget(RAM& ram);
@@ -61,7 +58,6 @@ private:
     Glib::RefPtr<Gdk::Pixbuf> pixbuf;
     RAM& ram;
 };
-
 
 struct emulator {
     emulator();
@@ -83,6 +79,7 @@ private:
     std::thread thread_screen;
     std::mutex running_mutex;
     bool running = false;
+
 public:
     void run()
     {
@@ -96,13 +93,13 @@ public:
     }
     void pause()
     {
-         std::lock_guard<std::mutex> lock(running_mutex);
-         if (!running) {
-             return;
-         }
-         running = false;
-         thread_cpu.join();
-         thread_screen.join();
+        std::lock_guard<std::mutex> lock(running_mutex);
+        if (!running) {
+            return;
+        }
+        running = false;
+        thread_cpu.join();
+        thread_screen.join();
     }
 
     Gtk::SeparatorToolItem separator;
@@ -118,40 +115,63 @@ public:
     screen_widget screen;
 };
 
-
 // Translate special keys. See Figure 5.6 in TECS book.
 uint16_t translate(guint keyval)
 {
     switch (keyval) {
-    case GDK_KEY_Return:    return 128;
-    case GDK_KEY_BackSpace: return 129;
-    case GDK_KEY_Left:      return 130;
-    case GDK_KEY_Up:        return 131;
-    case GDK_KEY_Right:     return 132;
-    case GDK_KEY_Down:      return 133;
-    case GDK_KEY_Home:      return 134;
-    case GDK_KEY_End:       return 135;
-    case GDK_KEY_Page_Up:   return 136;
-    case GDK_KEY_Page_Down: return 137;
-    case GDK_KEY_Insert:    return 138;
-    case GDK_KEY_Delete:    return 139;
-    case GDK_KEY_Escape:    return 140;
-    case GDK_KEY_F1:        return 141;
-    case GDK_KEY_F2:        return 142;
-    case GDK_KEY_F3:        return 143;
-    case GDK_KEY_F4:        return 144;
-    case GDK_KEY_F5:        return 145;
-    case GDK_KEY_F6:        return 146;
-    case GDK_KEY_F7:        return 147;
-    case GDK_KEY_F8:        return 148;
-    case GDK_KEY_F9:        return 149;
-    case GDK_KEY_F10:       return 150;
-    case GDK_KEY_F11:       return 151;
-    case GDK_KEY_F12:       return 152;
+    case GDK_KEY_Return:
+        return 128;
+    case GDK_KEY_BackSpace:
+        return 129;
+    case GDK_KEY_Left:
+        return 130;
+    case GDK_KEY_Up:
+        return 131;
+    case GDK_KEY_Right:
+        return 132;
+    case GDK_KEY_Down:
+        return 133;
+    case GDK_KEY_Home:
+        return 134;
+    case GDK_KEY_End:
+        return 135;
+    case GDK_KEY_Page_Up:
+        return 136;
+    case GDK_KEY_Page_Down:
+        return 137;
+    case GDK_KEY_Insert:
+        return 138;
+    case GDK_KEY_Delete:
+        return 139;
+    case GDK_KEY_Escape:
+        return 140;
+    case GDK_KEY_F1:
+        return 141;
+    case GDK_KEY_F2:
+        return 142;
+    case GDK_KEY_F3:
+        return 143;
+    case GDK_KEY_F4:
+        return 144;
+    case GDK_KEY_F5:
+        return 145;
+    case GDK_KEY_F6:
+        return 146;
+    case GDK_KEY_F7:
+        return 147;
+    case GDK_KEY_F8:
+        return 148;
+    case GDK_KEY_F9:
+        return 149;
+    case GDK_KEY_F10:
+        return 150;
+    case GDK_KEY_F11:
+        return 151;
+    case GDK_KEY_F12:
+        return 152;
     }
     return keyval;
 }
-
 
 bool ROM::load(const char* filename)
 {
@@ -168,7 +188,7 @@ bool ROM::load(const char* filename)
         }
 
         unsigned int instruction = 0;
-        for (unsigned int i = 0; i<16; ++i) {
+        for (unsigned int i = 0; i < 16; ++i) {
             instruction <<= 1;
             switch (line[i]) {
             case '0':
@@ -191,22 +211,20 @@ bool ROM::load(const char* filename)
     return true;
 }
 
-
 screen_widget::screen_widget(RAM& ram)
-    : pixbuf(
-        Gdk::Pixbuf::create(Gdk::Colorspace::COLORSPACE_RGB, false, 8, SCREEN_WIDTH, SCREEN_HEIGHT))
+    : pixbuf(Gdk::Pixbuf::create(Gdk::Colorspace::COLORSPACE_RGB, false, 8, SCREEN_WIDTH,
+                                 SCREEN_HEIGHT))
     , ram(ram)
 {
     set_size_request(SCREEN_WIDTH, SCREEN_HEIGHT);
-    signal_draw().connect([&] (const Cairo::RefPtr<Cairo::Context>& cr) { return draw(cr); });
+    signal_draw().connect([&](const Cairo::RefPtr<Cairo::Context>& cr) { return draw(cr); });
 }
-
 
 bool screen_widget::draw(const Cairo::RefPtr<Cairo::Context>& cr)
 {
     const auto rowstride = pixbuf->get_rowstride();
     auto first = begin(ram.data) + 0x4000;
-    auto last  = begin(ram.data) + 0x6000;
+    auto last = begin(ram.data) + 0x6000;
     guchar* row = pixbuf->get_pixels();
     uint16_t value = 0;
 
@@ -215,7 +233,7 @@ bool screen_widget::draw(const Cairo::RefPtr<Cairo::Context>& cr)
 
         for (unsigned int x = 0; x < SCREEN_WIDTH; ++x) {
             if ((x % 16) == 0) {
-                assert (first != last);
+                assert(first != last);
                 value = *first++;
             }
 
@@ -234,21 +252,20 @@ bool screen_widget::draw(const Cairo::RefPtr<Cairo::Context>& cr)
     return false;
 }
 
-
 emulator::emulator()
     : keyboard("Grab keyboard focus")
     , load_dialog(window, "Load ROM")
     , error_dialog(window, "Error loading program", false, Gtk::MessageType::MESSAGE_ERROR,
-        Gtk::ButtonsType::BUTTONS_CLOSE, true)
+                   Gtk::ButtonsType::BUTTONS_CLOSE, true)
     , screen(ram)
 {
     /* toolbar buttons */
-    setup_button(button_load,  "document-open",        "Load...");
-    setup_button(button_run,   "media-playback-start", "Run");
+    setup_button(button_load, "document-open", "Load...");
+    setup_button(button_run, "media-playback-start", "Run");
     setup_button(button_pause, "media-playback-pause", "Pause");
-    button_load.signal_clicked().connect([&] () { load_clicked(); });
-    button_run.signal_clicked().connect([&] () { run_clicked(); });
-    button_pause.signal_clicked().connect([&] () { pause_clicked(); });
+    button_load.signal_clicked().connect([&]() { load_clicked(); });
+    button_run.signal_clicked().connect([&]() { run_clicked(); });
+    button_pause.signal_clicked().connect([&]() { pause_clicked(); });
 
     button_run.set_sensitive(false);
     button_pause.set_sensitive(false);
@@ -256,19 +273,17 @@ emulator::emulator()
     /* toolbar itself */
     toolbar.set_hexpand(true);
     toolbar.set_toolbar_style(Gtk::ToolbarStyle::TOOLBAR_ICONS);
-    toolbar.insert(button_load,  -1);
-    toolbar.insert(separator,    -1);
-    toolbar.insert(button_run,   -1);
+    toolbar.insert(button_load, -1);
+    toolbar.insert(separator, -1);
+    toolbar.insert(button_run, -1);
     toolbar.insert(button_pause, -1);
 
     /* keyboard */
     keyboard.add_events(Gdk::EventMask::KEY_PRESS_MASK | Gdk::EventMask::KEY_RELEASE_MASK);
-    keyboard.signal_key_press_event().connect([&] (GdkEventKey* event) {
-        return keyboard_callback(event);
-    });
-    keyboard.signal_key_release_event().connect([&] (GdkEventKey* event) {
-        return keyboard_callback(event);
-    });
+    keyboard.signal_key_press_event().connect(
+        [&](GdkEventKey* event) { return keyboard_callback(event); });
+    keyboard.signal_key_release_event().connect(
+        [&](GdkEventKey* event) { return keyboard_callback(event); });
 
     /* main layout */
     grid.attach(toolbar, 0, 0, 1, 1);
@@ -286,14 +301,12 @@ emulator::emulator()
     load_dialog.add_button("gtk-open", GTK_RESPONSE_ACCEPT);
 }
 
-
 void emulator::setup_button(Gtk::ToolButton& button, const gchar* stock_id, const gchar* text)
 {
     button.set_label(text);
     button.set_tooltip_text(text);
     button.set_icon_name(stock_id);
 }
-
 
 void emulator::load_clicked()
 {
@@ -317,7 +330,6 @@ void emulator::load_clicked()
     button_run.set_sensitive(true);
 }
 
-
 void emulator::run_clicked()
 {
     run();
@@ -327,7 +339,6 @@ void emulator::run_clicked()
     button_pause.set_sensitive(true);
     button_pause.set_visible(true);
 }
-
 
 void emulator::pause_clicked()
 {
@@ -339,7 +350,6 @@ void emulator::pause_clicked()
     button_run.set_visible(true);
 }
 
-
 bool emulator::keyboard_callback(GdkEventKey* event)
 {
     if (event->type == GDK_KEY_RELEASE) {
@@ -350,13 +360,12 @@ bool emulator::keyboard_callback(GdkEventKey* event)
     return true;
 }
 
-
 void emulator::cpu_thread()
 {
     int steps = 0;
     while (running) {
         cpu.step(&rom, &ram);
-        if (steps>100) {
+        if (steps > 100) {
             std::this_thread::sleep_for(std::chrono::microseconds(10));
             steps = 0;
         }
@@ -364,23 +373,19 @@ void emulator::cpu_thread()
     }
 }
 
-
 void emulator::screen_thread()
 {
     while (running) {
-        Glib::signal_idle().connect_once([&] () { screen.queue_draw(); });
+        Glib::signal_idle().connect_once([&]() { screen.queue_draw(); });
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 }
 
-
 } // anonymous namespace
 
-
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
-    Glib::RefPtr<Gtk::Application> app = Gtk::Application::create(
-        argc, argv, "hcc.emulator");
+    Glib::RefPtr<Gtk::Application> app = Gtk::Application::create(argc, argv, "hcc.emulator");
     emulator e;
     return app->run(e.window);
 }

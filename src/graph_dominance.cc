@@ -15,11 +15,9 @@ namespace {
  *
  * @precondition preds and their indices are in reversed post-order, numbered from zero.
  */
-std::pair<
-    std::vector<unsigned>, // idom
-    std::multimap<unsigned, unsigned> // dfs
->
-inline chk_internal(const std::vector<std::vector<unsigned>>& preds)
+std::pair<std::vector<unsigned>, // idom
+          std::multimap<unsigned, unsigned> // dfs
+          > inline chk_internal(const std::vector<std::vector<unsigned>>& preds)
 {
     assert(preds.size() > 0);
 
@@ -37,14 +35,14 @@ inline chk_internal(const std::vector<std::vector<unsigned>>& preds)
         // for all nodes except the first
         for (unsigned b = 1; b < preds.size(); ++b) {
             auto firstPred = preds[b].begin();
-            auto lastPred  = preds[b].end();
+            auto lastPred = preds[b].end();
             assert(firstPred != lastPred);
 
             // pick the first predecessor of b without loss of generality
             unsigned newidom = *firstPred++;
 
             // for each other predecessor p of b
-            for_each(firstPred, lastPred, [&] (unsigned p) {
+            for_each(firstPred, lastPred, [&](unsigned p) {
                 if (idom_defined[p]) {
                     // newidom = intersect(p, newidom)
                     unsigned finger1 = p;
@@ -75,7 +73,7 @@ inline chk_internal(const std::vector<std::vector<unsigned>>& preds)
         if (preds[b].size() < 2)
             continue;
 
-        for (auto p: preds[b]) {
+        for (auto p : preds[b]) {
             unsigned runner = p;
             while (runner != idom[b]) {
                 dfs.insert(std::make_pair(runner, b));
@@ -124,7 +122,7 @@ graph_dominance::graph_dominance(const graph& g, const int entry_node)
     j = 0;
     for (int i = 0; i < g.node_count(); ++i) {
         int n = tree.add_node();
-        assert (i == n);
+        assert(i == n);
     }
     for (auto id : result.first) {
         int from = translate_back.at(id);

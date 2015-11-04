@@ -6,15 +6,14 @@
 #include <stack>
 #include <vector>
 
-
-template<typename Name, typename Color>
+template <typename Name, typename Color>
 struct interference_graph {
 
-    template<typename NameContainer, typename ColorContainer>
+    template <typename NameContainer, typename ColorContainer>
     interference_graph(const NameContainer& names, const ColorContainer& colors_)
-        : nodes  {begin(names),  end(names)}
-        , colors {begin(colors_), end(colors_)}
-        , edges (nodes.size()*nodes.size(), false)
+        : nodes{begin(names), end(names)}
+        , colors{begin(colors_), end(colors_)}
+        , edges(nodes.size() * nodes.size(), false)
     {
         std::sort(begin(nodes), end(nodes), node::compare_name);
         std::sort(begin(colors), end(colors));
@@ -25,8 +24,8 @@ struct interference_graph {
         if (!(x == y)) {
             auto i = find_name(x) - begin(nodes);
             auto j = find_name(y) - begin(nodes);
-            edges[i*nodes.size() + j] = true;
-            edges[j*nodes.size() + i] = true;
+            edges[i * nodes.size() + j] = true;
+            edges[j * nodes.size() + i] = true;
         }
     }
 
@@ -38,17 +37,19 @@ struct interference_graph {
 
 private:
     struct node {
-        node(const Name& name) : name {name} { }
+        node(const Name& name)
+            : name{name}
+        {
+        }
 
-        static bool compare_name(const node& a, const node& b)
-        { return a.name < b.name; }
+        static bool compare_name(const node& a, const node& b) { return a.name < b.name; }
 
         Name name;
         boost::optional<Color> color;
-        bool marked {false};
+        bool marked{false};
     };
-    using node_list           = typename std::vector<node>;
-    using node_iterator       = typename node_list::iterator;
+    using node_list = typename std::vector<node>;
+    using node_iterator = typename node_list::iterator;
     using const_node_iterator = typename node_list::const_iterator;
 
     void mark_removed(node_iterator node)
@@ -68,16 +69,16 @@ private:
     const_node_iterator find_name(const Name& name) const
     {
         auto result = std::lower_bound(begin(nodes), end(nodes), node{name}, node::compare_name);
-        assert (result != end(nodes));
-        assert (result->name == name);
+        assert(result != end(nodes));
+        assert(result->name == name);
         return result;
     }
 
-    template<typename F>
+    template <typename F>
     void for_each_neighbour(const_node_iterator node, F&& f) const
     {
         const auto row = node - begin(nodes);
-        auto rowit = begin(edges) + row*nodes.size();
+        auto rowit = begin(edges) + row * nodes.size();
         for (auto i = begin(nodes), e = end(nodes); i != e; ++i) {
             const auto is_edge = *rowit++;
             if (is_edge && !i->marked) {
@@ -89,18 +90,14 @@ private:
     int get_count(const_node_iterator node) const
     {
         int result = 0;
-        for_each_neighbour(node, [&result] (const_node_iterator) {
-            ++result;
-        });
+        for_each_neighbour(node, [&result](const_node_iterator) { ++result; });
         return result;
     }
 
     std::vector<Color> collect_neighbour_colors(const_node_iterator node) const
     {
         std::vector<Color> result;
-        for_each_neighbour(node, [&result] (const_node_iterator n) {
-            result.push_back(*n->color);
-        });
+        for_each_neighbour(node, [&result](const_node_iterator n) { result.push_back(*n->color); });
         std::sort(begin(result), end(result));
         result.erase(std::unique(begin(result), end(result)), end(result));
         return result;
@@ -150,8 +147,8 @@ private:
 
             const auto neighbour_colors = collect_neighbour_colors(node);
             if (neighbour_colors.size() < colors.size()) {
-                node->color = *std::mismatch(
-                    begin(neighbour_colors), end(neighbour_colors), begin(colors)).second;
+                node->color = *std::mismatch(begin(neighbour_colors), end(neighbour_colors),
+                                             begin(colors)).second;
             } else {
                 return node->name;
             }
@@ -162,5 +159,5 @@ private:
     node_list nodes;
     std::vector<Color> colors;
     std::vector<bool> edges;
-    unsigned marked_count {0};
+    unsigned marked_count{0};
 };

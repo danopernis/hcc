@@ -8,12 +8,12 @@
 #include <algorithm>
 #include <vector>
 
-template<typename Derived, typename Key, typename Value>
+template <typename Derived, typename Key, typename Value>
 struct index_table {
     Value put(const Key& key)
     {
         const auto p = std::find_if(pairs.begin(), pairs.end(),
-            [&] (const Pair& p) { return key == p.first; });
+                                    [&](const Pair& p) { return key == p.first; });
         if (p == pairs.end()) {
             pairs.emplace_back(key, Derived::construct(counter++));
             return pairs.back().second;
@@ -25,7 +25,7 @@ struct index_table {
     const Key& get(const Value& value) const
     {
         const auto p = std::find_if(pairs.begin(), pairs.end(),
-            [&] (const Pair& p) { return value == p.second; });
+                                    [&](const Pair& p) { return value == p.second; });
         assert(p != pairs.end());
         return p->first;
     }
@@ -33,7 +33,7 @@ struct index_table {
 private:
     using Pair = std::pair<Key, Value>;
     std::vector<Pair> pairs;
-    int counter {0};
+    int counter{0};
 };
 
 #endif // INDEX_TABLE_H

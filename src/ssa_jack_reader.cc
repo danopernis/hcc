@@ -16,18 +16,14 @@ using namespace hcc::jack::ast;
 
 namespace {
 
-enum class storage_type {
-    STATIC,
-    FIELD,
-    ARGUMENT,
-    LOCAL
-};
+enum class storage_type { STATIC, FIELD, ARGUMENT, LOCAL };
 
 struct symbol {
     symbol(storage_type storage, VariableType type)
         : storage(std::move(storage))
         , type(std::move(type))
-    { }
+    {
+    }
 
     storage_type storage;
     VariableType type;
@@ -51,31 +47,29 @@ struct scopes {
     std::vector<scope> scopes;
 };
 
-struct writer
-    : public StatementVisitor
-    , public ExpressionVisitor
-{
-    void open_block(const std::string& label)
-    { block = builder.add_bb(label); }
+struct writer : public StatementVisitor, public ExpressionVisitor {
+    void open_block(const std::string& label) { block = builder.add_bb(label); }
 
     void write_instruction(instruction_type type, std::initializer_list<argument> il)
-    { write_instruction(type, std::vector<argument>(il)); }
-
-    void write_instruction(instruction_type type, std::vector<argument> args)
-    { builder.add_instruction(block, instruction(type, args)); }
-
-    void close_block(const std::string& branch)
-    { builder.add_jump(block, builder.add_bb(branch)); }
-
-    void close_block(
-        const argument& variable, const std::string& positive, const std::string& negative)
     {
-        builder.add_branch(block, instruction_type::JEQ, constant(0), variable,
-            builder.add_bb(negative), builder.add_bb(positive));
+        write_instruction(type, std::vector<argument>(il));
     }
 
-    void write_return(const argument& variable)
-    { builder.add_return(block, variable); }
+    void write_instruction(instruction_type type, std::vector<argument> args)
+    {
+        builder.add_instruction(block, instruction(type, args));
+    }
+
+    void close_block(const std::string& branch) { builder.add_jump(block, builder.add_bb(branch)); }
+
+    void close_block(const argument& variable, const std::string& positive,
+                     const std::string& negative)
+    {
+        builder.add_branch(block, instruction_type::JEQ, constant(0), variable,
+                           builder.add_bb(negative), builder.add_bb(positive));
+    }
+
+    void write_return(const argument& variable) { builder.add_return(block, variable); }
 
     argument ssa_stack_top_pop()
     {
@@ -84,10 +78,7 @@ struct writer
         ssa_stack.pop();
         return top;
     }
-    argument temporary()
-    {
-        return builder.add_reg(std::to_string(temporary_counter++));
-    }
+    argument temporary() { return builder.add_reg(std::to_string(temporary_counter++)); }
 
     /** statement visitor */
 
@@ -103,16 +94,15 @@ struct writer
 
         switch ((*it)->second.storage) {
         case storage_type::STATIC:
-            write_instruction(
-                instruction_type::STORE, {res.globals.put(prefix + letScalar->name), last});
+            write_instruction(instruction_type::STORE,
+                              {res.globals.put(prefix + letScalar->name), last});
             break;
         case storage_type::FIELD: {
             const auto addr = temporary();
-            write_instruction(
-                instruction_type::ADD,
-                {addr, builder.add_reg("this"), constant((*it)->second.index)});
+            write_instruction(instruction_type::ADD,
+                              {addr, builder.add_reg("this"), constant((*it)->second.index)});
             write_instruction(instruction_type::STORE, {addr, last});
-            } break;
+        } break;
         default:
             write_instruction(instruction_type::MOV, {builder.add_reg(letScalar->name), last});
         }
@@ -132,16 +122,15 @@ struct writer
 
         switch ((*it)->second.storage) {
         case storage_type::STATIC:
-            write_instruction(
-                instruction_type::LOAD, {base, res.globals.put(prefix + letVector->name)});
+            write_instruction(instruction_type::LOAD,
+                              {base, res.globals.put(prefix + letVector->name)});
             break;
         case storage_type::FIELD: {
             const auto _addr = temporary();
-            write_instruction(
-                instruction_type::ADD,
-                {_addr, builder.add_reg("this"), constant((*it)->second.index)});
+            write_instruction(instruction_type::ADD,
+                              {_addr, builder.add_reg("this"), constant((*it)->second.index)});
             write_instruction(instruction_type::LOAD, {base, _addr});
-            } break;
+        } break;
         default:
             write_instruction(instruction_type::MOV, {base, builder.add_reg(letVector->name)});
         }
@@ -156,9 +145,9 @@ struct writer
     virtual void visit(IfStatement* ifStatement)
     {
         const auto if_index = std::to_string(if_counter++);
-        const auto label_true  = "IF_TRUE"  + if_index;
+        const auto label_true = "IF_TRUE" + if_index;
         const auto label_false = "IF_FALSE" + if_index;
-        const auto label_end   = "IF_END"   + if_index;
+        const auto label_end = "IF_END" + if_index;
 
         ifStatement->condition->accept(this);
         const auto condition = ssa_stack_top_pop();
@@ -183,8 +172,8 @@ struct writer
     {
         const auto while_index = std::to_string(while_counter++);
         const auto label_condition = "WHILE_CONDITION" + while_index;
-        const auto label_body      = "WHILE_BODY"      + while_index;
-        const auto label_end       = "WHILE_END"       + while_index;
+        const auto label_body = "WHILE_BODY" + while_index;
+        const auto label_end = "WHILE_END" + while_index;
 
         close_block(label_condition);
         open_block(label_condition);
@@ -217,10 +206,7 @@ struct writer
 
     /** expression visitor */
 
-    virtual void visit(ThisConstant*)
-    {
-        ssa_stack.push(builder.add_reg("this"));
-    }
+    virtual void visit(ThisConstant*) { ssa_stack.push(builder.add_reg("this")); }
 
     virtual void visit(IntegerConstant* integerConstant)
     {
@@ -233,9 +219,8 @@ struct writer
     virtual void visit(StringConstant* stringConstant)
     {
         auto string = temporary();
-        write_instruction(
-            instruction_type::CALL,
-            {string, res.globals.put("String.new"), constant(stringConstant->value.length())});
+        write_instruction(instruction_type::CALL, {string, res.globals.put("String.new"),
+                                                   constant(stringConstant->value.length())});
 
         for (char& c : stringConstant->value) {
             const auto string2 = temporary();
@@ -267,19 +252,16 @@ struct writer
         }
     }
 
-    void write_compare(
-        const instruction_type& it,
-        const argument& result,
-        const argument& arg1,
-        const argument& arg2)
+    void write_compare(const instruction_type& it, const argument& result, const argument& arg1,
+                       const argument& arg2)
     {
         const auto compare_index = std::to_string(compare_counter++);
-        const auto label_true  = "COMPARE_TRUE" + compare_index;
-        const auto label_end   = "COMPARE_END"  + compare_index;
+        const auto label_true = "COMPARE_TRUE" + compare_index;
+        const auto label_end = "COMPARE_END" + compare_index;
 
         write_instruction(instruction_type::MOV, {result, constant(0)});
-        builder.add_branch(
-            block, it, arg1, arg2, builder.add_bb(label_true), builder.add_bb(label_end));
+        builder.add_branch(block, it, arg1, arg2, builder.add_bb(label_true),
+                           builder.add_bb(label_end));
         open_block(label_true);
         write_instruction(instruction_type::MOV, {result, constant(-1)});
         close_block(label_end);
@@ -305,12 +287,12 @@ struct writer
             write_instruction(instruction_type::SUB, {result, arg1, arg2});
             break;
         case BinaryExpression::Type::MULTIPLY:
-            write_instruction(
-                instruction_type::CALL, {result, res.globals.put("Math.multiply"), arg1, arg2});
+            write_instruction(instruction_type::CALL,
+                              {result, res.globals.put("Math.multiply"), arg1, arg2});
             break;
         case BinaryExpression::Type::DIVIDE:
-            write_instruction(
-                instruction_type::CALL, {result, res.globals.put("Math.divide"), arg1, arg2});
+            write_instruction(instruction_type::CALL,
+                              {result, res.globals.put("Math.divide"), arg1, arg2});
             break;
         case BinaryExpression::Type::AND:
             write_instruction(instruction_type::AND, {result, arg1, arg2});
@@ -342,19 +324,18 @@ struct writer
 
         switch ((*it)->second.storage) {
         case storage_type::STATIC:
-            write_instruction(
-                instruction_type::LOAD, {result, res.globals.put(prefix + scalarVariable->name)});
+            write_instruction(instruction_type::LOAD,
+                              {result, res.globals.put(prefix + scalarVariable->name)});
             break;
         case storage_type::FIELD: {
             const auto addr = temporary();
-            write_instruction(
-                instruction_type::ADD,
-                {addr, builder.add_reg("this"), constant((*it)->second.index)});
+            write_instruction(instruction_type::ADD,
+                              {addr, builder.add_reg("this"), constant((*it)->second.index)});
             write_instruction(instruction_type::LOAD, {result, addr});
-            } break;
+        } break;
         default:
-            write_instruction(
-                instruction_type::MOV, {result, builder.add_reg(scalarVariable->name)});
+            write_instruction(instruction_type::MOV,
+                              {result, builder.add_reg(scalarVariable->name)});
         }
     }
 
@@ -372,19 +353,17 @@ struct writer
 
         switch ((*it)->second.storage) {
         case storage_type::STATIC:
-            write_instruction(
-                instruction_type::LOAD, {base, res.globals.put(prefix + vectorVariable->name)});
+            write_instruction(instruction_type::LOAD,
+                              {base, res.globals.put(prefix + vectorVariable->name)});
             break;
         case storage_type::FIELD: {
             const auto _addr = temporary();
-            write_instruction(
-                instruction_type::ADD,
-                {_addr, builder.add_reg("this"), constant((*it)->second.index)});
+            write_instruction(instruction_type::ADD,
+                              {_addr, builder.add_reg("this"), constant((*it)->second.index)});
             write_instruction(instruction_type::LOAD, {base, _addr});
-            } break;
+        } break;
         default:
-            write_instruction(
-                instruction_type::MOV, {base, builder.add_reg(vectorVariable->name)});
+            write_instruction(instruction_type::MOV, {base, builder.add_reg(vectorVariable->name)});
         }
 
         write_instruction(instruction_type::ADD, {addr, base, offset});
@@ -394,8 +373,8 @@ struct writer
         write_instruction(instruction_type::LOAD, {result, addr});
     }
 
-    argument write_call(
-        const std::string& base, const std::string& name, const ExpressionList& arguments)
+    argument write_call(const std::string& base, const std::string& name,
+                        const ExpressionList& arguments)
     {
         const auto result = temporary();
 
@@ -408,34 +387,32 @@ struct writer
         } else {
             const auto it = symbols.resolve(base);
             if (it) {
-                args.push_back(res.globals.put(
-                    dynamic_cast<UnresolvedType*>(
-                        (*it)->second.type->clone().get()
-                    )->name + "." + name));
+                args.push_back(
+                    res.globals.put(dynamic_cast<UnresolvedType*>((*it)->second.type->clone().get())
+                                        ->name + "." + name));
 
                 switch ((*it)->second.storage) {
                 case storage_type::STATIC: {
                     const auto var = temporary();
-                    write_instruction(
-                        instruction_type::LOAD, {var, res.globals.put(prefix + base)});
+                    write_instruction(instruction_type::LOAD,
+                                      {var, res.globals.put(prefix + base)});
                     args.push_back(var);
-                    } break;
+                } break;
                 case storage_type::FIELD: {
                     const auto addr = temporary();
                     const auto var = temporary();
-                    write_instruction(
-                        instruction_type::ADD,
-                        {addr, builder.add_reg("this"), constant((*it)->second.index)});
+                    write_instruction(instruction_type::ADD, {addr, builder.add_reg("this"),
+                                                              constant((*it)->second.index)});
                     write_instruction(instruction_type::LOAD, {var, addr});
                     args.push_back(var);
-                    } break;
+                } break;
                 default:
                     args.push_back(builder.add_reg(base));
                     break;
                 }
             } else {
-               // not found, so it must be class name
-               args.push_back(res.globals.put(base + "." + name));
+                // not found, so it must be class name
+                args.push_back(res.globals.put(base + "." + name));
             }
         }
 
@@ -461,23 +438,22 @@ struct writer
 
     writer(unit& res, const Class& class_, const Subroutine& subroutine)
         : res(res)
-        , prefix {class_.name + "."}
-        , subroutine_iterator {res.insert_subroutine(res.globals.put(prefix + subroutine.name))}
+        , prefix{class_.name + "."}
+        , subroutine_iterator{res.insert_subroutine(res.globals.put(prefix + subroutine.name))}
         , builder(subroutine_iterator->second)
         , block(builder.add_bb("ENTRY", true))
     {
         symbols.scopes.emplace_back();
 
         for (const auto& variable : class_.staticVariables) {
-            symbols.scopes.back().emplace(variable.name, symbol(
-                storage_type::STATIC,
-                variable.type->clone()));
+            symbols.scopes.back().emplace(variable.name,
+                                          symbol(storage_type::STATIC, variable.type->clone()));
         }
 
         for (const auto& variable : class_.fieldVariables) {
-            symbols.scopes.back().emplace(variable.name, symbol(
-                storage_type::FIELD,
-                variable.type->clone())).first->second.index = field_vars_count++;
+            symbols.scopes.back()
+                .emplace(variable.name, symbol(storage_type::FIELD, variable.type->clone()))
+                .first->second.index = field_vars_count++;
         }
 
         symbols.scopes.emplace_back();
@@ -485,34 +461,28 @@ struct writer
         // arguments
         unsigned argument_counter = 0;
         if (subroutine.kind == Subroutine::Kind::METHOD) {
-            write_instruction(
-                instruction_type::ARGUMENT,
-                {builder.add_reg("this"), constant(argument_counter++)});
+            write_instruction(instruction_type::ARGUMENT,
+                              {builder.add_reg("this"), constant(argument_counter++)});
         }
         for (const auto& variable : subroutine.arguments) {
-            symbols.scopes.back().emplace(variable.name, symbol(
-                storage_type::ARGUMENT,
-                variable.type->clone()));
-            write_instruction(
-                instruction_type::ARGUMENT,
-                {builder.add_reg(variable.name), constant(argument_counter++)});
+            symbols.scopes.back().emplace(variable.name,
+                                          symbol(storage_type::ARGUMENT, variable.type->clone()));
+            write_instruction(instruction_type::ARGUMENT,
+                              {builder.add_reg(variable.name), constant(argument_counter++)});
         }
 
         // in Jack, every local variable is required to be initialized to zero
         for (const auto& variable : subroutine.variables) {
-            symbols.scopes.back().emplace(variable.name, symbol(
-                storage_type::LOCAL,
-                variable.type->clone()));
-            write_instruction(
-                instruction_type::MOV, {builder.add_reg(variable.name), constant(0)});
+            symbols.scopes.back().emplace(variable.name,
+                                          symbol(storage_type::LOCAL, variable.type->clone()));
+            write_instruction(instruction_type::MOV, {builder.add_reg(variable.name), constant(0)});
         }
 
         // constructor needs to allocate space
         if (subroutine.kind == Subroutine::Kind::CONSTRUCTOR) {
-            write_instruction(
-                instruction_type::CALL,
-                {builder.add_reg("this"), res.globals.put("Memory.alloc"),
-                 constant(field_vars_count)});
+            write_instruction(instruction_type::CALL,
+                              {builder.add_reg("this"), res.globals.put("Memory.alloc"),
+                               constant(field_vars_count)});
         }
 
         for (const auto& statement : subroutine.statements) {
@@ -546,7 +516,7 @@ struct writer
 void unit::translate_from_jack(const Class& class_)
 {
     for (const auto& subroutine : class_.subroutines) {
-        writer w {*this, class_, subroutine};
+        writer w{*this, class_, subroutine};
     }
 }
 

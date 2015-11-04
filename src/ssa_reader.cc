@@ -20,12 +20,16 @@ using ssa_tokenizer = hcc::ssa::tokenizer;
 using ssa_token_type = hcc::ssa::token_type;
 
 struct ssa_parser {
-    ssa_parser(std::istream& input) : tokenizer(input) { }
+    ssa_parser(std::istream& input)
+        : tokenizer(input)
+    {
+    }
 
     void parse(unit& u)
     {
         current = tokenizer.next();
-        while (accept_define(u)) { }
+        while (accept_define(u)) {
+        }
         expect(ssa_token_type::END);
     }
 
@@ -44,10 +48,8 @@ private:
     {
         if (!accept(token_type)) {
             std::stringstream message;
-            message
-                << "Expected '" << to_string(token_type)
-                << "', got '" << to_string(current.type)
-                << "' at line " << current.line_number;
+            message << "Expected '" << to_string(token_type) << "', got '"
+                    << to_string(current.type) << "' at line " << current.line_number;
             throw std::runtime_error(message.str());
         }
     }
@@ -90,10 +92,11 @@ private:
         }
 
         const auto& name = expect_global(u);
-        auto builder = subroutine_builder {u.insert_subroutine(name)->second};
+        auto builder = subroutine_builder{u.insert_subroutine(name)->second};
 
         expect_block(u, builder, true);
-        while (accept_block(u, builder, false)) { }
+        while (accept_block(u, builder, false)) {
+        }
 
         return true;
     }
@@ -125,7 +128,8 @@ private:
             builder.add_instruction(bb, std::move(i));
         }
 
-        while (accept_instruction(u, builder, bb)) { }
+        while (accept_instruction(u, builder, bb)) {
+        }
         if (!accept_terminator(u, builder, bb)) {
             return false;
         }
@@ -139,24 +143,21 @@ private:
             const auto index = expect_constant();
             expect(ssa_token_type::SEMICOLON);
 
-            builder.add_instruction(bb, instruction(
-                instruction_type::ARGUMENT, {dest, index}));
+            builder.add_instruction(bb, instruction(instruction_type::ARGUMENT, {dest, index}));
         } else if (accept(ssa_token_type::CALL)) {
             const auto dest = expect_register(builder);
             const auto func = expect_global(u);
-            std::vector<argument> arguments {dest, func};
+            std::vector<argument> arguments{dest, func};
             while (!accept(ssa_token_type::SEMICOLON)) {
                 arguments.push_back(expect_value(u, builder));
             }
-            builder.add_instruction(bb, instruction(
-                instruction_type::CALL, std::move(arguments)));
+            builder.add_instruction(bb, instruction(instruction_type::CALL, std::move(arguments)));
         } else if (accept(ssa_token_type::STORE)) {
             const auto dest = expect_value(u, builder);
             const auto src = expect_value(u, builder);
             expect(ssa_token_type::SEMICOLON);
 
-            builder.add_instruction(bb, instruction(
-                instruction_type::STORE, {dest, src}));
+            builder.add_instruction(bb, instruction(instruction_type::STORE, {dest, src}));
         } else if (accept(ssa_token_type::LOAD)) {
             expect_unary_instruction(u, builder, bb, instruction_type::LOAD);
         } else if (accept(ssa_token_type::MOV)) {
@@ -179,11 +180,8 @@ private:
         return true;
     }
 
-    void expect_binary_instruction(
-        unit& u,
-        subroutine_builder& builder,
-        const label& bb,
-        const instruction_type& type)
+    void expect_binary_instruction(unit& u, subroutine_builder& builder, const label& bb,
+                                   const instruction_type& type)
     {
         const auto dest = expect_register(builder);
         const auto arg1 = expect_value(u, builder);
@@ -193,11 +191,8 @@ private:
         builder.add_instruction(bb, instruction(type, {dest, arg1, arg2}));
     }
 
-    void expect_unary_instruction(
-        unit& u,
-        subroutine_builder& builder,
-        const label& bb,
-        const instruction_type& type)
+    void expect_unary_instruction(unit& u, subroutine_builder& builder, const label& bb,
+                                  const instruction_type& type)
     {
         const auto dest = expect_register(builder);
         const auto arg = expect_value(u, builder);
@@ -225,11 +220,8 @@ private:
         return true;
     }
 
-    void expect_branch(
-        unit& u,
-        subroutine_builder& builder,
-        const label& bb,
-        const instruction_type& type)
+    void expect_branch(unit& u, subroutine_builder& builder, const label& bb,
+                       const instruction_type& type)
     {
         const auto arg1 = expect_value(u, builder);
         const auto arg2 = expect_value(u, builder);
@@ -251,9 +243,9 @@ private:
 
 } // end anonymous namespace
 
-namespace hcc { namespace ssa {
+namespace hcc {
+namespace ssa {
 
-void unit::load(std::istream& input)
-{ ssa_parser(input).parse(*this); }
-
-}} // end namespace hcc::ssa
+void unit::load(std::istream& input) { ssa_parser(input).parse(*this); }
+}
+} // end namespace hcc::ssa

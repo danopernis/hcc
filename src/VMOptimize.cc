@@ -8,14 +8,16 @@
 
 namespace hcc {
 
-typedef void (*o1cb)(VMCommandList &cmds, VMCommandList::iterator &c1);
-typedef bool (*o2cb)(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList::iterator &c2);
-typedef bool (*o3cb)(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList::iterator &c2, VMCommandList::iterator &c3);
+typedef void (*o1cb)(VMCommandList& cmds, VMCommandList::iterator& c1);
+typedef bool (*o2cb)(VMCommandList& cmds, VMCommandList::iterator& c1, VMCommandList::iterator& c2);
+typedef bool (*o3cb)(VMCommandList& cmds, VMCommandList::iterator& c1, VMCommandList::iterator& c2,
+                     VMCommandList::iterator& c3);
 
 /*
- * optimizeN routine calls callback for all successive N-tuples. If callback returns true, routine restarts.
+ * optimizeN routine calls callback for all successive N-tuples. If callback returns true, routine
+ * restarts.
  */
-void optimize1(VMCommandList &cmds, o1cb cb)
+void optimize1(VMCommandList& cmds, o1cb cb)
 {
     for (VMCommandList::iterator i = cmds.begin(); i != cmds.end();) {
         VMCommandList::iterator tmp = i;
@@ -24,12 +26,12 @@ void optimize1(VMCommandList &cmds, o1cb cb)
         i = tmp;
     }
 }
-void optimize2(VMCommandList &cmds, o2cb cb)
+void optimize2(VMCommandList& cmds, o2cb cb)
 {
     bool modified;
     do {
         modified = false;
-        if (cmds.size()<2)
+        if (cmds.size() < 2)
             break;
 
         VMCommandList::iterator c1, c2;
@@ -46,12 +48,12 @@ void optimize2(VMCommandList &cmds, o2cb cb)
         }
     } while (modified);
 }
-void optimize3(VMCommandList &cmds, o3cb cb)
+void optimize3(VMCommandList& cmds, o3cb cb)
 {
     bool modified;
     do {
         modified = false;
-        if (cmds.size()<3)
+        if (cmds.size() < 3)
             break;
 
         VMCommandList::iterator c1, c2, c3;
@@ -73,13 +75,11 @@ void optimize3(VMCommandList &cmds, o3cb cb)
 /*
  * optimizations removing commands
  */
-bool o_bloated_goto(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList::iterator &c2, VMCommandList::iterator &c3)
+bool o_bloated_goto(VMCommandList& cmds, VMCommandList::iterator& c1, VMCommandList::iterator& c2,
+                    VMCommandList::iterator& c3)
 {
-    if (c1->type == VMCommand::IF &&
-        c2->type == VMCommand::GOTO &&
-        c3->type == VMCommand::LABEL &&
-        c1->arg1 == c3->arg1)
-    {
+    if (c1->type == VMCommand::IF && c2->type == VMCommand::GOTO && c3->type == VMCommand::LABEL
+        && c1->arg1 == c3->arg1) {
         c1->type = VMCommand::UNARY;
         c1->unary = NOT;
         c2->type = VMCommand::IF;
@@ -87,25 +87,20 @@ bool o_bloated_goto(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandL
     }
     return false;
 }
-bool o_double_notneg(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList::iterator &c2)
+bool o_double_notneg(VMCommandList& cmds, VMCommandList::iterator& c1, VMCommandList::iterator& c2)
 {
-    if (c1->type == VMCommand::UNARY &&
-        c2->type == VMCommand::UNARY &&
-        ((c1->unary == NOT && c2->unary == NOT) ||
-         (c1->unary == NEG && c2->unary == NEG)))
-    {
+    if (c1->type == VMCommand::UNARY && c2->type == VMCommand::UNARY
+        && ((c1->unary == NOT && c2->unary == NOT) || (c1->unary == NEG && c2->unary == NEG))) {
         cmds.erase(c1);
         cmds.erase(c2);
         return true;
     }
     return false;
 }
-bool o_negated_compare(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList::iterator &c2)
+bool o_negated_compare(VMCommandList& cmds, VMCommandList::iterator& c1,
+                       VMCommandList::iterator& c2)
 {
-    if (c1->type != VMCommand::COMPARE ||
-        c2->type != VMCommand::UNARY ||
-        c2->unary != NOT)
-    {
+    if (c1->type != VMCommand::COMPARE || c2->type != VMCommand::UNARY || c2->unary != NOT) {
         return false;
     }
 
@@ -113,12 +108,9 @@ bool o_negated_compare(VMCommandList &cmds, VMCommandList::iterator &c1, VMComma
     cmds.erase(c2);
     return true;
 }
-bool o_negated_if(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList::iterator &c2)
+bool o_negated_if(VMCommandList& cmds, VMCommandList::iterator& c1, VMCommandList::iterator& c2)
 {
-    if (c1->type != VMCommand::UNARY ||
-        c1->unary != NOT ||
-        c2->type != VMCommand::IF)
-    {
+    if (c1->type != VMCommand::UNARY || c1->unary != NOT || c2->type != VMCommand::IF) {
         return false;
     }
 
@@ -129,11 +121,10 @@ bool o_negated_if(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandLis
 /*
  * const expressions
  */
-bool o_const_expression3(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList::iterator &c2, VMCommandList::iterator &c3)
+bool o_const_expression3(VMCommandList& cmds, VMCommandList::iterator& c1,
+                         VMCommandList::iterator& c2, VMCommandList::iterator& c3)
 {
-    if (c1->type == VMCommand::CONSTANT &&
-        c2->type == VMCommand::CONSTANT)
-    {
+    if (c1->type == VMCommand::CONSTANT && c2->type == VMCommand::CONSTANT) {
         if (c3->type == VMCommand::BINARY) {
             switch (c3->binary) {
             case ADD:
@@ -167,11 +158,10 @@ bool o_const_expression3(VMCommandList &cmds, VMCommandList::iterator &c1, VMCom
     }
     return false;
 }
-bool o_const_expression2(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList::iterator &c2)
+bool o_const_expression2(VMCommandList& cmds, VMCommandList::iterator& c1,
+                         VMCommandList::iterator& c2)
 {
-    if (c1->type == VMCommand::CONSTANT &&
-        c2->type == VMCommand::UNARY)
-    {
+    if (c1->type == VMCommand::CONSTANT && c2->type == VMCommand::UNARY) {
         switch (c2->unary) {
         case NEG:
             c1->int1 = -c1->int1;
@@ -188,11 +178,9 @@ bool o_const_expression2(VMCommandList &cmds, VMCommandList::iterator &c1, VMCom
     }
     return false;
 }
-bool o_const_if(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList::iterator &c2)
+bool o_const_if(VMCommandList& cmds, VMCommandList::iterator& c1, VMCommandList::iterator& c2)
 {
-    if (c1->type != VMCommand::CONSTANT ||
-        c2->type != VMCommand::IF)
-    {
+    if (c1->type != VMCommand::CONSTANT || c2->type != VMCommand::IF) {
         return false;
     }
 
@@ -218,11 +206,10 @@ bool o_const_if(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList:
 /*
  * convert binary operation to unary
  */
-bool o_const_swap(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList::iterator &c2, VMCommandList::iterator &c3)
+bool o_const_swap(VMCommandList& cmds, VMCommandList::iterator& c1, VMCommandList::iterator& c2,
+                  VMCommandList::iterator& c3)
 {
-    if (c1->type == VMCommand::CONSTANT &&
-        c2->type == VMCommand::PUSH)
-    {
+    if (c1->type == VMCommand::CONSTANT && c2->type == VMCommand::PUSH) {
         if (c3->type == VMCommand::BINARY) {
             switch (c3->binary) {
             case SUB:
@@ -253,7 +240,8 @@ bool o_const_swap(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandLis
     }
     return false;
 }
-bool o_binary_to_unary(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList::iterator &c2)
+bool o_binary_to_unary(VMCommandList& cmds, VMCommandList::iterator& c1,
+                       VMCommandList::iterator& c2)
 {
     if (c1->type == VMCommand::CONSTANT) {
         if (c2->type == VMCommand::BINARY) {
@@ -288,7 +276,7 @@ bool o_binary_to_unary(VMCommandList &cmds, VMCommandList::iterator &c1, VMComma
     }
     return false;
 }
-void o_special_unary(VMCommandList &cmds, VMCommandList::iterator &c1)
+void o_special_unary(VMCommandList& cmds, VMCommandList::iterator& c1)
 {
     if (c1->type != VMCommand::UNARY)
         return;
@@ -317,16 +305,12 @@ void o_special_unary(VMCommandList &cmds, VMCommandList::iterator &c1)
         break;
     }
 }
-bool o_binary_equalarg(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList::iterator &c2, VMCommandList::iterator &c3)
+bool o_binary_equalarg(VMCommandList& cmds, VMCommandList::iterator& c1,
+                       VMCommandList::iterator& c2, VMCommandList::iterator& c3)
 {
-    if (c1->type == VMCommand::PUSH &&
-        c2->type == VMCommand::PUSH &&
-        c1->segment1 == c2->segment1 &&
-        c1->int1 == c2->int1)
-    {
-        if (c3->type == VMCommand::BINARY &&
-            c3->binary == ADD)
-        {
+    if (c1->type == VMCommand::PUSH && c2->type == VMCommand::PUSH && c1->segment1 == c2->segment1
+        && c1->int1 == c2->int1) {
+        if (c3->type == VMCommand::BINARY && c3->binary == ADD) {
             c3->type = VMCommand::UNARY;
             c3->unary = DOUBLE;
             cmds.erase(c1);
@@ -339,11 +323,9 @@ bool o_binary_equalarg(VMCommandList &cmds, VMCommandList::iterator &c1, VMComma
 /*
  * Merge operations.
  */
-bool o_push_pop(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList::iterator &c2)
+bool o_push_pop(VMCommandList& cmds, VMCommandList::iterator& c1, VMCommandList::iterator& c2)
 {
-    if (c1->type != VMCommand::PUSH ||
-        c2->type != VMCommand::POP_INDIRECT)
-    {
+    if (c1->type != VMCommand::PUSH || c2->type != VMCommand::POP_INDIRECT) {
         return false;
     }
 
@@ -353,7 +335,7 @@ bool o_push_pop(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList:
     cmds.erase(c2);
     return true;
 }
-bool o_compare_if(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList::iterator &c2)
+bool o_compare_if(VMCommandList& cmds, VMCommandList::iterator& c1, VMCommandList::iterator& c2)
 {
     if (c2->type == VMCommand::IF) {
         if (c1->type == VMCommand::COMPARE) {
@@ -368,28 +350,22 @@ bool o_compare_if(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandLis
             cmds.erase(c2);
             return true;
         }
-
     }
     return false;
 }
-bool o_goto_goto(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList::iterator &c2)
+bool o_goto_goto(VMCommandList& cmds, VMCommandList::iterator& c1, VMCommandList::iterator& c2)
 {
-    if (c1->type != VMCommand::GOTO ||
-        c2->type != VMCommand::GOTO)
-    {
+    if (c1->type != VMCommand::GOTO || c2->type != VMCommand::GOTO) {
         return false;
     }
 
     cmds.erase(c2);
     return true;
 }
-bool o_pop_push(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList::iterator &c2)
+bool o_pop_push(VMCommandList& cmds, VMCommandList::iterator& c1, VMCommandList::iterator& c2)
 {
-    if (c1->type == VMCommand::POP_INDIRECT &&
-        c2->type == VMCommand::PUSH &&
-        c1->segment1 == c2->segment1 &&
-        c1->int1 == c2->int1)
-    {
+    if (c1->type == VMCommand::POP_INDIRECT && c2->type == VMCommand::PUSH
+        && c1->segment1 == c2->segment1 && c1->int1 == c2->int1) {
         c1->type = VMCommand::POP_INDIRECT_PUSH;
         cmds.erase(c2);
         return true;
@@ -399,7 +375,7 @@ bool o_pop_push(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList:
 /*
  * stack-less computation chains
  */
-void s_replicate(VMCommandList &cmds, VMCommandList::iterator &c1)
+void s_replicate(VMCommandList& cmds, VMCommandList::iterator& c1)
 {
     VMCommand in;
     in.type = VMCommand::IN;
@@ -442,11 +418,9 @@ void s_replicate(VMCommandList &cmds, VMCommandList::iterator &c1)
         break;
     }
 }
-bool s_reduce(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList::iterator &c2)
+bool s_reduce(VMCommandList& cmds, VMCommandList::iterator& c1, VMCommandList::iterator& c2)
 {
-    if (c1->type != VMCommand::FIN ||
-        c2->type != VMCommand::IN)
-    {
+    if (c1->type != VMCommand::FIN || c2->type != VMCommand::IN) {
         return false;
     }
 
@@ -454,7 +428,7 @@ bool s_reduce(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList::i
     cmds.erase(c2);
     return true;
 }
-bool s_reconstruct(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandList::iterator &c2)
+bool s_reconstruct(VMCommandList& cmds, VMCommandList::iterator& c1, VMCommandList::iterator& c2)
 {
     if (c1->type == VMCommand::IN) {
         c2->in = true;
@@ -469,7 +443,7 @@ bool s_reconstruct(VMCommandList &cmds, VMCommandList::iterator &c1, VMCommandLi
     return false;
 }
 
-void VMOptimize(VMCommandList &cmds)
+void VMOptimize(VMCommandList& cmds)
 {
     // order is somewhat important!
     // optimizations removing commands are best taken early

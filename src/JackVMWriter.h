@@ -13,6 +13,7 @@ public:
     VMWriter(const std::string& filename);
     ~VMWriter();
     void write(const ast::Class& clazz);
+
 private:
     class Impl;
     std::unique_ptr<Impl> pimpl;

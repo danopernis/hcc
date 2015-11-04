@@ -4,11 +4,12 @@
 #include "ssa.h"
 #include <cassert>
 
-namespace hcc { namespace ssa {
+namespace hcc {
+namespace ssa {
 
 void instruction::use_apply(std::function<void(argument&)> g)
 {
-    auto f = [&] (argument& a) {
+    auto f = [&](argument& a) {
         if (a.is_reg()) {
             g(a);
         }
@@ -23,7 +24,7 @@ void instruction::use_apply(std::function<void(argument&)> g)
             }
             ++counter;
         }
-        } break;
+    } break;
     case instruction_type::PHI: {
         int counter = 0;
         for (auto& argument : arguments) {
@@ -32,7 +33,7 @@ void instruction::use_apply(std::function<void(argument&)> g)
             }
             ++counter;
         }
-        } break;
+    } break;
     case instruction_type::RETURN:
         f(arguments[0]);
         break;
@@ -63,7 +64,6 @@ void instruction::use_apply(std::function<void(argument&)> g)
     }
 }
 
-
 void subroutine_ir::recompute_dominance()
 {
     // hack: graph_dominance can't handle blocks that are not target of jump
@@ -91,7 +91,7 @@ void subroutine_ir::recompute_liveness()
         block.varkill.clear();
         block.liveout.clear();
         for (auto& instruction : block.instructions) {
-            instruction.use_apply([&block] (const argument& a) {
+            instruction.use_apply([&block](const argument& a) {
                 if (!a.is_reg()) {
                     return;
                 }
@@ -100,7 +100,7 @@ void subroutine_ir::recompute_liveness()
                     block.uevar.insert(x);
                 }
             });
-            instruction.def_apply([&block] (const argument& a) {
+            instruction.def_apply([&block](const argument& a) {
                 if (!a.is_reg()) {
                     return;
                 }
@@ -119,11 +119,12 @@ void subroutine_ir::recompute_liveness()
             auto old_liveout = block.liveout;
 
             std::set<reg> new_liveout;
-            for_each_cfg_successor(block.name, [&] (basic_block& bb) {
+            for_each_cfg_successor(block.name, [&](basic_block& bb) {
                 const auto& uevar = bb.uevar;
                 const auto& varkill = bb.varkill;
                 const auto& liveout = bb.liveout;
-                std::copy(uevar.begin(), uevar.end(), std::inserter(new_liveout, new_liveout.begin()));
+                std::copy(uevar.begin(), uevar.end(),
+                          std::inserter(new_liveout, new_liveout.begin()));
                 for (const auto& x : liveout) {
                     if (varkill.count(x) == 0)
                         new_liveout.insert(x);
@@ -141,18 +142,18 @@ void subroutine_ir::recompute_liveness()
 std::set<reg> subroutine_ir::collect_variable_names()
 {
     std::set<reg> result;
-    auto inserter = [&] (argument& a) {
+    auto inserter = [&](argument& a) {
         if (a.is_reg()) {
             result.insert(a.get_reg());
         }
     };
-    for_each_bb([&] (basic_block& bb) {
-    for (auto& instruction : bb.instructions) {
-        instruction.use_apply(inserter);
-        instruction.def_apply(inserter);
-    }
+    for_each_bb([&](basic_block& bb) {
+        for (auto& instruction : bb.instructions) {
+            instruction.use_apply(inserter);
+            instruction.def_apply(inserter);
+        }
     });
     return result;
 }
-
-}} // end namespace hcc::ssa
+}
+} // end namespace hcc::ssa

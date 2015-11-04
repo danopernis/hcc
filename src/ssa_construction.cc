@@ -5,7 +5,8 @@
 #include <set>
 #include <string>
 
-namespace hcc { namespace ssa {
+namespace hcc {
+namespace ssa {
 
 namespace {
 
@@ -13,10 +14,10 @@ namespace {
 void insert_temp_phi(subroutine& s)
 {
     std::set<reg> globals;
-    s.for_each_bb([&] (basic_block& bb) {
+    s.for_each_bb([&](basic_block& bb) {
         std::set<reg> varkill;
-        for (auto& i: bb.instructions) {
-            i.use_apply([&] (argument& a) {
+        for (auto& i : bb.instructions) {
+            i.use_apply([&](argument& a) {
                 if (a.is_reg()) {
                     const auto r = a.get_reg();
                     if (!varkill.count(r)) {
@@ -24,7 +25,7 @@ void insert_temp_phi(subroutine& s)
                     }
                 }
             });
-            i.def_apply([&] (argument& a) {
+            i.def_apply([&](argument& a) {
                 const auto r = a.get_reg();
                 varkill.insert(r);
             });
@@ -33,7 +34,7 @@ void insert_temp_phi(subroutine& s)
 
     // init
     int iteration = 0;
-    s.for_each_bb([&] (basic_block& block) {
+    s.for_each_bb([&](basic_block& block) {
         block.has_already = iteration;
         block.work = iteration;
     });
@@ -42,9 +43,9 @@ void insert_temp_phi(subroutine& s)
     for (const auto& variable : globals) {
         ++iteration;
 
-        s.for_each_bb([&] (basic_block& block) {
+        s.for_each_bb([&](basic_block& block) {
             for (auto& instruction : block.instructions) {
-                instruction.def_apply([&] (argument& a) {
+                instruction.def_apply([&](argument& a) {
                     if (a.get_reg() == variable) {
                         // add to worklist
                         block.work = iteration;
@@ -58,11 +59,11 @@ void insert_temp_phi(subroutine& s)
             auto x = *w.begin();
             w.erase(w.begin());
 
-            s.for_each_bb_in_dfs(x, [&] (basic_block& block) {
+            s.for_each_bb_in_dfs(x, [&](basic_block& block) {
                 if (block.has_already < iteration) {
                     // place PHI
-                    block.instructions.emplace_front(instruction(
-                        instruction_type::PHI, {variable}));
+                    block.instructions.emplace_front(
+                        instruction(instruction_type::PHI, {variable}));
 
                     block.has_already = iteration;
                     if (block.work < iteration) {
@@ -85,10 +86,7 @@ struct name_manager {
         }
     }
 
-    reg current_name(const reg& name)
-    {
-        return entries.at(backref.at(name)).current_name();
-    }
+    reg current_name(const reg& name) { return entries.at(backref.at(name)).current_name(); }
 
     reg new_name(const reg& name)
     {
@@ -98,18 +96,16 @@ struct name_manager {
         return r;
     }
 
-    void pop(const reg& name)
-    {
-        entries.at(backref.at(name)).pop();
-    }
+    void pop(const reg& name) { entries.at(backref.at(name)).pop(); }
 
 private:
     struct map_entry {
-        map_entry(const reg& a) : counter{0}
+        map_entry(const reg& a)
+            : counter{0}
         {
             stack.emplace(a);
         }
-        reg current_name() const {return stack.top(); }
+        reg current_name() const { return stack.top(); }
         reg new_name(regs_table& regs, const reg& a)
         {
             const auto n = regs.get(a) + "_" + std::to_string(counter++);
@@ -118,6 +114,7 @@ private:
             return current_name();
         }
         void pop() { stack.pop(); }
+
     private:
         std::stack<reg> stack;
         int counter;
@@ -141,25 +138,22 @@ void subroutine::construct_minimal_ssa()
 
     // Step 2: append indices to variable names
     name_manager names(this->regs, variables);
-    std::function<void(basic_block&)> rename = [&] (basic_block& x)
-    {
+    std::function<void(basic_block&)> rename = [&](basic_block& x) {
         for (auto& instr : x.instructions) {
             if (instr.type != instruction_type::PHI) {
                 // Uses get current name
-                instr.use_apply([&] (argument& a) {
+                instr.use_apply([&](argument& a) {
                     if (a.is_reg()) {
                         a = names.current_name(a.get_reg());
                     }
                 });
             }
             // Definitions get new name
-            instr.def_apply([&] (argument& a) {
-                a = names.new_name(a.get_reg());
-            });
+            instr.def_apply([&](argument& a) { a = names.new_name(a.get_reg()); });
         }
 
         // Complete uses in temporary phi-function using current names
-        for_each_cfg_successor(x.name, [&] (basic_block& y) {
+        for_each_cfg_successor(x.name, [&](basic_block& y) {
             for (auto& instr : y.instructions) {
                 if (instr.type == instruction_type::PHI) {
                     auto dest = instr.arguments[0].get_reg();
@@ -174,12 +168,10 @@ void subroutine::construct_minimal_ssa()
 
         // Cleanup
         for (auto& instr : x.instructions) {
-            instr.def_apply([&] (argument& a) {
-                names.pop(a.get_reg());
-            });
+            instr.def_apply([&](argument& a) { names.pop(a.get_reg()); });
         }
     };
     rename(entry_node());
 }
-
-}} // namespace hcc::ssa
+}
+} // namespace hcc::ssa

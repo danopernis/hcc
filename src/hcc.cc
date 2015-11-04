@@ -42,13 +42,11 @@ struct command_line_options {
                 assemble = false;
                 break;
             case '?':
-                throw std::runtime_error(
-                    std::string("Unknown command line option: ") +
-                    static_cast<char>(optopt));
+                throw std::runtime_error(std::string("Unknown command line option: ")
+                                         + static_cast<char>(optopt));
             case ':':
-                throw std::runtime_error(
-                    std::string("Missing argument for command line option: ") +
-                    static_cast<char>(optopt));
+                throw std::runtime_error(std::string("Missing argument for command line option: ")
+                                         + static_cast<char>(optopt));
             }
         }
         while (optind < argc) {
@@ -64,10 +62,8 @@ struct command_line_options {
             }
         }
 
-        const auto all_empty =
-            jack_input_files.empty() &&
-            asm_input_files.empty() &&
-            vm_input_files.empty();
+        const auto all_empty = jack_input_files.empty() && asm_input_files.empty()
+                               && vm_input_files.empty();
         if (all_empty && !help) {
             throw std::runtime_error("Missing input file(s)");
         }
@@ -97,17 +93,15 @@ struct command_line_options {
 
     void print_help() const
     {
-        std::cout <<
-            "Usage: hcc [options] file...\n"
-            "Options:\n"
-            "  -h                   Display this information\n"
-            "  -o <file>            Place the output into <file>\n"
-            "  -S                   Compile only; do not assemble\n"
-            ;
+        std::cout << "Usage: hcc [options] file...\n"
+                     "Options:\n"
+                     "  -h                   Display this information\n"
+                     "  -o <file>            Place the output into <file>\n"
+                     "  -S                   Compile only; do not assemble\n";
     }
 
-    bool help {false};
-    bool assemble {true};
+    bool help{false};
+    bool assemble{true};
     std::string output;
     std::vector<std::string> jack_input_files;
     std::vector<std::string> asm_input_files;
@@ -120,16 +114,14 @@ void jack_to_asm(const std::vector<std::string>& jack_input_files, hcc::asm_prog
     std::vector<ast::Class> classes;
     try {
         for (const auto& input_file : jack_input_files) {
-            std::ifstream input {input_file};
-            tokenizer t {
-                std::istreambuf_iterator<char>(input),
-                std::istreambuf_iterator<char>()};
+            std::ifstream input{input_file};
+            tokenizer t{std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>()};
             classes.push_back(parse(t));
         }
-    } catch (const parse_error& e) {
+    }
+    catch (const parse_error& e) {
         std::stringstream ss;
-        ss  << "Parse error: " << e.what()
-            << " at " << e.line << ":" << e.column;
+        ss << "Parse error: " << e.what() << " at " << e.line << ":" << e.column;
         throw std::runtime_error(ss.str());
     }
 
@@ -157,8 +149,8 @@ void vm_to_asm(const std::vector<std::string>& vm_input_files, hcc::asm_program&
     hcc::VMWriter writer(out);
     writer.writeBootstrap();
     for (const auto& input_file : vm_input_files) {
-        std::ifstream input {input_file.c_str()};
-        hcc::VMParser parser {input};
+        std::ifstream input{input_file.c_str()};
+        hcc::VMParser parser{input};
         auto cmds = parser.parse();
         hcc::VMOptimize(cmds);
         writer.writeFile(input_file, cmds);
@@ -168,15 +160,14 @@ void vm_to_asm(const std::vector<std::string>& vm_input_files, hcc::asm_program&
 void asm_to_asm(const std::vector<std::string>& asm_input_files, hcc::asm_program& out)
 {
     for (const auto& input_file : asm_input_files) {
-        std::ifstream input_stream {input_file};
-        hcc::asm_program prog {input_stream};
+        std::ifstream input_stream{input_file};
+        hcc::asm_program prog{input_stream};
         out = prog;
     }
 }
 
-int main(int argc, char* argv[])
-try {
-    const command_line_options options {argc, argv};
+int main(int argc, char* argv[]) try {
+    const command_line_options options{argc, argv};
     if (options.help) {
         options.print_help();
         return 0;
@@ -196,10 +187,10 @@ try {
     }
 
     return 0;
-} catch (const std::runtime_error& e) {
-    std::cerr
-        << "When executing "
-        << boost::algorithm::join(std::vector<std::string>(argv, argv + argc), " ")
-        << " ...\n" << e.what() << "\n";
+}
+catch (const std::runtime_error& e) {
+    std::cerr << "When executing "
+              << boost::algorithm::join(std::vector<std::string>(argv, argv + argc), " ")
+              << " ...\n" << e.what() << "\n";
     return 1;
 }

@@ -16,59 +16,57 @@ namespace {
 using namespace hcc::instruction;
 
 const std::map<std::string, unsigned short> destMap = {
-    { "M",      DEST_M },
-    { "D",      DEST_D },
-    { "MD",     DEST_M | DEST_D },
-    { "A",      DEST_A },
-    { "AM",     DEST_A | DEST_M },
-    { "AD",     DEST_A | DEST_D },
-    { "AMD",    DEST_A | DEST_M | DEST_D },
+    {"M", DEST_M},
+    {"D", DEST_D},
+    {"MD", DEST_M | DEST_D},
+    {"A", DEST_A},
+    {"AM", DEST_A | DEST_M},
+    {"AD", DEST_A | DEST_D},
+    {"AMD", DEST_A | DEST_M | DEST_D},
 };
 
 const std::map<std::string, unsigned short> jumpMap = {
-    { "JGT",    JGT },
-    { "JEQ",    JEQ },
-    { "JGE",    JGE },
-    { "JLT",    JLT },
-    { "JNE",    JNE },
-    { "JLE",    JLE },
-    { "JMP",    JMP },
+    {"JGT", JGT},
+    {"JEQ", JEQ},
+    {"JGE", JGE},
+    {"JLT", JLT},
+    {"JNE", JNE},
+    {"JLE", JLE},
+    {"JMP", JMP},
 };
 
 const std::map<std::string, unsigned short> compMap = {
-    { "0",      COMP_ZERO },
-    { "1",      COMP_ONE },
-    { "!D",     COMP_NOT_D },
-    { "!A",     COMP_NOT_A },
-    { "!M",     COMP_NOT_M },
-    { "-1",     COMP_MINUS_ONE },
-    { "-D",     COMP_MINUS_D },
-    { "-A",     COMP_MINUS_A },
-    { "-M",     COMP_MINUS_M },
-    { "M",      COMP_M },
-    { "M+1",    COMP_M_PLUS_ONE },
-    { "M-1",    COMP_M_MINUS_ONE },
-    { "M-D",    COMP_M_MINUS_D },
-    { "A",      COMP_A },
-    { "A+1",    COMP_A_PLUS_ONE },
-    { "A-1",    COMP_A_MINUS_ONE },
-    { "A-D",    COMP_A_MINUS_D },
-    { "D",      COMP_D },
-    { "D+1",    COMP_D_PLUS_ONE },
-    { "D+A",    COMP_D_PLUS_A },
-    { "D+M",    COMP_D_PLUS_M },
-    { "D-1",    COMP_D_MINUS_ONE },
-    { "D-A",    COMP_D_MINUS_A },
-    { "D-M",    COMP_D_MINUS_M },
-    { "D&A",    COMP_D_AND_A },
-    { "D&M",    COMP_D_AND_M },
-    { "D|A",    COMP_D_OR_A },
-    { "D|M",    COMP_D_OR_M },
+    {"0", COMP_ZERO},
+    {"1", COMP_ONE},
+    {"!D", COMP_NOT_D},
+    {"!A", COMP_NOT_A},
+    {"!M", COMP_NOT_M},
+    {"-1", COMP_MINUS_ONE},
+    {"-D", COMP_MINUS_D},
+    {"-A", COMP_MINUS_A},
+    {"-M", COMP_MINUS_M},
+    {"M", COMP_M},
+    {"M+1", COMP_M_PLUS_ONE},
+    {"M-1", COMP_M_MINUS_ONE},
+    {"M-D", COMP_M_MINUS_D},
+    {"A", COMP_A},
+    {"A+1", COMP_A_PLUS_ONE},
+    {"A-1", COMP_A_MINUS_ONE},
+    {"A-D", COMP_A_MINUS_D},
+    {"D", COMP_D},
+    {"D+1", COMP_D_PLUS_ONE},
+    {"D+A", COMP_D_PLUS_A},
+    {"D+M", COMP_D_PLUS_M},
+    {"D-1", COMP_D_MINUS_ONE},
+    {"D-A", COMP_D_MINUS_A},
+    {"D-M", COMP_D_MINUS_M},
+    {"D&A", COMP_D_AND_A},
+    {"D&M", COMP_D_AND_M},
+    {"D|A", COMP_D_OR_A},
+    {"D|M", COMP_D_OR_M},
 };
 
-void instructionToString(
-    std::ostream& out,
-    unsigned short instr)
+void instructionToString(std::ostream& out, unsigned short instr)
 {
     if (instr & COMPUTE) {
         if (instr & MASK_DEST) {
@@ -212,31 +210,31 @@ std::vector<uint16_t> asm_program::assemble() const
 {
     // built-in symbols
     std::map<std::string, int> table = {
-        { "SP",     0x0000 },
-        { "LCL",    0x0001 },
-        { "ARG",    0x0002 },
-        { "THIS",   0x0003 },
-        { "THAT",   0x0004 },
+        {"SP", 0x0000},
+        {"LCL", 0x0001},
+        {"ARG", 0x0002},
+        {"THIS", 0x0003},
+        {"THAT", 0x0004},
 
-        { "SCREEN", 0x4000 },
-        { "KBD",    0x6000 },
+        {"SCREEN", 0x4000},
+        {"KBD", 0x6000},
 
-        { "R0",     0x0000 },
-        { "R1",     0x0001 },
-        { "R2",     0x0002 },
-        { "R3",     0x0003 },
-        { "R4",     0x0004 },
-        { "R5",     0x0005 },
-        { "R6",     0x0006 },
-        { "R7",     0x0007 },
-        { "R8",     0x0008 },
-        { "R9",     0x0009 },
-        { "R10",    0x000a },
-        { "R11",    0x000b },
-        { "R12",    0x000c },
-        { "R13",    0x000d },
-        { "R14",    0x000e },
-        { "R15",    0x000f },
+        {"R0", 0x0000},
+        {"R1", 0x0001},
+        {"R2", 0x0002},
+        {"R3", 0x0003},
+        {"R4", 0x0004},
+        {"R5", 0x0005},
+        {"R6", 0x0006},
+        {"R7", 0x0007},
+        {"R8", 0x0008},
+        {"R9", 0x0009},
+        {"R10", 0x000a},
+        {"R11", 0x000b},
+        {"R12", 0x000c},
+        {"R13", 0x000d},
+        {"R14", 0x000e},
+        {"R15", 0x000f},
     };
 
     // first pass
@@ -294,7 +292,7 @@ asm_program::asm_program(std::istream& input)
             i.type = asm_instruction_type::COMMENT;
             i.symbol = line.substr(2, line.length());
         } else if (line.at(0) == '@') {
-            std::string symbol = line.substr(1, line.length()-1);
+            std::string symbol = line.substr(1, line.length() - 1);
             if (isdigit(symbol.at(0))) {
                 i.type = asm_instruction_type::VERBATIM;
                 std::stringstream ss(symbol);
@@ -305,7 +303,7 @@ asm_program::asm_program(std::istream& input)
             }
         } else if (line.at(0) == '(') {
             i.type = asm_instruction_type::LABEL;
-            i.symbol = line.substr(1, line.length()-2);
+            i.symbol = line.substr(1, line.length() - 2);
         } else {
             i.type = asm_instruction_type::VERBATIM;
             // dest=comp;jump
@@ -322,11 +320,11 @@ asm_program::asm_program(std::istream& input)
                 dest = destMap.at(line.substr(0, equals));
             }
             if (semicolon > length) {
-                comp = compMap.at(line.substr(equals+1, length-equals-1));
+                comp = compMap.at(line.substr(equals + 1, length - equals - 1));
                 jump = 0;
             } else {
-                comp = compMap.at(line.substr(equals+1, semicolon-equals-1));
-                jump = jumpMap.at(line.substr(semicolon+1, 3));
+                comp = compMap.at(line.substr(equals + 1, semicolon - equals - 1));
+                jump = jumpMap.at(line.substr(semicolon + 1, 3));
             }
 
             i.instr = instruction::COMPUTE | instruction::RESERVED | comp | dest | jump;
@@ -362,12 +360,12 @@ void saveHACK(const std::string& filename, std::vector<uint16_t> instructions)
 {
     std::ofstream out(filename.c_str());
     for (auto instr : instructions) {
-        for (int j = 0; j<16; ++j) {
-            out << (instr & (1<<15) ? '1' : '0');
+        for (int j = 0; j < 16; ++j) {
+            out << (instr & (1 << 15) ? '1' : '0');
             instr <<= 1;
         }
         out << '\n';
     }
 }
 
-} //end namespace
+} // end namespace

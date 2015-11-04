@@ -4,7 +4,8 @@
 #include <algorithm>
 #include "ssa.h"
 
-namespace hcc { namespace ssa {
+namespace hcc {
+namespace ssa {
 
 void subroutine::dead_code_elimination()
 {
@@ -23,7 +24,7 @@ void subroutine::dead_code_elimination()
     auto work = 1;
 
     // first iteration
-    for_each_bb([&] (basic_block& bb) {
+    for_each_bb([&](basic_block& bb) {
         for (auto& i : bb.instructions) {
             switch (i.type) {
             case instruction_type::JUMP:
@@ -46,20 +47,19 @@ void subroutine::dead_code_elimination()
         std::set<reg> uses;
         std::set<label> bbs;
 
-        for_each_bb([&] (basic_block& bb) {
+        for_each_bb([&](basic_block& bb) {
             for (auto& i : bb.instructions) {
                 // if the instruction is on the worklist, collect dependencies
                 if (i.work == work) {
                     // collect registers
-                    i.use_apply([&] (argument& a) {
+                    i.use_apply([&](argument& a) {
                         if (a.is_reg()) {
                             uses.emplace(a.get_reg());
                         }
                     });
                     // collect basic blocks
-                    for_each_reverse_dfs(bb.name, [&] (basic_block& block) {
-                        bbs.emplace(block.name);
-                    });
+                    for_each_reverse_dfs(bb.name,
+                                         [&](basic_block& block) { bbs.emplace(block.name); });
                 }
             }
         });
@@ -67,7 +67,7 @@ void subroutine::dead_code_elimination()
         // next iteration
         ++work;
 
-        for_each_bb([&] (basic_block& block) {
+        for_each_bb([&](basic_block& block) {
             if (block.instructions.empty()) {
                 return;
             }
@@ -81,7 +81,7 @@ void subroutine::dead_code_elimination()
 
             // put definition of collected register on the worklist
             for (auto& i : block.instructions) {
-                i.def_apply([&] (argument& def) {
+                i.def_apply([&](argument& def) {
                     if (uses.count(def.get_reg()) && i.work == 0) {
                         i.work = work;
                         changed = true;
@@ -92,7 +92,7 @@ void subroutine::dead_code_elimination()
     }
 
     // sweep
-    for_each_bb([&] (basic_block& bb) {
+    for_each_bb([&](basic_block& bb) {
         for (auto i = bb.instructions.begin(), e = bb.instructions.end(); i != e;) {
             if (i->work == 0) {
                 i = bb.instructions.erase(i);
@@ -102,5 +102,5 @@ void subroutine::dead_code_elimination()
         }
     });
 }
-
-}} // namespace hcc::ssa
+}
+} // namespace hcc::ssa

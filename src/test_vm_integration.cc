@@ -9,14 +9,17 @@
 #include <sstream>
 #include <vector>
 
-
 struct driver {
-    driver() : writer(out) { writer.writeBootstrap(); }
+    driver()
+        : writer(out)
+    {
+        writer.writeBootstrap();
+    }
 
     void add_file(const std::string& filename, const std::string& contents)
     {
-        std::stringstream input {contents};
-        hcc::VMParser parser {input};
+        std::stringstream input{contents};
+        hcc::VMParser parser{input};
         auto cmds = parser.parse();
         hcc::VMOptimize(cmds);
         writer.writeFile(filename, cmds);
@@ -28,42 +31,43 @@ struct driver {
         hcc::CPU cpu;
         cpu.reset();
         std::copy(begin(instructions), end(instructions), begin(rom.data));
-        for (int i = 0; i<ticks; ++i) {
+        for (int i = 0; i < ticks; ++i) {
             cpu.step(&rom, &ram);
         }
     }
 
-    unsigned short get(unsigned int address) const
-    { return ram.get(address); }
+    unsigned short get(unsigned int address) const { return ram.get(address); }
 
 private:
     hcc::asm_program out;
     hcc::VMWriter writer;
 
     struct RAM : public hcc::IRAM {
-        RAM() : data(size, 0) { }
+        RAM()
+            : data(size, 0)
+        {
+        }
 
-        void set(unsigned int address, unsigned short value) final
-        { data.at(address) = value; }
+        void set(unsigned int address, unsigned short value) final { data.at(address) = value; }
 
-        unsigned short get(unsigned int address) const final
-        { return data.at(address); }
+        unsigned short get(unsigned int address) const final { return data.at(address); }
 
         static const unsigned int size = 0x6001;
         std::vector<unsigned short> data;
     } ram;
 
     struct ROM : public hcc::IROM {
-        ROM() : data(size, 0) { }
+        ROM()
+            : data(size, 0)
+        {
+        }
 
-        unsigned short get(unsigned int address) const final
-        { return data.at(address); }
+        unsigned short get(unsigned int address) const final { return data.at(address); }
 
         static const unsigned int size = 0x8000;
         std::vector<unsigned short> data;
     } rom;
 };
-
 
 void test_bootstrap()
 {
@@ -74,11 +78,10 @@ void test_bootstrap()
 function Sys.init 0
 )");
     d.run();
-    assert (d.get(0) == 261);
-    assert (d.get(1) == 261);
-    assert (d.get(2) == 256);
+    assert(d.get(0) == 261);
+    assert(d.get(1) == 261);
+    assert(d.get(2) == 256);
 }
-
 
 void test_stack()
 {
@@ -108,13 +111,12 @@ push constant 82
 or
 )");
     d.run();
-    assert (d.get(0) == 265);
-    assert (d.get(261) == 65535);
-    assert (d.get(262) == 0);
-    assert (d.get(263) == 65535);
-    assert (d.get(264) == 90);
+    assert(d.get(0) == 265);
+    assert(d.get(261) == 65535);
+    assert(d.get(262) == 0);
+    assert(d.get(263) == 65535);
+    assert(d.get(264) == 90);
 }
-
 
 void test_pointer()
 {
@@ -140,13 +142,12 @@ push that 6
 add
 )");
     d.run();
-    assert (d.get(261) == 6084);
-    assert (d.get(3) == 3030);
-    assert (d.get(4) == 3040);
-    assert (d.get(3032) == 32);
-    assert (d.get(3046) == 46);
+    assert(d.get(261) == 6084);
+    assert(d.get(3) == 3030);
+    assert(d.get(4) == 3040);
+    assert(d.get(3032) == 32);
+    assert(d.get(3046) == 46);
 }
-
 
 void test_static()
 {
@@ -168,9 +169,8 @@ push static 8
 add
 )");
     d.run();
-    assert (d.get(261) == 1110);
+    assert(d.get(261) == 1110);
 }
-
 
 void test_fibonacci()
 {
@@ -213,10 +213,9 @@ label WHILE
 goto WHILE              // Loop infinitely
 )");
     d.run();
-    assert (d.get(0) == 262);
-    assert (d.get(261) == 3);
+    assert(d.get(0) == 262);
+    assert(d.get(261) == 3);
 }
-
 
 void test_static_multi()
 {
@@ -271,9 +270,9 @@ label WHILE
 goto WHILE
 )");
     d.run();
-    assert (d.get(0) == 263);
-    assert (d.get(261) == 65534);
-    assert (d.get(262) == 8);
+    assert(d.get(0) == 263);
+    assert(d.get(261) == 65534);
+    assert(d.get(262) == 8);
 }
 
 int main()

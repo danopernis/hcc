@@ -45,13 +45,16 @@ struct token {
 };
 
 struct tokenizer {
-    tokenizer(std::istream& input) : current {input} { }
+    tokenizer(std::istream& input)
+        : current{input}
+    {
+    }
 
     token next();
 
 private:
     std::istreambuf_iterator<char> current;
-    unsigned line_number {1};
+    unsigned line_number{1};
 };
 
 } // namespace ssa

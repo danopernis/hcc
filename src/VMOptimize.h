@@ -6,6 +6,6 @@
 
 namespace hcc {
 
-void VMOptimize(VMCommandList &cmds);
+void VMOptimize(VMCommandList& cmds);
 
 } // end namespace

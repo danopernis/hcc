@@ -10,27 +10,30 @@
 namespace hcc {
 
 class VMParser {
-	std::istream& input;
-	std::stringstream line;
-	VMCommand c;
+    std::istream& input;
+    std::stringstream line;
+    VMCommand c;
 
-	bool hasMoreCommands();
-	VMCommand& advance();
+    bool hasMoreCommands();
+    VMCommand& advance();
 
 public:
-	VMParser(std::istream& input) : input(input) { }
+    VMParser(std::istream& input)
+        : input(input)
+    {
+    }
 
-	VMCommandList parse()
-	{
-		VMCommandList cmds;
-		while (hasMoreCommands()) {
-			auto c = advance();
-			if (c.type != VMCommand::NOP) {
-				cmds.emplace_back(std::move(c));
-			}
-		}
-		return cmds;
-	}
+    VMCommandList parse()
+    {
+        VMCommandList cmds;
+        while (hasMoreCommands()) {
+            auto c = advance();
+            if (c.type != VMCommand::NOP) {
+                cmds.emplace_back(std::move(c));
+            }
+        }
+        return cmds;
+    }
 };
 
 } // end namespace

@@ -8,7 +8,8 @@
 #include <map>
 #include <string>
 
-namespace hcc { namespace ssa {
+namespace hcc {
+namespace ssa {
 
 struct subroutine_builder {
     /**
@@ -30,13 +31,8 @@ struct subroutine_builder {
      */
     void add_instruction(const label& bb, const instruction& instr);
     void add_jump(const label& bb, const label& target);
-    void add_branch(
-        const label& bb,
-        const instruction_type& type,
-        const argument& variable1,
-        const argument& variable2,
-        const label& positive,
-        const label& negative);
+    void add_branch(const label& bb, const instruction_type& type, const argument& variable1,
+                    const argument& variable2, const label& positive, const label& negative);
     void add_return(const label& bb, const argument& variable);
 
     reg add_reg(const std::string& name) { return s.regs.put(name); }
@@ -46,7 +42,7 @@ private:
     std::map<std::string, label> name_to_index;
     subroutine_ir& s;
 };
-
-}} // namespace hcc::ssa
+}
+} // namespace hcc::ssa
 
 #endif // SSA_SUBROUTINE_BUILDER_H

@@ -14,26 +14,18 @@ namespace {
 using namespace hcc::instruction;
 
 // registers 11-15 are reserved for implementation
-const std::string reg_locals        = "R11";
-const std::string reg_arguments     = "R12";
+const std::string reg_locals = "R11";
+const std::string reg_arguments = "R12";
 const std::string reg_stack_pointer = "R13";
-const std::string reg_tmp           = "R14";
-const std::string reg_return        = "R15";
+const std::string reg_tmp = "R14";
+const std::string reg_return = "R15";
 const std::vector<std::string> saved_registers = {
-    "R0",
-    "R1",
-    "R2",
-    "R3",
-    "R4",
-    "R5",
-    "R6",
-    reg_arguments,
-    reg_locals,
+    "R0", "R1", "R2", "R3", "R4", "R5", "R6", reg_arguments, reg_locals,
 };
 
 // Symmetric binary operations yield the same result despite argument order.
 // Local asssembler optimizations sometimes perform better if we swap arguments.
-void adjust_symmetric_operation(instruction &i)
+void adjust_symmetric_operation(instruction& i)
 {
     if (i.arguments[1] == i.arguments[0]) {
         std::swap(i.arguments[1], i.arguments[2]);
@@ -49,7 +41,7 @@ struct subroutine_writer {
     {
         int available_register = 0;
 
-        auto f = [&] (const argument& arg) {
+        auto f = [&](const argument& arg) {
             if (arg.is_reg()) {
                 const auto& x = arg.get_reg();
                 if (registers.count(x) == 0) {
@@ -66,7 +58,7 @@ struct subroutine_writer {
             }
         };
 
-        s.for_each_bb([&] (basic_block& bb) {
+        s.for_each_bb([&](basic_block& bb) {
             for (auto& instruction : bb.instructions) {
                 instruction.def_apply(f);
                 instruction.use_apply(f);
@@ -83,7 +75,9 @@ struct subroutine_writer {
         for (const auto& kv : locals_counts) {
             locals_tmp.emplace_back(kv.first, kv.second);
         }
-        std::sort(locals_tmp.begin(), locals_tmp.end(), [] (const std::pair<local, int>& x, const std::pair<local, int>& y) { return x.second > y.second; });
+        std::sort(locals_tmp.begin(), locals_tmp.end(),
+                  [](const std::pair<local, int>& x,
+                     const std::pair<local, int>& y) { return x.second > y.second; });
         locals_counts.clear();
         for (const auto& kv : locals_tmp) {
             locals_counts.emplace(kv.first, locals_counter++);
@@ -92,9 +86,7 @@ struct subroutine_writer {
 
     void write_subroutine()
     {
-        s.for_each_bb([&] (basic_block& bb) {
-            write_basic_block(bb);
-        });
+        s.for_each_bb([&](basic_block& bb) { write_basic_block(bb); });
     }
 
 private:
@@ -261,7 +253,7 @@ private:
             out.emitC(DEST_A | COMP_M);
             out.emitC(DEST_M | COMP_D);
         } else {
-            assert (false);
+            assert(false);
         }
     }
 
@@ -291,7 +283,7 @@ private:
             out.emitC(DEST_A | COMP_D_PLUS_M);
             out.emitC(DEST_D | COMP_M);
         } else {
-            assert (false);
+            assert(false);
         }
         reg_store(dst);
     }
@@ -325,7 +317,7 @@ private:
 
     void reg_store(const argument& x)
     {
-        assert (x.is_reg());
+        assert(x.is_reg());
         emit_register(x.get_reg());
         out.emitC(DEST_M | COMP_D);
     }
@@ -341,15 +333,18 @@ private:
 };
 
 struct asm_writer {
-    asm_writer(asm_program& out) : out(out) { }
+    asm_writer(asm_program& out)
+        : out(out)
+    {
+    }
 
     void write(unit& u)
     {
         write_bootstrap();
         write_return_helper();
         write_call_helper();
-        for (auto& s: u.subroutines) {
-            subroutine_writer sw {u, out, s.first, s.second};
+        for (auto& s : u.subroutines) {
+            subroutine_writer sw{u, out, s.first, s.second};
             sw.write_subroutine();
         }
     }
@@ -430,7 +425,7 @@ private:
 
 void unit::translate_to_asm(asm_program& out)
 {
-    asm_writer w {out};
+    asm_writer w{out};
     w.write(*this);
 }
 

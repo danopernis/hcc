@@ -13,10 +13,9 @@ struct driver {
     driver(const std::string& jack_program, int ticks = 1000)
     {
         // jack
-        std::istringstream input {jack_program};
-        hcc::jack::tokenizer t {
-            std::istreambuf_iterator<char>(input),
-            std::istreambuf_iterator<char>()};
+        std::istringstream input{jack_program};
+        hcc::jack::tokenizer t{std::istreambuf_iterator<char>(input),
+                               std::istreambuf_iterator<char>()};
         auto class_ = hcc::jack::parse(t);
 
         // ssa
@@ -41,39 +40,40 @@ struct driver {
         hcc::CPU cpu;
         cpu.reset();
         std::copy(begin(instructions), end(instructions), begin(rom.data));
-        for (int i = 0; i<ticks; ++i) {
+        for (int i = 0; i < ticks; ++i) {
             cpu.step(&rom, &ram);
         }
     }
 
-    unsigned short get(unsigned int address) const
-    { return ram.get(address); }
+    unsigned short get(unsigned int address) const { return ram.get(address); }
 
 private:
     struct RAM : public hcc::IRAM {
-        RAM() : data(size, 0) { }
+        RAM()
+            : data(size, 0)
+        {
+        }
 
-        void set(unsigned int address, unsigned short value) final
-        { data.at(address) = value; }
+        void set(unsigned int address, unsigned short value) final { data.at(address) = value; }
 
-        unsigned short get(unsigned int address) const final
-        { return data.at(address); }
+        unsigned short get(unsigned int address) const final { return data.at(address); }
 
         static const unsigned int size = 0x6001;
         std::vector<unsigned short> data;
     } ram;
 
     struct ROM : public hcc::IROM {
-        ROM() : data(size, 0) { }
+        ROM()
+            : data(size, 0)
+        {
+        }
 
-        unsigned short get(unsigned int address) const final
-        { return data.at(address); }
+        unsigned short get(unsigned int address) const final { return data.at(address); }
 
         static const unsigned int size = 0x8000;
         std::vector<unsigned short> data;
     } rom;
 };
-
 
 auto test_store_imm_input = R"(
 class Sys {
@@ -87,10 +87,9 @@ class Sys {
 )";
 void test_store_imm()
 {
-    driver d {test_store_imm_input};
-    assert (d.get(16) == 42);
+    driver d{test_store_imm_input};
+    assert(d.get(16) == 42);
 }
-
 
 auto test_subroutine_input = R"(
 class Sys {
@@ -108,10 +107,9 @@ class Sys {
 )";
 void test_subroutine()
 {
-    driver d {test_subroutine_input};
-    assert (d.get(16) == 42);
+    driver d{test_subroutine_input};
+    assert(d.get(16) == 42);
 }
-
 
 auto test_arithmetic_input = R"(
 class Sys {
@@ -151,23 +149,22 @@ class Sys {
 )";
 void test_arithmetic()
 {
-    driver d {test_arithmetic_input};
-    assert (d.get(16) == 6);
-    assert (d.get(17) == 4);
-    assert (d.get(18) == 65530);
-    assert (d.get(19) == 65529);
-    assert (d.get(20) == 10);
-    assert (d.get(21) == 2);
-    assert (d.get(22) == 4);
-    assert (d.get(23) == 6);
-    assert (d.get(24) == 65535);
-    assert (d.get(25) == 0);
-    assert (d.get(26) == 0);
-    assert (d.get(27) == 65535);
-    assert (d.get(28) == 65535);
-    assert (d.get(29) == 0);
+    driver d{test_arithmetic_input};
+    assert(d.get(16) == 6);
+    assert(d.get(17) == 4);
+    assert(d.get(18) == 65530);
+    assert(d.get(19) == 65529);
+    assert(d.get(20) == 10);
+    assert(d.get(21) == 2);
+    assert(d.get(22) == 4);
+    assert(d.get(23) == 6);
+    assert(d.get(24) == 65535);
+    assert(d.get(25) == 0);
+    assert(d.get(26) == 0);
+    assert(d.get(27) == 65535);
+    assert(d.get(28) == 65535);
+    assert(d.get(29) == 0);
 }
-
 
 auto test_branching_input = R"(
 class Sys {
@@ -189,10 +186,9 @@ class Sys {
 )";
 void test_branching()
 {
-    driver d {test_branching_input};
-    assert (d.get(16) == 42);
+    driver d{test_branching_input};
+    assert(d.get(16) == 42);
 }
-
 
 auto test_arguments_input = R"(
 class Sys {
@@ -210,12 +206,11 @@ class Sys {
 )";
 void test_arguments()
 {
-    driver d {test_arguments_input};
-    assert (d.get(16) == 42);
+    driver d{test_arguments_input};
+    assert(d.get(16) == 42);
 }
 
-
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     test_store_imm();
     test_subroutine();
