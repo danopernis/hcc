@@ -63,7 +63,7 @@ const std::map<token_type, std::string> lookup = {
     {token_type::UNTERMINATED_STRING_CONST, "unterminated string constant"},
 };
 
-} // anonymous namespace
+} // namespace {
 
 namespace hcc {
 namespace jack {
@@ -75,5 +75,5 @@ std::string to_string(const token_type& tt)
     return it->second;
 }
 
-} // end namespace jack
-} // end namespace hcc
+} // namespace jack {
+} // namespace hcc {

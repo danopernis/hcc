@@ -14,7 +14,7 @@
 // sigc workaround
 namespace sigc {
 SIGC_FUNCTORS_DEDUCE_RESULT_TYPE_WITH_DECLTYPE
-}
+} // namespace sigc {
 
 namespace {
 
@@ -381,7 +381,7 @@ void emulator::screen_thread()
     }
 }
 
-} // anonymous namespace
+} // namespace {
 
 int main(int argc, char* argv[])
 {

@@ -475,4 +475,4 @@ void VMOptimize(VMCommandList& cmds)
     optimize2(cmds, s_reconstruct);
 }
 
-} // end namespace
+} // namespace hcc {

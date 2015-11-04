@@ -19,5 +19,5 @@ private:
     std::unique_ptr<Impl> pimpl;
 };
 
-} // end namespace jack
-} // end namespace hcc
+} // namespace jack {
+} // namespace hcc {

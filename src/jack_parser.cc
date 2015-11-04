@@ -457,7 +457,7 @@ struct parser {
     }
 };
 
-} // end anonymous namespace
+} // namespace {
 
 namespace hcc {
 namespace jack {
@@ -468,5 +468,5 @@ ast::Class parse(tokenizer& t)
     return p.parse_class();
 }
 
-} // end namespace jack
-} // end namespace hcc
+} // namespace jack {
+} // namespace hcc {

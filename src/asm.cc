@@ -202,7 +202,7 @@ void instructionToString(std::ostream& out, unsigned short instr)
     }
 }
 
-} // anonymous namespace
+} // namespace {
 
 namespace hcc {
 
@@ -368,4 +368,4 @@ void saveHACK(const std::string& filename, std::vector<uint16_t> instructions)
     }
 }
 
-} // end namespace
+} // namespace hcc {

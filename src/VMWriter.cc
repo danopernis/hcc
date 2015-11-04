@@ -690,4 +690,4 @@ void VMWriter::write(const VMCommand& c)
     }
 }
 
-} // end namespace
+} // namespace hcc {

@@ -124,5 +124,6 @@ std::string argument::save_fast() const
     }
     assert(false);
 }
-}
-} // end namespace hcc::ssa
+
+} // namespace ssa {
+} // namespace hcc {

@@ -57,5 +57,6 @@ void subroutine_builder::add_return(const label& bb, const argument& variable)
     s.g.add_edge(bb.index, s.exit_node_.index);
     add_instruction(bb, instruction(instruction_type::RETURN, {variable}));
 }
-}
-} // namespace hcc::ssa
+
+} // namespace ssa {
+} // namespace hcc {

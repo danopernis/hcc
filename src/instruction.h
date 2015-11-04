@@ -5,7 +5,6 @@
 #include <string>
 
 namespace hcc {
-
 namespace instruction {
 
 // instruction (de)coding
@@ -69,6 +68,5 @@ static const unsigned short MASK_COMP = FETCH | ALU_ZX | ALU_NX | ALU_ZY | ALU_N
 static const unsigned short MASK_DEST = DEST_A | DEST_D | DEST_M;
 static const unsigned short MASK_JUMP = JUMP_NEG | JUMP_ZERO | JUMP_POS;
 
-} // end namespace
-
-} // end namespace
+} // namespace instruction {
+} // namespace hcc {

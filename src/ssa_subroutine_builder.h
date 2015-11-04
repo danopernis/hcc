@@ -40,5 +40,6 @@ private:
     std::map<std::string, label> name_to_index;
     subroutine_ir& s;
 };
-}
-} // namespace hcc::ssa
+
+} // namespace ssa {
+} // namespace hcc {

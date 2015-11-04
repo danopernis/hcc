@@ -85,7 +85,7 @@ std::pair<std::vector<unsigned>, // idom
     return std::make_pair(idom, dfs);
 }
 
-} // anonymous namespace
+} // namespace {
 
 graph_dominance::graph_dominance(const graph& g, const int entry_node)
     : dfs(g.node_count())

@@ -79,5 +79,5 @@ struct tokenizer {
     std::istreambuf_iterator<char> last;
 };
 
-} // end namespace jack
-} // end namespace hcc
+} // namespace jack {
+} // namespace hcc {

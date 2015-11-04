@@ -28,7 +28,7 @@ struct Symbol {
 };
 typedef std::map<std::string, Symbol> Scope;
 
-} // end namespace hcc
+} // namespace hcc {
 
 namespace hcc {
 namespace jack {
@@ -385,5 +385,5 @@ VMWriter::VMWriter(const std::string& filename)
 // this needs to be in implementation file for pimpl + unique to work
 VMWriter::~VMWriter() = default;
 
-} // end namespace jack
-} // end namespace hcc
+} // namespace jack {
+} // namespace hcc {

@@ -43,5 +43,6 @@ void subroutine::copy_propagation()
         }
     });
 }
-}
-} // namespace hcc::ssa
+
+} // namespace ssa {
+} // namespace hcc {

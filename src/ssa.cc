@@ -155,5 +155,6 @@ std::set<reg> subroutine_ir::collect_variable_names()
     });
     return result;
 }
-}
-} // end namespace hcc::ssa
+
+} // namespace ssa {
+} // namespace hcc {

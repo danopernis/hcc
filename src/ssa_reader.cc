@@ -241,11 +241,12 @@ private:
     hcc::ssa::token current;
 };
 
-} // end anonymous namespace
+} // namespace {
 
 namespace hcc {
 namespace ssa {
 
 void unit::load(std::istream& input) { ssa_parser(input).parse(*this); }
-}
-} // end namespace hcc::ssa
+
+} // namespace ssa {
+} // namespace hcc {

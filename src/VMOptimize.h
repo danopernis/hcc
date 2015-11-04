@@ -8,4 +8,4 @@ namespace hcc {
 
 void VMOptimize(VMCommandList& cmds);
 
-} // end namespace
+} // namespace hcc {

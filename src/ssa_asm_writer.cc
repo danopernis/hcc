@@ -8,7 +8,6 @@
 
 namespace hcc {
 namespace ssa {
-
 namespace {
 
 using namespace hcc::instruction;
@@ -421,7 +420,7 @@ private:
     asm_program& out;
 };
 
-} // anonymous namespace
+} // namespace {
 
 void unit::translate_to_asm(asm_program& out)
 {
@@ -429,5 +428,5 @@ void unit::translate_to_asm(asm_program& out)
     w.write(*this);
 }
 
-} // namespace ssa
-} // namespace hcc
+} // namespace ssa {
+} // namespace hcc {

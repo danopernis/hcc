@@ -102,5 +102,6 @@ void subroutine::dead_code_elimination()
         }
     });
 }
-}
-} // namespace hcc::ssa
+
+} // namespace ssa {
+} // namespace hcc {

@@ -511,7 +511,7 @@ struct writer : public StatementVisitor, public ExpressionVisitor {
     label block;
 };
 
-} // anonymous namespace
+} // namespace {
 
 void unit::translate_from_jack(const Class& class_)
 {
@@ -520,5 +520,5 @@ void unit::translate_from_jack(const Class& class_)
     }
 }
 
-} // namespace ssa
-} // namespace hcc
+} // namespace ssa {
+} // namespace hcc {

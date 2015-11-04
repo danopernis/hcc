@@ -89,4 +89,4 @@ private:
 
 void saveHACK(const std::string& filename, std::vector<uint16_t>);
 
-} // namespace hcc
+} // namespace hcc {

@@ -150,4 +150,4 @@ VMCommand& VMParser::advance()
     return c;
 }
 
-} // end namespace
+} // namespace hcc {

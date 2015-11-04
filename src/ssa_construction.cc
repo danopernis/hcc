@@ -7,7 +7,6 @@
 
 namespace hcc {
 namespace ssa {
-
 namespace {
 
 /** Use dominance frontier set to find where phi-functions are needed */
@@ -124,7 +123,7 @@ private:
     regs_table& regs;
 };
 
-} // anonymous namespace
+} // namespace {
 
 // algorithm is due to Cytron et al.
 void subroutine::construct_minimal_ssa()
@@ -173,5 +172,6 @@ void subroutine::construct_minimal_ssa()
     };
     rename(entry_node());
 }
-}
-} // namespace hcc::ssa
+
+} // namespace ssa {
+} // namespace hcc {

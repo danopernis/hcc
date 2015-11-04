@@ -40,4 +40,4 @@ struct CPU {
     static bool jump(unsigned short instr, bool zr, bool ng);
 };
 
-} // end namespace
+} // namespace hcc {

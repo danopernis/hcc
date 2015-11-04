@@ -333,6 +333,6 @@ struct Class {
     SubroutineList subroutines;
 };
 
-} // end namespace ast
-} // end namespace jack
-} // end namespace hcc
+} // namespace ast {
+} // namespace jack {
+} // namespace hcc {

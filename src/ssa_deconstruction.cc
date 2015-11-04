@@ -6,7 +6,6 @@
 
 namespace hcc {
 namespace ssa {
-
 namespace {
 
 struct congruence_classes {
@@ -148,7 +147,7 @@ bool interfere(const argument& a, const argument& b, subroutine& s)
     return intersect && differ_in_value;
 }
 
-} // anonymous namespace
+} // namespace {
 
 // Inspired by paper
 // "Revisiting Out-of-SSA Translation for Correctness, Code Quality, and Efficiency"
@@ -208,5 +207,6 @@ void subroutine::ssa_deconstruct()
         }
     });
 }
-}
-} // namespace hcc::ssa
+
+} // namespace ssa {
+} // namespace hcc {

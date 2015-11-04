@@ -57,5 +57,5 @@ private:
     unsigned line_number{1};
 };
 
-} // namespace ssa
-} // namespace hcc
+} // namespace ssa {
+} // namespace hcc {

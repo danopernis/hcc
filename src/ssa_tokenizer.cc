@@ -9,7 +9,6 @@
 
 namespace hcc {
 namespace ssa {
-
 namespace {
 
 const std::map<std::string, token_type> string_to_token = {
@@ -78,7 +77,7 @@ token_type get_token_type(const state& current_state, const token& t)
 
 std::istreambuf_iterator<char> last;
 
-} // anonymous namespace
+} // namespace {
 
 std::string to_string(const token_type& tt)
 {
@@ -199,5 +198,5 @@ token tokenizer::next()
     return t;
 }
 
-} // namespace ssa
-} // namespace hcc
+} // namespace ssa {
+} // namespace hcc {

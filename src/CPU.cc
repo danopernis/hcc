@@ -75,4 +75,4 @@ void CPU::step(IROM* rom, IRAM* ram)
     }
 }
 
-} // end namespace
+} // namespace hcc {

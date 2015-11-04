@@ -6,7 +6,6 @@
 
 namespace hcc {
 namespace ssa {
-
 namespace {
 
 using interference_graph_type = interference_graph<reg, reg>;
@@ -115,7 +114,7 @@ void do_allocate(subroutine& s, const interference_graph_type& interference)
     });
 }
 
-} // anonymous namespace
+} // namespace {
 
 void subroutine::allocate_registers()
 {
@@ -140,5 +139,6 @@ void subroutine::allocate_registers()
         }
     }
 }
-}
-} // namespace hcc::ssa
+
+} // namespace ssa {
+} // namespace hcc {

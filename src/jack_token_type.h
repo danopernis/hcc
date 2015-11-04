@@ -62,5 +62,5 @@ enum class token_type {
 
 std::string to_string(const token_type& tt);
 
-} // end namespace jack
-} // end namespace hcc
+} // namespace jack {
+} // namespace hcc {

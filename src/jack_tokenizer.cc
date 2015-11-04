@@ -244,7 +244,7 @@ transition_ identifier(tokenizer& tokenizer_, token& token_)
     }
 }
 
-} // anonymous namespace
+} // namespace {
 
 namespace hcc {
 namespace jack {
@@ -259,5 +259,5 @@ token tokenizer::advance()
     return t;
 }
 
-} // end namespace jack
-} // end namespace hcc
+} // namespace jack {
+} // namespace hcc {

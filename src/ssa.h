@@ -25,8 +25,8 @@ namespace ast {
 
 struct Class;
 
-} // namespace ast
-} // namespace jack
+} // namespace ast {
+} // namespace jack {
 
 namespace ssa {
 
@@ -486,5 +486,6 @@ struct unit {
     void translate_to_asm(hcc::asm_program&);
     void translate_from_jack(const hcc::jack::ast::Class&);
 };
-}
-} // namespace hcc::ssa
+
+} // namespace ssa {
+} // namespace hcc {

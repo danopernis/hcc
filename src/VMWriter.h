@@ -56,4 +56,4 @@ public:
     }
 };
 
-} // end namespace
+} // namespace hcc {

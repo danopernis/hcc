@@ -593,7 +593,7 @@ bool is_nop(const hcc::asm_instruction& i)
     return i == NOP;
 }
 
-} // anonymous namespace
+} // namespace {
 
 namespace hcc {
 
@@ -613,4 +613,4 @@ void asm_program::local_optimization()
     }
 }
 
-} // namespace hcc
+} // namespace hcc {

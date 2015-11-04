@@ -95,4 +95,4 @@ typedef std::list<VMCommand> VMCommandList;
 
 std::ostream& operator<<(std::ostream& out, const VMCommand& c);
 
-} // end namespace
+} // namespace hcc {

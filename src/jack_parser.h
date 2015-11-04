@@ -29,5 +29,5 @@ struct parse_error : public std::runtime_error {
     unsigned column;
 };
 
-} // end namespace jack
-} // end namespace hcc
+} // namespace jack {
+} // namespace hcc {

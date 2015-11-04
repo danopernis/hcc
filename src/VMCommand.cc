@@ -88,4 +88,4 @@ std::ostream& operator<<(std::ostream& out, const VMCommand& c)
     return out;
 }
 
-} // end namespace
+} // namespace hcc {
