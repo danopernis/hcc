@@ -1,0 +1,7 @@
+BasedOnStyle: WebKit
+AlwaysBreakTemplateDeclarations: true
+ColumnLimit: 100
+ExperimentalAutoDetectBinPacking: false
+NamespaceIndentation: None
+Cpp11BracedListStyle: true
+Standard: Cpp11
