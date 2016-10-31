@@ -8,6 +8,7 @@
 #include <sstream>
 #include <string>
 #include <stdexcept>
+#include <unordered_map>
 #include "asm.h"
 #include "instruction.h"
 
@@ -209,7 +210,7 @@ namespace hcc {
 std::vector<uint16_t> asm_program::assemble() const
 {
     // built-in symbols
-    std::map<std::string, int> table = {
+    std::unordered_map<std::string, int> table = {
         {"SP", 0x0000},
         {"LCL", 0x0001},
         {"ARG", 0x0002},
@@ -239,12 +240,15 @@ std::vector<uint16_t> asm_program::assemble() const
 
     // first pass
     int address = 0;
-    for (auto& c : instructions) {
+    for (const auto& c : instructions) {
         switch (c.type) {
-        case asm_instruction_type::LABEL:
+        case asm_instruction_type::LABEL: {
             // assign address to label
-            table[c.symbol] = address;
-            break;
+            const auto x = table.emplace(c.symbol, address);
+            if (!x.second) {
+                throw std::runtime_error{"Duplicate label " + c.symbol};
+            }
+            break; }
         case asm_instruction_type::LOAD:
         case asm_instruction_type::VERBATIM:
             // maintain address
@@ -258,18 +262,20 @@ std::vector<uint16_t> asm_program::assemble() const
     // second pass
     int variable = 0x10;
     std::vector<uint16_t> result;
-    for (auto& c : instructions) {
+    result.reserve(address);
+    for (const auto& c : instructions) {
         switch (c.type) {
         case asm_instruction_type::LABEL:
         case asm_instruction_type::COMMENT:
             // ignore
             break;
-        case asm_instruction_type::LOAD:
-            if (table.find(c.symbol) == table.end()) {
-                table[c.symbol] = variable++;
+        case asm_instruction_type::LOAD: {
+            const auto x = table.emplace(c.symbol, variable);
+            if (x.second) {
+                ++variable;
             }
-            result.push_back(table[c.symbol]);
-            break;
+            result.push_back(x.first->second);
+            break; }
         case asm_instruction_type::VERBATIM:
             result.push_back(c.instr);
             break;
