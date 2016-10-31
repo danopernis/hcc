@@ -364,13 +364,15 @@ void asm_program::save(const std::string& filename) const
 
 void saveHACK(const std::string& filename, std::vector<uint16_t> instructions)
 {
+    char line[17];
+    line[16] = '\n';
     std::ofstream out(filename.c_str());
     for (auto instr : instructions) {
         for (int j = 0; j < 16; ++j) {
-            out << (instr & (1 << 15) ? '1' : '0');
+            line[j] = (instr & (1 << 15)) ? '1' : '0';
             instr <<= 1;
         }
-        out << '\n';
+        out.write(line, 17);
     }
 }
 
