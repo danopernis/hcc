@@ -110,6 +110,10 @@ struct command_line_options {
 
 void jack_to_asm(const std::vector<std::string>& jack_input_files, hcc::asm_program& out)
 {
+    if (jack_input_files.empty()) {
+        return;
+    }
+
     // parse input
     std::vector<ast::Class> classes;
     try {
@@ -146,6 +150,10 @@ void jack_to_asm(const std::vector<std::string>& jack_input_files, hcc::asm_prog
 
 void vm_to_asm(const std::vector<std::string>& vm_input_files, hcc::asm_program& out)
 {
+    if (vm_input_files.empty()) {
+        return;
+    }
+
     hcc::VMWriter writer(out);
     writer.writeBootstrap();
     for (const auto& input_file : vm_input_files) {
@@ -159,6 +167,10 @@ void vm_to_asm(const std::vector<std::string>& vm_input_files, hcc::asm_program&
 
 void asm_to_asm(const std::vector<std::string>& asm_input_files, hcc::asm_program& out)
 {
+    if (asm_input_files.empty()) {
+        return;
+    }
+
     for (const auto& input_file : asm_input_files) {
         std::ifstream input_stream{input_file};
         hcc::asm_program prog{input_stream};
