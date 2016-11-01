@@ -112,7 +112,6 @@ void subroutine::construct_minimal_ssa()
 {
     // Initialization
     const auto variables = collect_variable_names();
-    recompute_dominance();
 
     // Step 1: insert (incomplete) phi-functions
     insert_temp_phi(*this);

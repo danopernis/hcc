@@ -149,8 +149,6 @@ bool interfere(const reg& a, const reg& b, subroutine& s)
 // "Revisiting Out-of-SSA Translation for Correctness, Code Quality, and Efficiency"
 void subroutine::ssa_deconstruct()
 {
-    recompute_dominance();
-
     congruence_classes cc;
     naive_copy_insertion(*this, cc);
 

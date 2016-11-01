@@ -372,6 +372,9 @@ struct subroutine_ir {
     template <typename F>
     void for_each_domtree_successor(const label& l, F&& f)
     {
+        if (!dominance) {
+            recompute_dominance();
+        }
         for (int i : dominance->tree.successors()[l.index]) {
             f(basic_blocks.at({i}));
         }
@@ -388,6 +391,9 @@ struct subroutine_ir {
     template <typename F>
     void for_each_reverse_dfs(const label& l, F&& f)
     {
+        if (!dominance) {
+            recompute_dominance();
+        }
         for (int i : reverse_dominance->dfs[l.index]) {
             f(basic_blocks.at({i}));
         }
@@ -396,6 +402,9 @@ struct subroutine_ir {
     template <typename F>
     void for_each_bb_in_dfs(const label& l, F&& f)
     {
+        if (!dominance) {
+            recompute_dominance();
+        }
         for (int i : dominance->dfs[l.index]) {
             f(basic_blocks.at({i}));
         }
@@ -404,6 +413,9 @@ struct subroutine_ir {
     template <typename F>
     void for_each_bb_in_domtree_preorder(F&& f)
     {
+        if (!dominance) {
+            recompute_dominance();
+        }
         depth_first_search dfs(dominance->tree.successors(), dominance->root);
         for (int i : dfs.preorder()) {
             f(basic_blocks.at({i}));
@@ -424,7 +436,6 @@ struct subroutine_ir {
         for_each_bb(std::forward<F>(f));
     }
 
-    void recompute_dominance();
     void recompute_liveness();
     std::set<reg> collect_variable_names();
 
@@ -435,10 +446,15 @@ struct subroutine_ir {
     unit& get_unit() { return *u; }
     unit* u;
 
-    void add_edge(const label& from, const label& to) { g.add_edge(from.index, to.index); }
+    void add_edge(const label& from, const label& to)
+    {
+        dominance = nullptr;
+        g.add_edge(from.index, to.index);
+    }
 
     label create_label()
     {
+        dominance = nullptr;
         assert(g.node_count() == label_counter);
         g.add_node();
         label l{label_counter++};
@@ -464,6 +480,8 @@ private:
     label entry_node_;
     std::unique_ptr<graph_dominance> reverse_dominance;
     std::unique_ptr<graph_dominance> dominance;
+
+    void recompute_dominance();
 
     friend struct subroutine_builder;
 };

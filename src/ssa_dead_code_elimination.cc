@@ -9,8 +9,6 @@ namespace ssa {
 
 void subroutine::dead_code_elimination()
 {
-    recompute_dominance();
-
     // Dead code elimination (DCE) eliminates all non-critical instructions.
     // Critical instruction is any instruction capable of changing observable
     // behavior of given subroutine. DCE works by first marking the implicitly
