@@ -593,6 +593,39 @@ bool is_nop(const hcc::asm_instruction& i)
     return i == NOP;
 }
 
+template<class Iterator>
+void remove_fallthrough_jump(Iterator first, Iterator last)
+{
+    auto last_load = last;
+    auto last_jump = last;
+    for (; first != last; ++first) {
+        switch (first->type) {
+        case hcc::asm_instruction_type::LOAD:
+            last_load = first;
+            last_jump = last;
+            break;
+        case hcc::asm_instruction_type::VERBATIM:
+            if (first->instr == (COMPUTE | RESERVED | JMP | COMP_ZERO)) {
+                last_jump = first;
+            } else {
+                last_load = last;
+                last_jump = last;
+            }
+            break;
+        case hcc::asm_instruction_type::LABEL:
+            if (last_load != last && first->symbol == last_load->symbol) {
+                if (last_jump != last) {
+                    last_jump->type = hcc::asm_instruction_type::COMMENT;
+                    last_jump->symbol = "fallthrough";
+                }
+            }
+            break;
+        case hcc::asm_instruction_type::COMMENT:
+            break;
+        }
+    }
+}
+
 } // namespace {
 
 namespace hcc {
@@ -604,6 +637,8 @@ void asm_program::local_optimization()
 {
     // two iterations are usually enough
     for (int i = 0; i < 2; ++i) {
+        remove_fallthrough_jump(instructions.begin(), instructions.end());
+
         std::for_each(instructions.begin(), instructions.end(), constant_propagation());
 
         std::for_each(instructions.rbegin(), instructions.rend(), dead_code_elimination());
