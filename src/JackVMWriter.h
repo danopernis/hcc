@@ -3,7 +3,6 @@
 
 #pragma once
 #include "JackAST.h"
-#include "make_unique.h"
 
 namespace hcc {
 namespace jack {

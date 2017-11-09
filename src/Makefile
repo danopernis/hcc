@@ -1,4 +1,4 @@
-CXXFLAGS := $(CXXFLAGS) -Wall -g -O2 -std=c++11
+CXXFLAGS := $(CXXFLAGS) -Wall -g -O2 -std=c++14
 
 SRC := $(wildcard *.cc)
 OBJ := $(SRC:.cc=.o)

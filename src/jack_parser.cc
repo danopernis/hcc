@@ -3,7 +3,6 @@
 
 #include "jack_parser.h"
 #include "jack_tokenizer.h"
-#include "make_unique.h"
 
 namespace {
 
@@ -201,11 +200,11 @@ struct parser {
             expect_token(token_type::EQUALS_SIGN);
 
             statements.push_back(
-                make_unique<ast::LetVector>(name, std::move(subscript), expect_expression()));
+                std::make_unique<ast::LetVector>(name, std::move(subscript), expect_expression()));
         } else {
             expect_token(token_type::EQUALS_SIGN);
 
-            statements.push_back(make_unique<ast::LetScalar>(name, expect_expression()));
+            statements.push_back(std::make_unique<ast::LetScalar>(name, expect_expression()));
         }
         expect_token(token_type::SEMICOLON);
     }
@@ -229,7 +228,7 @@ struct parser {
             expect_token(token_type::BRACE_RIGHT);
         }
 
-        statements.push_back(make_unique<ast::IfStatement>(
+        statements.push_back(std::make_unique<ast::IfStatement>(
             std::move(condition), std::move(positive_branch), std::move(negative_branch)));
     }
 
@@ -247,7 +246,7 @@ struct parser {
         expect_token(token_type::BRACE_RIGHT);
 
         statements.push_back(
-            make_unique<ast::WhileStatement>(std::move(condition), std::move(body)));
+            std::make_unique<ast::WhileStatement>(std::move(condition), std::move(body)));
     }
 
     /**
@@ -263,7 +262,7 @@ struct parser {
             name = expect_identifier();
         }
         expect_token(token_type::PARENTHESIS_LEFT);
-        statements.push_back(make_unique<ast::DoStatement>(base, name, parse_expression_list()));
+        statements.push_back(std::make_unique<ast::DoStatement>(base, name, parse_expression_list()));
         expect_token(token_type::PARENTHESIS_RIGHT);
         expect_token(token_type::SEMICOLON);
     }
@@ -273,7 +272,7 @@ struct parser {
      */
     void parse_return_statement(ast::StatementList& statements)
     {
-        statements.push_back(make_unique<ast::ReturnStatement>(accept_expression()));
+        statements.push_back(std::make_unique<ast::ReturnStatement>(accept_expression()));
         expect_token(token_type::SEMICOLON);
     }
 
@@ -286,13 +285,13 @@ struct parser {
     {
         std::string identifier;
         if (accept_identifier(identifier)) {
-            return make_unique<ast::UnresolvedType>(identifier);
+            return std::make_unique<ast::UnresolvedType>(identifier);
         } else if (accept_token(token_type::CHAR)) {
-            return make_unique<ast::CharType>();
+            return std::make_unique<ast::CharType>();
         } else if (accept_token(token_type::BOOLEAN)) {
-            return make_unique<ast::BooleanType>();
+            return std::make_unique<ast::BooleanType>();
         } else if (accept_token(token_type::INT)) {
-            return make_unique<ast::IntType>();
+            return std::make_unique<ast::IntType>();
         }
         throw parse_error("Expected type", t.pos.line, t.pos.column);
     }
@@ -336,7 +335,7 @@ struct parser {
             }
             // found op => expect term & next round
             expression
-                = make_unique<ast::BinaryExpression>(type, std::move(expression), expect_term());
+                = std::make_unique<ast::BinaryExpression>(type, std::move(expression), expect_term());
         }
     }
 
@@ -364,32 +363,32 @@ struct parser {
     ast::Expression accept_term()
     {
         if (accept_token(token_type::TRUE)) {
-            return make_unique<ast::UnaryExpression>(ast::UnaryExpression::Type::NOT,
-                                                     make_unique<ast::IntegerConstant>(0));
+            return std::make_unique<ast::UnaryExpression>(ast::UnaryExpression::Type::NOT,
+                                                     std::make_unique<ast::IntegerConstant>(0));
         }
         if (accept_token(token_type::FALSE) || accept_token(token_type::NULL_)) {
-            return make_unique<ast::IntegerConstant>(0);
+            return std::make_unique<ast::IntegerConstant>(0);
         }
         if (accept_token(token_type::THIS)) {
-            return make_unique<ast::ThisConstant>();
+            return std::make_unique<ast::ThisConstant>();
         }
         if (accept_token(token_type::MINUS_SIGN)) {
-            return make_unique<ast::UnaryExpression>(ast::UnaryExpression::Type::MINUS,
+            return std::make_unique<ast::UnaryExpression>(ast::UnaryExpression::Type::MINUS,
                                                      expect_term());
         }
         if (accept_token(token_type::TILDE)) {
-            return make_unique<ast::UnaryExpression>(ast::UnaryExpression::Type::NOT,
+            return std::make_unique<ast::UnaryExpression>(ast::UnaryExpression::Type::NOT,
                                                      expect_term());
         }
         if (current_token.type == token_type::INT_CONST) {
             auto value = current_token.int_value;
             current_token = t.advance();
-            return make_unique<ast::IntegerConstant>(value);
+            return std::make_unique<ast::IntegerConstant>(value);
         }
         if (current_token.type == token_type::STRING_CONST) {
             auto value = current_token.string_value;
             current_token = t.advance();
-            return make_unique<ast::StringConstant>(value);
+            return std::make_unique<ast::StringConstant>(value);
         }
         std::string name;
         if (accept_identifier(name)) {
@@ -398,7 +397,7 @@ struct parser {
                 auto subscript = expect_expression();
                 expect_token(token_type::BRACKET_RIGHT);
 
-                return make_unique<ast::VectorVariable>(name, std::move(subscript));
+                return std::make_unique<ast::VectorVariable>(name, std::move(subscript));
             }
             if (accept_token(token_type::DOT)) {
                 std::string base = name;
@@ -407,15 +406,15 @@ struct parser {
                 auto arguments = parse_expression_list();
                 expect_token(token_type::PARENTHESIS_RIGHT);
 
-                return make_unique<ast::SubroutineCall>(base, name, std::move(arguments));
+                return std::make_unique<ast::SubroutineCall>(base, name, std::move(arguments));
             }
             if (accept_token(token_type::PARENTHESIS_LEFT)) {
                 auto arguments = parse_expression_list();
                 expect_token(token_type::PARENTHESIS_RIGHT);
-                return make_unique<ast::SubroutineCall>("", name, std::move(arguments));
+                return std::make_unique<ast::SubroutineCall>("", name, std::move(arguments));
             }
             // else it is scalar variable access
-            return make_unique<ast::ScalarVariable>(name);
+            return std::make_unique<ast::ScalarVariable>(name);
         }
         if (accept_token(token_type::PARENTHESIS_LEFT)) {
             auto expression = expect_expression();

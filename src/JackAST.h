@@ -5,7 +5,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include "make_unique.h"
 
 namespace hcc {
 namespace jack {
@@ -35,17 +34,17 @@ using VariableType = std::unique_ptr<VariableTypeBase>;
 
 struct IntType : VariableTypeBase {
     virtual void accept(VariableTypeVisitor* visitor) { visitor->visit(this); }
-    virtual VariableType clone() { return make_unique<IntType>(); }
+    virtual VariableType clone() { return std::make_unique<IntType>(); }
 };
 
 struct CharType : VariableTypeBase {
     virtual void accept(VariableTypeVisitor* visitor) { visitor->visit(this); }
-    virtual VariableType clone() { return make_unique<CharType>(); }
+    virtual VariableType clone() { return std::make_unique<CharType>(); }
 };
 
 struct BooleanType : VariableTypeBase {
     virtual void accept(VariableTypeVisitor* visitor) { visitor->visit(this); }
-    virtual VariableType clone() { return make_unique<BooleanType>(); }
+    virtual VariableType clone() { return std::make_unique<BooleanType>(); }
 };
 
 struct UnresolvedType : VariableTypeBase {
@@ -55,7 +54,7 @@ struct UnresolvedType : VariableTypeBase {
     }
 
     virtual void accept(VariableTypeVisitor* visitor) { visitor->visit(this); }
-    virtual VariableType clone() { return make_unique<UnresolvedType>(name); }
+    virtual VariableType clone() { return std::make_unique<UnresolvedType>(name); }
 
     std::string name;
 };
