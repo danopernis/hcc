@@ -145,7 +145,7 @@ transition_ slash(tokenizer& tokenizer_, token& token_)
     return finish;
 }
 
-transition_ comment_oneline(tokenizer& tokenizer_, token& token_)
+transition_ comment_oneline(tokenizer& tokenizer_, token&)
 {
     char c;
     if (!tokenizer_.get_char(c)) {

@@ -116,7 +116,8 @@ private:
                 continue;
             }
             const auto count = get_count(node);
-            if (count < colors.size()) {
+            // TODO refactor this to not use static_cast
+            if (count < static_cast<int>(colors.size())) {
                 return node;
             }
             if (count > max_count) {

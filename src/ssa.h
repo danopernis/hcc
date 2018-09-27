@@ -464,7 +464,7 @@ struct subroutine_ir {
     local create_local() { return {local_counter++}; }
     reg create_reg() { return {reg_counter++}; }
     template <typename... T>
-    void add_debug(const argument& a, T&&... t)
+    void add_debug(const argument&, T&&...)
     { /* TODO */
     }
 

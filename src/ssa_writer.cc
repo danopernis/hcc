@@ -29,7 +29,7 @@ const std::map<instruction_type, std::string> type_to_string = {
 
 void unit::save(std::ostream& output)
 {
-    auto write_bb = [&](const basic_block& bb, subroutine_ir& s) {
+    auto write_bb = [&](const basic_block& bb, subroutine_ir&) {
         output << "block " << argument(bb.name).save_fast() << "\n";
         for (const auto& instr : bb.instructions) {
             output << "\t" << instr.save_fast() << " ;\n";

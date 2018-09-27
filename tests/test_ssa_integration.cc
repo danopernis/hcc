@@ -210,7 +210,7 @@ void test_arguments()
     assert(d.get(16) == 42);
 }
 
-int main(int argc, char* argv[])
+int main()
 {
     test_store_imm();
     test_subroutine();

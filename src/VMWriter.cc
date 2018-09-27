@@ -146,7 +146,7 @@ void VMWriter::poptop(bool in)
 /*
  * CONSTANT, PUSH, PCOMP_DIRECT, PCOMP_INDIRECT, COPY
  */
-void VMWriter::writeConstant(bool in, bool fin, int value)
+void VMWriter::writeConstant(bool, bool fin, int value)
 {
     if (fin && -2 <= value && value <= 2) {
         out.emitA("SP");
@@ -190,13 +190,13 @@ void VMWriter::writeConstant(bool in, bool fin, int value)
     if (fin)
         push();
 }
-void VMWriter::writePush(bool in, bool fin, Segment segment, int index)
+void VMWriter::writePush(bool, bool fin, Segment segment, int index)
 {
     push_load(segment, index);
     if (fin)
         push();
 }
-void VMWriter::writePopDirect(bool in, bool fin, Segment segment, int index)
+void VMWriter::writePopDirect(bool in, bool, Segment segment, int index)
 {
     if (in)
         pop();
@@ -228,7 +228,7 @@ void VMWriter::writePopIndirect(Segment segment, int index)
     out.emitC(DEST_A | COMP_M); // load the address
     out.emitC(DEST_M | COMP_D); // save
 }
-void VMWriter::writePopIndirectPush(bool in, bool fin, Segment segment, int index)
+void VMWriter::writePopIndirectPush(bool, bool fin, Segment segment, int index)
 {
     load(DEST_D, segment, index);
     out.emitA("R15");
@@ -459,7 +459,7 @@ void VMWriter::writeGoto(const std::string label)
     out.emitA(constructString(function, label));
     out.emitC(COMP_ZERO | JMP);
 }
-void VMWriter::writeIf(bool in, bool fin, CompareOperation op, const std::string label,
+void VMWriter::writeIf(bool in, bool, CompareOperation op, const std::string label,
                        bool compare, bool useConst, int intConst)
 {
     if (in)

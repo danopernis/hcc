@@ -75,7 +75,7 @@ void optimize3(VMCommandList& cmds, o3cb cb)
 /*
  * optimizations removing commands
  */
-bool o_bloated_goto(VMCommandList& cmds, VMCommandList::iterator& c1, VMCommandList::iterator& c2,
+bool o_bloated_goto(VMCommandList&, VMCommandList::iterator& c1, VMCommandList::iterator& c2,
                     VMCommandList::iterator& c3)
 {
     if (c1->type == VMCommand::IF && c2->type == VMCommand::GOTO && c3->type == VMCommand::LABEL
@@ -206,7 +206,7 @@ bool o_const_if(VMCommandList& cmds, VMCommandList::iterator& c1, VMCommandList:
 /*
  * convert binary operation to unary
  */
-bool o_const_swap(VMCommandList& cmds, VMCommandList::iterator& c1, VMCommandList::iterator& c2,
+bool o_const_swap(VMCommandList&, VMCommandList::iterator& c1, VMCommandList::iterator& c2,
                   VMCommandList::iterator& c3)
 {
     if (c1->type == VMCommand::CONSTANT && c2->type == VMCommand::PUSH) {
