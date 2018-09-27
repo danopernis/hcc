@@ -11,11 +11,6 @@
 #include <thread>
 #include <vector>
 
-// sigc workaround
-namespace sigc {
-SIGC_FUNCTORS_DEDUCE_RESULT_TYPE_WITH_DECLTYPE
-} // namespace sigc {
-
 namespace {
 
 const unsigned int SCREEN_WIDTH = 512;
@@ -217,7 +212,7 @@ screen_widget::screen_widget(RAM& ram)
     , ram(ram)
 {
     set_size_request(SCREEN_WIDTH, SCREEN_HEIGHT);
-    signal_draw().connect([&](const Cairo::RefPtr<Cairo::Context>& cr) { return draw(cr); });
+    signal_draw().connect(sigc::mem_fun(this, &screen_widget::draw));
 }
 
 bool screen_widget::draw(const Cairo::RefPtr<Cairo::Context>& cr)
@@ -263,9 +258,9 @@ emulator::emulator()
     setup_button(button_load, "document-open", "Load...");
     setup_button(button_run, "media-playback-start", "Run");
     setup_button(button_pause, "media-playback-pause", "Pause");
-    button_load.signal_clicked().connect([&]() { load_clicked(); });
-    button_run.signal_clicked().connect([&]() { run_clicked(); });
-    button_pause.signal_clicked().connect([&]() { pause_clicked(); });
+    button_load.signal_clicked().connect(sigc::mem_fun(this, &emulator::load_clicked));
+    button_run.signal_clicked().connect(sigc::mem_fun(this, &emulator::run_clicked));
+    button_pause.signal_clicked().connect(sigc::mem_fun(this, &emulator::pause_clicked));
 
     button_run.set_sensitive(false);
     button_pause.set_sensitive(false);
@@ -280,10 +275,8 @@ emulator::emulator()
 
     /* keyboard */
     keyboard.add_events(Gdk::EventMask::KEY_PRESS_MASK | Gdk::EventMask::KEY_RELEASE_MASK);
-    keyboard.signal_key_press_event().connect(
-        [&](GdkEventKey* event) { return keyboard_callback(event); });
-    keyboard.signal_key_release_event().connect(
-        [&](GdkEventKey* event) { return keyboard_callback(event); });
+    keyboard.signal_key_press_event().connect(sigc::mem_fun(this, &emulator::keyboard_callback));
+    keyboard.signal_key_release_event().connect(sigc::mem_fun(this, &emulator::keyboard_callback));
 
     /* main layout */
     grid.attach(toolbar, 0, 0, 1, 1);
@@ -376,7 +369,7 @@ void emulator::cpu_thread()
 void emulator::screen_thread()
 {
     while (running) {
-        Glib::signal_idle().connect_once([&]() { screen.queue_draw(); });
+        Glib::signal_idle().connect_once(sigc::mem_fun(screen, &screen_widget::queue_draw));
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 }
