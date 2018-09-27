@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2015 Dano Pernis
+// Copyright (c) 2012-2018 Dano Pernis
 // See LICENSE for details
 
 #pragma once

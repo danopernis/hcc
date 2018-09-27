@@ -1,4 +1,5 @@
 #!/bin/bash
+# Copyright (c) 2012-2018 Dano Pernis
 
 (
 echo "digraph depend {"

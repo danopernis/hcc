@@ -1,3 +1,5 @@
+# Copyright (c) 2012-2018 Dano Pernis
+
 # libraries
 
 add_library (asm

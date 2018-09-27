@@ -1,3 +1,5 @@
+# Copyright (c) 2012-2018 Dano Pernis
+
 add_executable(test_jack_tokenizer test_jack_tokenizer.cc)
 target_link_libraries(test_jack_tokenizer PRIVATE jack)
 add_test(jack_tokenizer test_jack_tokenizer)
