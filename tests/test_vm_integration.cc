@@ -1,10 +1,11 @@
 // Copyright (c) 2012-2018 Dano Pernis
 // See LICENSE for details
 
-#include "CPU.h"
-#include "VMOptimize.h"
-#include "VMWriter.h"
-#include "asm.h"
+#include "hcc/assembler/asm.h"
+#include "hcc/cpu/cpu.h"
+#include "hcc/vm/optimize.h"
+#include "hcc/vm/writer.h"
+#include "hcc/vm/parser.h"
 #include <cassert>
 #include <sstream>
 #include <vector>
@@ -19,16 +20,16 @@ struct driver {
     void add_file(const std::string& filename, const std::string& contents)
     {
         std::stringstream input{contents};
-        hcc::VMParser parser{input};
+        hcc::vm::parser parser{input};
         auto cmds = parser.parse();
-        hcc::VMOptimize(cmds);
+        hcc::vm::optimize(cmds);
         writer.writeFile(filename, cmds);
     }
 
     void run(int ticks = 1000)
     {
         auto instructions = out.assemble();
-        hcc::CPU cpu;
+        hcc::cpu::CPU cpu;
         cpu.reset();
         std::copy(begin(instructions), end(instructions), begin(rom.data));
         for (int i = 0; i < ticks; ++i) {
@@ -39,10 +40,10 @@ struct driver {
     unsigned short get(unsigned int address) const { return ram.get(address); }
 
 private:
-    hcc::asm_program out;
-    hcc::VMWriter writer;
+    hcc::assembler::program out;
+    hcc::vm::writer writer;
 
-    struct RAM : public hcc::IRAM {
+    struct RAM : public hcc::cpu::IRAM {
         RAM()
             : data(size, 0)
         {
@@ -56,7 +57,7 @@ private:
         std::vector<unsigned short> data;
     } ram;
 
-    struct ROM : public hcc::IROM {
+    struct ROM : public hcc::cpu::IROM {
         ROM()
             : data(size, 0)
         {

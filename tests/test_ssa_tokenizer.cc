@@ -1,7 +1,8 @@
 // Copyright (c) 2012-2018 Dano Pernis
 // See LICENSE for details
 
-#include "ssa_tokenizer.h"
+#include "hcc/ssa/tokenizer.h"
+
 #include <cassert>
 #include <sstream>
 #include <vector>

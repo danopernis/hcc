@@ -2,45 +2,58 @@
 
 # libraries
 
-add_library (asm
-	asm.cc
-	asm_local.cc
+add_library (assembler
+    hcc/assembler/asm.cc
+    hcc/assembler/asm.local.cc
     )
-target_include_directories (asm PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
+target_include_directories (assembler PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
+
+add_library (cpu
+    hcc/cpu/cpu.cc
+    hcc/cpu/instruction.cc
+    )
+target_include_directories (cpu PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 
 add_library (jack
-	JackVMWriter.cc
-	jack_parser.cc
-	jack_token_type.cc
-	jack_tokenizer.cc
+    hcc/jack/ast.cc
+    hcc/jack/parser.cc
+    hcc/jack/tokenizer.cc
+    hcc/jack/tokenizer.token_type.cc
+    hcc/jack/vm_writer.cc
     )
 target_include_directories (jack PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 
 add_library (ssa
-	graph_dominance.cc
-	ssa.cc
-	ssa_asm_writer.cc
-	ssa_construction.cc
-	ssa_copy_propagation.cc
-	ssa_dead_code_elimination.cc
-	ssa_deconstruction.cc
-	ssa_jack_reader.cc
-	ssa_reader.cc
-	ssa_register_allocation.cc
-	ssa_subroutine_builder.cc
-	ssa_tokenizer.cc
-	ssa_writer.cc
+    hcc/ssa/interference_graph.cc
+    hcc/ssa/ssa.asm_writer.cc
+    hcc/ssa/ssa.cc
+    hcc/ssa/ssa.construction.cc
+    hcc/ssa/ssa.copy_propagation.cc
+    hcc/ssa/ssa.dead_code_elimination.cc
+    hcc/ssa/ssa.deconstruction.cc
+    hcc/ssa/ssa.jack_reader.cc
+    hcc/ssa/ssa.reader.cc
+    hcc/ssa/ssa.register_allocation.cc
+    hcc/ssa/ssa.writer.cc
+    hcc/ssa/subroutine_builder.cc
+    hcc/ssa/tokenizer.cc
     )
 target_include_directories (ssa PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
+target_link_libraries (ssa PRIVATE util)
+
+add_library (util
+    hcc/util/graph_dominance.cc
+    )
+target_include_directories (util PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 
 add_library (vm
-	CPU.cc
-	ParserVM.cc
-	VMCommand.cc
-	VMOptimize.cc
-	VMWriter.cc
+    hcc/vm/parser.cc
+    hcc/vm/command.cc
+    hcc/vm/optimize.cc
+    hcc/vm/writer.cc
     )
 target_include_directories (vm PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
+target_link_libraries (vm PRIVATE cpu)
 
 # executables
 
@@ -49,7 +62,6 @@ target_link_libraries (jack2vm PRIVATE jack vm)
 
 add_executable (emulator
     emulator.cc
-    CPU.cc
     )
 target_include_directories (emulator PRIVATE ${GTKMM_INCLUDE_DIRS})
 target_compile_options (emulator PRIVATE
@@ -58,10 +70,10 @@ target_compile_options (emulator PRIVATE
     -Wno-deprecated-register
     -Wno-overloaded-virtual
     )
-target_link_libraries (emulator PRIVATE ${GTKMM_LDFLAGS} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries (emulator PRIVATE ${GTKMM_LDFLAGS} ${CMAKE_THREAD_LIBS_INIT} cpu)
 
 add_executable (hcc hcc.cc)
-target_link_libraries (hcc PRIVATE asm jack ssa vm)
+target_link_libraries (hcc PRIVATE assembler jack ssa vm)
 
 install (TARGETS
     emulator
@@ -71,8 +83,10 @@ install (TARGETS
 
 # tests
 
-add_executable (test_interference_graph test_interference_graph.cc)
-add_test (interference_graph test_interference_graph)
+add_executable (interference_graph.test hcc/ssa/interference_graph.test.cc)
+target_link_libraries (interference_graph.test PRIVATE ssa)
+add_test (interference_graph interference_graph.test)
 
-add_executable (test_graph test_graph.cc)
-add_test (graph test_graph)
+add_executable (graph.test hcc/util/graph.test.cc)
+target_link_libraries (graph.test PRIVATE util)
+add_test (graph graph.test)

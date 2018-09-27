@@ -1,7 +1,7 @@
 // Copyright (c) 2012-2018 Dano Pernis
 // See LICENSE for details
 
-#include "CPU.h"
+#include "hcc/cpu/cpu.h"
 #include <cassert>
 #include <fstream>
 #include <gtkmm.h>
@@ -16,7 +16,7 @@ namespace {
 const unsigned int SCREEN_WIDTH = 512;
 const unsigned int SCREEN_HEIGHT = 256;
 
-struct ROM : public hcc::IROM {
+struct ROM : public hcc::cpu::IROM {
     ROM()
         : data(0x8000, 0)
     {
@@ -29,7 +29,7 @@ struct ROM : public hcc::IROM {
     std::vector<uint16_t> data;
 };
 
-struct RAM : public hcc::IRAM {
+struct RAM : public hcc::cpu::IRAM {
     RAM()
         : data(0x6001, 0)
     {
@@ -67,7 +67,7 @@ struct emulator {
 
     ROM rom;
     RAM ram;
-    hcc::CPU cpu;
+    hcc::cpu::CPU cpu;
 
 private:
     std::thread thread_cpu;

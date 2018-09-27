@@ -1,15 +1,15 @@
 // Copyright (c) 2012-2018 Dano Pernis
 // See LICENSE for details
 
-#include "JackVMWriter.h"
-#include "jack_tokenizer.h"
-#include "jack_parser.h"
+#include "hcc/jack/ast.h"
+#include "hcc/jack/parser.h"
+#include "hcc/jack/tokenizer.h"
+#include "hcc/jack/vm_writer.h"
+
 #include <boost/algorithm/string/join.hpp>
 #include <fstream>
 #include <iostream>
 #include <sstream>
-
-using namespace hcc::jack;
 
 int main(int argc, char* argv[]) try {
     if (argc < 2) {
@@ -17,16 +17,16 @@ int main(int argc, char* argv[]) try {
     }
 
     // parse input
-    std::vector<ast::Class> classes;
+    std::vector<hcc::jack::Class> classes;
     try {
         for (int i = 1; i < argc; ++i) {
             std::cout << "parsing " << argv[i] << '\n';
             std::ifstream input(argv[i]);
-            tokenizer t{std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>()};
-            classes.push_back(parse(t));
+            hcc::jack::tokenizer t{std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>()};
+            classes.push_back(hcc::jack::parse(t));
         }
     }
-    catch (const parse_error& e) {
+    catch (const hcc::jack::parse_error& e) {
         std::stringstream ss;
         ss << "Parse error: " << e.what() << " at " << e.line << ":" << e.column << '\n';
         throw std::runtime_error(ss.str());
@@ -36,7 +36,7 @@ int main(int argc, char* argv[]) try {
 
     // produce output
     for (const auto& clazz : classes) {
-        VMWriter(clazz.name + ".vm").write(clazz);
+        hcc::jack::VMWriter(clazz.name + ".vm").write(clazz);
     }
 
     return 0;

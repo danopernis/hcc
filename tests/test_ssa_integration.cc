@@ -1,11 +1,12 @@
 // Copyright (c) 2012-2018 Dano Pernis
 // See LICENSE for details
 
-#include "CPU.h"
-#include "asm.h"
-#include "jack_parser.h"
-#include "jack_tokenizer.h"
-#include "ssa.h"
+#include "hcc/assembler/asm.h"
+#include "hcc/cpu/cpu.h"
+#include "hcc/jack/ast.h"
+#include "hcc/jack/parser.h"
+#include "hcc/jack/tokenizer.h"
+#include "hcc/ssa/ssa.h"
 #include <sstream>
 #include <vector>
 
@@ -31,13 +32,13 @@ struct driver {
         }
 
         // asm
-        hcc::asm_program out;
+        hcc::assembler::program out;
         u.translate_to_asm(out);
         out.local_optimization();
         auto instructions = out.assemble();
 
         // hack
-        hcc::CPU cpu;
+        hcc::cpu::CPU cpu;
         cpu.reset();
         std::copy(begin(instructions), end(instructions), begin(rom.data));
         for (int i = 0; i < ticks; ++i) {
@@ -48,7 +49,7 @@ struct driver {
     unsigned short get(unsigned int address) const { return ram.get(address); }
 
 private:
-    struct RAM : public hcc::IRAM {
+    struct RAM : public hcc::cpu::IRAM {
         RAM()
             : data(size, 0)
         {
@@ -62,7 +63,7 @@ private:
         std::vector<unsigned short> data;
     } ram;
 
-    struct ROM : public hcc::IROM {
+    struct ROM : public hcc::cpu::IROM {
         ROM()
             : data(size, 0)
         {

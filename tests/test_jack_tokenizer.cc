@@ -1,7 +1,7 @@
 // Copyright (c) 2012-2018 Dano Pernis
 // See LICENSE for details
 
-#include "jack_tokenizer.h"
+#include "hcc/jack/tokenizer.h"
 #include <cassert>
 #include <sstream>
 #include <vector>

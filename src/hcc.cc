@@ -1,21 +1,19 @@
 // Copyright (c) 2012-2018 Dano Pernis
 // See LICENSE for details
 
-#include "ParserVM.h"
-#include "VMOptimize.h"
-#include "VMWriter.h"
-#include "asm.h"
-#include "jack_parser.h"
-#include "jack_tokenizer.h"
-#include "ssa.h"
+#include "hcc/assembler/asm.h"
+#include "hcc/jack/ast.h"
+#include "hcc/jack/parser.h"
+#include "hcc/jack/tokenizer.h"
+#include "hcc/ssa/ssa.h"
+#include "hcc/vm/parser.h"
+#include "hcc/vm/optimize.h"
+#include "hcc/vm/writer.h"
 #include <boost/algorithm/string/join.hpp>
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
-
-using namespace hcc::jack;
-using namespace hcc::ssa;
 
 bool ends_with(const std::string& value, const std::string& suffix)
 {
@@ -108,29 +106,29 @@ struct command_line_options {
     std::vector<std::string> vm_input_files;
 };
 
-void jack_to_asm(const std::vector<std::string>& jack_input_files, hcc::asm_program& out)
+void jack_to_asm(const std::vector<std::string>& jack_input_files, hcc::assembler::program& out)
 {
     if (jack_input_files.empty()) {
         return;
     }
 
     // parse input
-    std::vector<ast::Class> classes;
+    std::vector<hcc::jack::Class> classes;
     try {
         for (const auto& input_file : jack_input_files) {
             std::ifstream input{input_file};
-            tokenizer t{std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>()};
+            hcc::jack::tokenizer t{std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>()};
             classes.push_back(parse(t));
         }
     }
-    catch (const parse_error& e) {
+    catch (const hcc::jack::parse_error& e) {
         std::stringstream ss;
         ss << "Parse error: " << e.what() << " at " << e.line << ":" << e.column;
         throw std::runtime_error(ss.str());
     }
 
     // produce intermediate code
-    unit u;
+    hcc::ssa::unit u;
     for (const auto& class_ : classes) {
         u.translate_from_jack(class_);
     }
@@ -148,24 +146,24 @@ void jack_to_asm(const std::vector<std::string>& jack_input_files, hcc::asm_prog
     u.translate_to_asm(out);
 }
 
-void vm_to_asm(const std::vector<std::string>& vm_input_files, hcc::asm_program& out)
+void vm_to_asm(const std::vector<std::string>& vm_input_files, hcc::assembler::program& out)
 {
     if (vm_input_files.empty()) {
         return;
     }
 
-    hcc::VMWriter writer(out);
+    hcc::vm::writer writer(out);
     writer.writeBootstrap();
     for (const auto& input_file : vm_input_files) {
         std::ifstream input{input_file.c_str()};
-        hcc::VMParser parser{input};
+        hcc::vm::parser parser{input};
         auto cmds = parser.parse();
-        hcc::VMOptimize(cmds);
+        hcc::vm::optimize(cmds);
         writer.writeFile(input_file, cmds);
     }
 }
 
-void asm_to_asm(const std::vector<std::string>& asm_input_files, hcc::asm_program& out)
+void asm_to_asm(const std::vector<std::string>& asm_input_files, hcc::assembler::program& out)
 {
     if (asm_input_files.empty()) {
         return;
@@ -173,7 +171,7 @@ void asm_to_asm(const std::vector<std::string>& asm_input_files, hcc::asm_progra
 
     for (const auto& input_file : asm_input_files) {
         std::ifstream input_stream{input_file};
-        hcc::asm_program prog{input_stream};
+        hcc::assembler::program prog{input_stream};
         out = prog;
     }
 }
@@ -185,7 +183,7 @@ int main(int argc, char* argv[]) try {
         return 0;
     }
 
-    hcc::asm_program out;
+    hcc::assembler::program out;
     jack_to_asm(options.jack_input_files, out);
     asm_to_asm(options.asm_input_files, out);
     vm_to_asm(options.vm_input_files, out);
@@ -193,7 +191,7 @@ int main(int argc, char* argv[]) try {
 
     // output
     if (options.assemble) {
-        hcc::saveHACK(options.output, out.assemble());
+        hcc::assembler::saveHACK(options.output, out.assemble());
     } else {
         out.save(options.output);
     }
