@@ -11,15 +11,19 @@ Building & Installation
 
 Build HCC using
 
-> mkdir build
-> cd build
-> cmake ..
-> make
+```
+mkdir build
+cd build
+cmake ..
+make
+```
 
 Optionally test and install using
 
-> make test
-> DESTDIR=~ make install
+```
+make test
+DESTDIR=~ make install
+```
 
 Standard library/OS is available in directory "src/stdlib".
 Contents of that directory shall be copied to your Jack project.
