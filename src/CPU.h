@@ -10,10 +10,12 @@ namespace hcc {
  * a set of registers, indexed by address.
  */
 struct IRAM {
+    virtual ~IRAM() = default;
     virtual unsigned short get(unsigned int address) const = 0;
     virtual void set(unsigned int address, unsigned short value) = 0;
 };
 struct IROM {
+    virtual ~IROM() = default;
     virtual unsigned short get(unsigned int address) const = 0;
 };
 

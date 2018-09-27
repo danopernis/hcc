@@ -16,7 +16,6 @@ typedef enum { ADD, SUB, BUS, AND, OR } BinaryOperation;
 struct CompareOperation {
     bool lt, eq, gt;
 
-    virtual ~CompareOperation() {}
     void set(bool lt, bool eq, bool gt)
     {
         this->lt = lt;

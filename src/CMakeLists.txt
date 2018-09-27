@@ -50,7 +50,12 @@ add_executable (emulator
     CPU.cc
     )
 target_include_directories (emulator PRIVATE ${GTKMM_INCLUDE_DIRS})
-target_compile_options (emulator PRIVATE ${GTKMM_CFLAGS_OTHER})
+target_compile_options (emulator PRIVATE
+    ${GTKMM_CFLAGS_OTHER}
+    -Wno-deprecated-declarations
+    -Wno-deprecated-register
+    -Wno-overloaded-virtual
+    )
 target_link_libraries (emulator PRIVATE ${GTKMM_LDFLAGS} ${CMAKE_THREAD_LIBS_INIT})
 
 add_executable (hcc hcc.cc)

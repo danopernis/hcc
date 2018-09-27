@@ -18,6 +18,7 @@ struct UnresolvedType;
 
 /** Visitor pattern for variable types. */
 struct VariableTypeVisitor {
+    virtual ~VariableTypeVisitor() = default;
     virtual void visit(IntType*) = 0;
     virtual void visit(CharType*) = 0;
     virtual void visit(BooleanType*) = 0;
@@ -26,9 +27,9 @@ struct VariableTypeVisitor {
 
 /** Abstract base of all variable types. */
 struct VariableTypeBase {
+    virtual ~VariableTypeBase() = default;
     virtual void accept(VariableTypeVisitor*) = 0;
     virtual std::unique_ptr<VariableTypeBase> clone() = 0;
-    virtual ~VariableTypeBase() {}
 };
 using VariableType = std::unique_ptr<VariableTypeBase>;
 
@@ -83,6 +84,7 @@ struct SubroutineCall;
 
 /** Visitor pattern for expressions. */
 struct ExpressionVisitor {
+    virtual ~ExpressionVisitor() = default;
     virtual void visit(ThisConstant*) = 0;
     virtual void visit(IntegerConstant*) = 0;
     virtual void visit(StringConstant*) = 0;
@@ -95,8 +97,8 @@ struct ExpressionVisitor {
 
 /** Abstract base of all expressions. */
 struct ExpressionBase {
+    virtual ~ExpressionBase() = default;
     virtual void accept(ExpressionVisitor*) = 0;
-    virtual ~ExpressionBase() {}
 };
 typedef std::unique_ptr<ExpressionBase> Expression;
 typedef std::vector<Expression> ExpressionList;
@@ -210,6 +212,7 @@ struct ReturnStatement;
 
 /** Visitor pattern for statements. */
 struct StatementVisitor {
+    virtual ~StatementVisitor() = default;
     virtual void visit(LetScalar*) = 0;
     virtual void visit(LetVector*) = 0;
     virtual void visit(IfStatement*) = 0;
@@ -220,8 +223,8 @@ struct StatementVisitor {
 
 /** Abstract base of all statements. */
 struct StatementBase {
+    virtual ~StatementBase() = default;
     virtual void accept(StatementVisitor*) = 0;
-    virtual ~StatementBase() {}
 };
 typedef std::unique_ptr<StatementBase> Statement;
 typedef std::vector<Statement> StatementList;

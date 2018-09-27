@@ -43,7 +43,6 @@ class VMWriter {
 
 public:
     VMWriter(asm_program& out);
-    virtual ~VMWriter();
 
     void writeBootstrap();
 

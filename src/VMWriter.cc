@@ -18,8 +18,6 @@ VMWriter::VMWriter(asm_program& out)
     returnCounter = 0;
 }
 
-VMWriter::~VMWriter() {}
-
 const std::string constructString(const std::string s, unsigned int i)
 {
     std::stringstream ss;

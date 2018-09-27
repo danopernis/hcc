@@ -14,7 +14,7 @@ public:
     void write(const ast::Class& clazz);
 
 private:
-    class Impl;
+    struct Impl;
     std::unique_ptr<Impl> pimpl;
 };
 
