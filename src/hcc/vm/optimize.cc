@@ -150,8 +150,8 @@ bool o_const_expression3(command_list& cmds, command_list::iterator& c1,
         if (c3->type == command::COMPARE) {
             bool zr, ng;
             unsigned short out;
-            cpu::CPU::comp(instruction::COMP_D_MINUS_A, c1->int1, c2->int1, out, zr, ng);
-            c1->int1 = cpu::CPU::jump(c3->compare.jump(), zr, ng) ? -1 : 0;
+            cpu::comp(instruction::COMP_D_MINUS_A, c1->int1, c2->int1, out, zr, ng);
+            c1->int1 = cpu::jump(c3->compare.jump(), zr, ng) ? -1 : 0;
             cmds.erase(c2);
             cmds.erase(c3);
             return true;

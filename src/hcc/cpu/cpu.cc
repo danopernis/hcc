@@ -9,7 +9,7 @@ namespace cpu {
 
 using namespace instruction;
 
-void CPU::comp(word instruction, word x, word y, word& out, bool& zr, bool& ng)
+void comp(word instruction, word x, word y, word& out, bool& zr, bool& ng)
 {
     if (instruction & ALU_ZX) {
         x = 0;
@@ -35,10 +35,17 @@ void CPU::comp(word instruction, word x, word y, word& out, bool& zr, bool& ng)
     ng = (out & (1 << 15));
 }
 
-bool CPU::jump(word instruction, bool zr, bool ng)
+bool jump(word instruction, bool zr, bool ng)
 {
     return (((instruction & JUMP_NEG) && ng) || ((instruction & JUMP_ZERO) && zr)
             || ((instruction & JUMP_POS) && !ng && !zr));
+}
+
+void CPU::reset()
+{
+    pc = 0;
+    a = 0;
+    d = 0;
 }
 
 void CPU::step(const ROM& rom, RAM& ram)
@@ -50,7 +57,7 @@ void CPU::step(const ROM& rom, RAM& ram)
         // COMP
         word out;
         bool zr, ng;
-        CPU::comp(instruction, d, (instruction & FETCH) ? ram.at(olda) : a, out, zr, ng);
+        comp(instruction, d, (instruction & FETCH) ? ram.at(olda) : a, out, zr, ng);
 
         // DEST
         if (instruction & DEST_A) {
@@ -64,7 +71,7 @@ void CPU::step(const ROM& rom, RAM& ram)
         }
 
         // JUMP
-        if (CPU::jump(instruction, zr, ng)) {
+        if (jump(instruction, zr, ng)) {
             pc = a;
         } else {
             ++pc;
