@@ -94,9 +94,9 @@ private:
             return;
         }
         if (s.entry_node().name == bb.name) {
-            out.emitL(prefix);
+            out.emitLabel(prefix);
         }
-        out.emitL(handle_label(bb.name));
+        out.emitLabel(handle_label(bb.name));
         for (auto instruction : bb.instructions) {
             write_instruction(instruction);
         }
@@ -109,8 +109,8 @@ private:
         switch (instruction.type) {
         // basic block boundary handling
         case instruction_type::JUMP:
-            out.emitA(handle_label(instruction.arguments[0].get_label()));
-            out.emitC(COMP_ZERO | JMP);
+            out.emitLoadSymbolic(handle_label(instruction.arguments[0].get_label()));
+            out.emitInstruction(COMP_ZERO | JMP);
             break;
         case instruction_type::JLT:
             write_compare(instruction, JLT);
@@ -121,10 +121,10 @@ private:
         // subroutine boundary handling
         case instruction_type::RETURN:
             handle(instruction.arguments[0], COMP_M, COMP_A);
-            out.emitA(reg_return);
-            out.emitC(DEST_M | COMP_D);
-            out.emitA("__returnHelper");
-            out.emitC(COMP_ZERO | JMP);
+            out.emitLoadSymbolic(reg_return);
+            out.emitInstruction(DEST_M | COMP_D);
+            out.emitLoadSymbolic("__returnHelper");
+            out.emitInstruction(COMP_ZERO | JMP);
             break;
         case instruction_type::CALL:
             write_call(instruction);
@@ -186,43 +186,43 @@ private:
         handle(instruction.arguments[1], COMP_M, COMP_A);
         handle(instruction.arguments[0], COMP_M_MINUS_D, COMP_A_MINUS_D);
         // decide
-        out.emitA(handle_label(instruction.arguments[2].get_label()));
-        out.emitC(COMP_D | jump);
-        out.emitA(handle_label(instruction.arguments[3].get_label()));
-        out.emitC(COMP_ZERO | JMP);
+        out.emitLoadSymbolic(handle_label(instruction.arguments[2].get_label()));
+        out.emitInstruction(COMP_D | jump);
+        out.emitLoadSymbolic(handle_label(instruction.arguments[3].get_label()));
+        out.emitInstruction(COMP_ZERO | JMP);
     }
 
     void write_call(const hcc::ssa::instruction& instruction)
     {
         const auto return_address = prefix + ".return." + std::to_string(return_counter++);
-        out.emitA(locals_counter);
-        out.emitC(DEST_D | COMP_A);
-        out.emitA(reg_locals);
-        out.emitC(DEST_D | COMP_D_PLUS_M);
-        out.emitA(reg_stack_pointer);
-        out.emitC(DEST_M | COMP_D_MINUS_ONE);
-        out.emitA(reg_tmp);
-        out.emitC(DEST_M | COMP_D);
+        out.emitLoadConstant(locals_counter);
+        out.emitInstruction(DEST_D | COMP_A);
+        out.emitLoadSymbolic(reg_locals);
+        out.emitInstruction(DEST_D | COMP_D_PLUS_M);
+        out.emitLoadSymbolic(reg_stack_pointer);
+        out.emitInstruction(DEST_M | COMP_D_MINUS_ONE);
+        out.emitLoadSymbolic(reg_tmp);
+        out.emitInstruction(DEST_M | COMP_D);
         for (int i = 2; i < static_cast<int>(instruction.arguments.size()); ++i) {
             handle(instruction.arguments[i], COMP_M, COMP_A);
-            out.emitA(reg_stack_pointer);
-            out.emitC(DEST_A | DEST_M | COMP_M_PLUS_ONE);
-            out.emitC(DEST_M | COMP_D);
+            out.emitLoadSymbolic(reg_stack_pointer);
+            out.emitInstruction(DEST_A | DEST_M | COMP_M_PLUS_ONE);
+            out.emitInstruction(DEST_M | COMP_D);
         }
-        out.emitA(return_address);
-        out.emitC(DEST_D | COMP_A);
-        out.emitA(reg_stack_pointer);
-        out.emitC(DEST_A | DEST_M | COMP_M_PLUS_ONE);
-        out.emitC(DEST_M | COMP_D);
+        out.emitLoadSymbolic(return_address);
+        out.emitInstruction(DEST_D | COMP_A);
+        out.emitLoadSymbolic(reg_stack_pointer);
+        out.emitInstruction(DEST_A | DEST_M | COMP_M_PLUS_ONE);
+        out.emitInstruction(DEST_M | COMP_D);
         emit_global(instruction.arguments[1].get_global());
-        out.emitC(DEST_D | COMP_A);
-        out.emitA(reg_return);
-        out.emitC(DEST_M | COMP_D);
-        out.emitA("__callHelper");
-        out.emitC(COMP_ZERO | JMP);
-        out.emitL(return_address);
-        out.emitA(reg_return);
-        out.emitC(DEST_D | COMP_M);
+        out.emitInstruction(DEST_D | COMP_A);
+        out.emitLoadSymbolic(reg_return);
+        out.emitInstruction(DEST_M | COMP_D);
+        out.emitLoadSymbolic("__callHelper");
+        out.emitInstruction(COMP_ZERO | JMP);
+        out.emitLabel(return_address);
+        out.emitLoadSymbolic(reg_return);
+        out.emitInstruction(DEST_D | COMP_M);
         reg_store(instruction.arguments[0]);
     }
 
@@ -231,23 +231,23 @@ private:
         if (dst.is_reg()) {
             handle(src, COMP_M, COMP_A);
             emit_register(dst.get_reg());
-            out.emitC(DEST_A | COMP_M);
-            out.emitC(DEST_M | COMP_D);
+            out.emitInstruction(DEST_A | COMP_M);
+            out.emitInstruction(DEST_M | COMP_D);
         } else if (dst.is_global()) {
             handle(src, COMP_M, COMP_A);
             emit_global(dst.get_global());
-            out.emitC(DEST_M | COMP_D);
+            out.emitInstruction(DEST_M | COMP_D);
         } else if (dst.is_local()) {
-            out.emitA(locals_counts.at(dst.get_local()));
-            out.emitC(DEST_D | COMP_A);
-            out.emitA(reg_locals);
-            out.emitC(DEST_D | COMP_D_PLUS_M);
-            out.emitA(reg_tmp);
-            out.emitC(DEST_M | COMP_D);
+            out.emitLoadConstant(locals_counts.at(dst.get_local()));
+            out.emitInstruction(DEST_D | COMP_A);
+            out.emitLoadSymbolic(reg_locals);
+            out.emitInstruction(DEST_D | COMP_D_PLUS_M);
+            out.emitLoadSymbolic(reg_tmp);
+            out.emitInstruction(DEST_M | COMP_D);
             handle(src, COMP_M, COMP_A);
-            out.emitA(reg_tmp);
-            out.emitC(DEST_A | COMP_M);
-            out.emitC(DEST_M | COMP_D);
+            out.emitLoadSymbolic(reg_tmp);
+            out.emitInstruction(DEST_A | COMP_M);
+            out.emitInstruction(DEST_M | COMP_D);
         } else {
             assert(false);
         }
@@ -255,11 +255,11 @@ private:
 
     void write_argument(const argument& dst, const argument& index)
     {
-        out.emitA(index.get_constant().value);
-        out.emitC(DEST_D | COMP_A);
-        out.emitA(reg_arguments);
-        out.emitC(DEST_A | COMP_D_PLUS_M);
-        out.emitC(DEST_D | COMP_M);
+        out.emitLoadConstant(index.get_constant().value);
+        out.emitInstruction(DEST_D | COMP_A);
+        out.emitLoadSymbolic(reg_arguments);
+        out.emitInstruction(DEST_A | COMP_D_PLUS_M);
+        out.emitInstruction(DEST_D | COMP_M);
         reg_store(dst);
     }
 
@@ -267,37 +267,37 @@ private:
     {
         if (src.is_reg()) {
             emit_register(src.get_reg());
-            out.emitC(DEST_A | COMP_M);
-            out.emitC(DEST_D | COMP_M);
+            out.emitInstruction(DEST_A | COMP_M);
+            out.emitInstruction(DEST_D | COMP_M);
         } else if (src.is_global()) {
             emit_global(src.get_global());
-            out.emitC(DEST_D | COMP_M);
+            out.emitInstruction(DEST_D | COMP_M);
         } else if (src.is_local()) {
-            out.emitA(locals_counts.at(src.get_local()));
-            out.emitC(DEST_D | COMP_A);
-            out.emitA(reg_locals);
-            out.emitC(DEST_A | COMP_D_PLUS_M);
-            out.emitC(DEST_D | COMP_M);
+            out.emitLoadConstant(locals_counts.at(src.get_local()));
+            out.emitInstruction(DEST_D | COMP_A);
+            out.emitLoadSymbolic(reg_locals);
+            out.emitInstruction(DEST_A | COMP_D_PLUS_M);
+            out.emitInstruction(DEST_D | COMP_M);
         } else {
             assert(false);
         }
         reg_store(dst);
     }
 
-    void emit_register(const reg& x) { out.emitA(registers.at(x)); }
-    void emit_global(const global& x) { out.emitA(u.globals.get(x)); }
+    void emit_register(const reg& x) { out.emitLoadSymbolic(registers.at(x)); }
+    void emit_global(const global& x) { out.emitLoadSymbolic(u.globals.get(x)); }
 
     void handle(const argument& arg, unsigned short comp_reg, unsigned short comp_imm)
     {
         if (arg.is_constant()) {
-            out.emitA(arg.get_constant().value);
-            out.emitC(DEST_D | comp_imm);
+            out.emitLoadConstant(arg.get_constant().value);
+            out.emitInstruction(DEST_D | comp_imm);
         } else if (arg.is_reg()) {
             emit_register(arg.get_reg());
-            out.emitC(DEST_D | comp_reg);
+            out.emitInstruction(DEST_D | comp_reg);
         } else if (arg.is_global()) {
             emit_global(arg.get_global());
-            out.emitC(DEST_D | comp_reg);
+            out.emitInstruction(DEST_D | comp_reg);
         } else {
             assert(false);
         }
@@ -309,7 +309,7 @@ private:
     {
         assert(x.is_reg());
         emit_register(x.get_reg());
-        out.emitC(DEST_M | COMP_D);
+        out.emitInstruction(DEST_M | COMP_D);
     }
 
     unit& u;
@@ -346,66 +346,66 @@ private:
 
         // call Sys.init and halt
         // store return address
-        out.emitA("__halt");
-        out.emitC(DEST_D | COMP_A);
-        out.emitA(reserved);
-        out.emitC(DEST_M | COMP_D);
+        out.emitLoadSymbolic("__halt");
+        out.emitInstruction(DEST_D | COMP_A);
+        out.emitLoadConstant(reserved);
+        out.emitInstruction(DEST_M | COMP_D);
         // set reg_localc for called subroutine
-        out.emitA(reserved + saved_registers.size() + 1);
-        out.emitC(DEST_D | COMP_A);
-        out.emitA(reg_locals);
-        out.emitC(DEST_M | COMP_D);
+        out.emitLoadConstant(reserved + saved_registers.size() + 1);
+        out.emitInstruction(DEST_D | COMP_A);
+        out.emitLoadSymbolic(reg_locals);
+        out.emitInstruction(DEST_M | COMP_D);
         // jump
-        out.emitA("Sys.init");
-        out.emitL("__halt");
-        out.emitC(COMP_ZERO | JMP);
+        out.emitLoadSymbolic("Sys.init");
+        out.emitLabel("__halt");
+        out.emitInstruction(COMP_ZERO | JMP);
     }
 
     void write_return_helper()
     {
-        out.emitL("__returnHelper");
-        out.emitA(reg_locals);
-        out.emitC(DEST_D | COMP_M);
-        out.emitA(reg_stack_pointer);
-        out.emitC(DEST_M | COMP_D);
+        out.emitLabel("__returnHelper");
+        out.emitLoadSymbolic(reg_locals);
+        out.emitInstruction(DEST_D | COMP_M);
+        out.emitLoadSymbolic(reg_stack_pointer);
+        out.emitInstruction(DEST_M | COMP_D);
         for (auto i = saved_registers.begin(), e = saved_registers.end(); i != e; ++i) {
             // pop
-            out.emitA(reg_stack_pointer);
-            out.emitC(DEST_A | DEST_M | COMP_M_MINUS_ONE);
-            out.emitC(DEST_D | COMP_M);
-            out.emitA(*i);
-            out.emitC(DEST_M | COMP_D);
+            out.emitLoadSymbolic(reg_stack_pointer);
+            out.emitInstruction(DEST_A | DEST_M | COMP_M_MINUS_ONE);
+            out.emitInstruction(DEST_D | COMP_M);
+            out.emitLoadSymbolic(*i);
+            out.emitInstruction(DEST_M | COMP_D);
         }
-        out.emitA(reg_stack_pointer);
-        out.emitC(DEST_A | DEST_M | COMP_M_MINUS_ONE);
-        out.emitC(DEST_A | COMP_M);
-        out.emitC(COMP_ZERO | JMP);
+        out.emitLoadSymbolic(reg_stack_pointer);
+        out.emitInstruction(DEST_A | DEST_M | COMP_M_MINUS_ONE);
+        out.emitInstruction(DEST_A | COMP_M);
+        out.emitInstruction(COMP_ZERO | JMP);
     }
 
     void write_call_helper()
     {
-        out.emitL("__callHelper");
+        out.emitLabel("__callHelper");
         for (auto i = saved_registers.rbegin(), e = saved_registers.rend(); i != e; ++i) {
-            out.emitA(*i);
-            out.emitC(DEST_D | COMP_M);
-            out.emitA(reg_stack_pointer);
-            out.emitC(DEST_A | DEST_M | COMP_M_PLUS_ONE);
-            out.emitC(DEST_M | COMP_D);
+            out.emitLoadSymbolic(*i);
+            out.emitInstruction(DEST_D | COMP_M);
+            out.emitLoadSymbolic(reg_stack_pointer);
+            out.emitInstruction(DEST_A | DEST_M | COMP_M_PLUS_ONE);
+            out.emitInstruction(DEST_M | COMP_D);
         }
         // set reg_locals for called subroutine
-        out.emitA(reg_stack_pointer);
-        out.emitC(DEST_D | COMP_M_PLUS_ONE);
-        out.emitA(reg_locals);
-        out.emitC(DEST_M | COMP_D);
+        out.emitLoadSymbolic(reg_stack_pointer);
+        out.emitInstruction(DEST_D | COMP_M_PLUS_ONE);
+        out.emitLoadSymbolic(reg_locals);
+        out.emitInstruction(DEST_M | COMP_D);
         // set reg_arguments for called subroutine
-        out.emitA(reg_tmp);
-        out.emitC(DEST_D | COMP_M);
-        out.emitA(reg_arguments);
-        out.emitC(DEST_M | COMP_D);
+        out.emitLoadSymbolic(reg_tmp);
+        out.emitInstruction(DEST_D | COMP_M);
+        out.emitLoadSymbolic(reg_arguments);
+        out.emitInstruction(DEST_M | COMP_D);
         // jump to reg_return
-        out.emitA(reg_return);
-        out.emitC(DEST_A | COMP_M);
-        out.emitC(COMP_ZERO | JMP);
+        out.emitLoadSymbolic(reg_return);
+        out.emitInstruction(DEST_A | COMP_M);
+        out.emitInstruction(COMP_ZERO | JMP);
     }
 
     assembler::program& out;

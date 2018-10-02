@@ -2,6 +2,7 @@
 // See LICENSE for details
 #pragma once
 
+#include "hcc/cpu/cpu.h"
 #include "hcc/cpu/instruction.h"
 
 #include <istream>
@@ -22,7 +23,7 @@ enum class instruction_type {
 struct instruction {
     instruction_type type;
     std::string symbol;
-    unsigned short instr;
+    cpu::word instr;
 };
 
 inline bool operator==(const instruction& a, const instruction& b)
@@ -35,54 +36,17 @@ struct program {
     program() = default;
     program(std::istream&);
 
-    void save(const std::string& filename) const;
-
-    std::vector<uint16_t> assemble() const;
-
-    void emitA(const std::string symbol)
-    {
-        instruction i;
-        i.type = instruction_type::LOAD;
-        i.symbol = symbol;
-        instructions.push_back(std::move(i));
-    }
-    void emitA(unsigned short constant)
-    {
-        instruction i;
-        i.type = instruction_type::VERBATIM;
-
-        if (constant & hcc::instruction::COMPUTE) {
-            i.instr = std::abs((signed short)constant);
-            instructions.push_back(std::move(i));
-            emitC(hcc::instruction::DEST_A | hcc::instruction::COMP_MINUS_A);
-        } else {
-            i.instr = constant;
-            instructions.push_back(std::move(i));
-        }
-    }
-    void emitC(unsigned short instr)
-    {
-        instruction i;
-        i.type = instruction_type::VERBATIM;
-        i.instr = instr | hcc::instruction::RESERVED | hcc::instruction::COMPUTE;
-        instructions.push_back(std::move(i));
-    }
-    void emitL(const std::string label)
-    {
-        instruction i;
-        i.type = instruction_type::LABEL;
-        i.symbol = label;
-        instructions.push_back(std::move(i));
-    }
-    void emitComment(std::string s)
-    {
-        instruction i;
-        i.type = instruction_type::COMMENT;
-        i.symbol = std::move(s);
-        instructions.push_back(std::move(i));
-    }
+    void emitLoadSymbolic(std::string symbol);
+    void emitLoadConstant(cpu::word constant);
+    void emitInstruction(cpu::word instruction);
+    void emitLabel(std::string label);
+    void emitComment(std::string comment);
 
     void local_optimization();
+
+    std::vector<cpu::word> assemble() const;
+
+    void save(const std::string& filename) const;
 
 private:
     std::vector<instruction> instructions;

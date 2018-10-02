@@ -205,6 +205,49 @@ void instructionToString(std::ostream& out, unsigned short instr)
 
 } // namespace {
 
+void program::emitLoadSymbolic(std::string symbol)
+{
+    instruction i;
+    i.type = instruction_type::LOAD;
+    i.symbol = std::move(symbol);
+    instructions.push_back(std::move(i));
+}
+void program::emitLoadConstant(cpu::word constant)
+{
+    instruction i;
+    i.type = instruction_type::VERBATIM;
+
+    if (constant & hcc::instruction::COMPUTE) {
+        i.instr = std::abs((signed short)constant);
+        instructions.push_back(std::move(i));
+        emitInstruction(hcc::instruction::DEST_A | hcc::instruction::COMP_MINUS_A);
+    } else {
+        i.instr = constant;
+        instructions.push_back(std::move(i));
+    }
+}
+void program::emitInstruction(cpu::word instruction_)
+{
+    instruction i;
+    i.type = instruction_type::VERBATIM;
+    i.instr = instruction_ | hcc::instruction::RESERVED | hcc::instruction::COMPUTE;
+    instructions.push_back(std::move(i));
+}
+void program::emitLabel(std::string label)
+{
+    instruction i;
+    i.type = instruction_type::LABEL;
+    i.symbol = std::move(label);
+    instructions.push_back(std::move(i));
+}
+void program::emitComment(std::string comment)
+{
+    instruction i;
+    i.type = instruction_type::COMMENT;
+    i.symbol = std::move(comment);
+    instructions.push_back(std::move(i));
+}
+
 std::vector<uint16_t> program::assemble() const
 {
     // built-in symbols

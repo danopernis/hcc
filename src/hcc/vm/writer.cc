@@ -35,16 +35,16 @@ const std::string constructString(const std::string s1, const std::string s2)
 }
 void writer::push()
 {
-    out.emitA("SP");
-    out.emitC(DEST_M | COMP_M_PLUS_ONE); // ++SP
-    out.emitC(DEST_A | COMP_M_MINUS_ONE);
-    out.emitC(DEST_M | COMP_D); // push
+    out.emitLoadSymbolic("SP");
+    out.emitInstruction(DEST_M | COMP_M_PLUS_ONE); // ++SP
+    out.emitInstruction(DEST_A | COMP_M_MINUS_ONE);
+    out.emitInstruction(DEST_M | COMP_D); // push
 }
 void writer::pop()
 {
-    out.emitA("SP");
-    out.emitC(DEST_A | DEST_M | COMP_M_MINUS_ONE); // --SP
-    out.emitC(DEST_D | COMP_M); // pop
+    out.emitLoadSymbolic("SP");
+    out.emitInstruction(DEST_A | DEST_M | COMP_M_MINUS_ONE); // --SP
+    out.emitInstruction(DEST_D | COMP_M); // pop
 }
 void writer::unaryCompare(int intArg)
 {
@@ -53,14 +53,14 @@ void writer::unaryCompare(int intArg)
         // D=D-0
         break;
     case 1:
-        out.emitC(DEST_D | COMP_D_MINUS_ONE); // comparison
+        out.emitInstruction(DEST_D | COMP_D_MINUS_ONE); // comparison
         break;
     case -1:
-        out.emitC(DEST_D | COMP_D_PLUS_ONE); // comparison
+        out.emitInstruction(DEST_D | COMP_D_PLUS_ONE); // comparison
         break;
     default:
-        out.emitA(intArg);
-        out.emitC(DEST_D | COMP_D_MINUS_A); // comparison
+        out.emitLoadConstant(intArg);
+        out.emitInstruction(DEST_D | COMP_D_MINUS_A); // comparison
         break;
     }
 }
@@ -71,43 +71,43 @@ void writer::load(unsigned short dest, Segment segment, unsigned int index)
 {
     // some instructions can be saved when index = 0, 1 or 2
     if (index > 2) {
-        out.emitA(index);
-        out.emitC(DEST_D | COMP_A);
+        out.emitLoadConstant(index);
+        out.emitInstruction(DEST_D | COMP_A);
     }
     switch (segment) {
     case LOCAL:
-        out.emitA("LCL");
+        out.emitLoadSymbolic("LCL");
         break;
     case ARGUMENT:
-        out.emitA("ARG");
+        out.emitLoadSymbolic("ARG");
         break;
     case THIS:
-        out.emitA("THIS");
+        out.emitLoadSymbolic("THIS");
         break;
     case THAT:
-        out.emitA("THAT");
+        out.emitLoadSymbolic("THAT");
         break;
     default:
         throw 1;
     }
     switch (index) {
     case 0:
-        out.emitC(dest | COMP_M);
+        out.emitInstruction(dest | COMP_M);
         break;
     case 1:
-        out.emitC(dest | COMP_M_PLUS_ONE);
+        out.emitInstruction(dest | COMP_M_PLUS_ONE);
         break;
     case 2:
-        out.emitC(dest | COMP_M_PLUS_ONE);
+        out.emitInstruction(dest | COMP_M_PLUS_ONE);
         if (dest == DEST_D) {
-            out.emitC(DEST_D | COMP_D_PLUS_ONE);
+            out.emitInstruction(DEST_D | COMP_D_PLUS_ONE);
         }
         if (dest == DEST_A) {
-            out.emitC(DEST_A | COMP_A_PLUS_ONE);
+            out.emitInstruction(DEST_A | COMP_A_PLUS_ONE);
         }
         break;
     default:
-        out.emitC(dest | COMP_D_PLUS_M);
+        out.emitInstruction(dest | COMP_D_PLUS_M);
         break;
     }
 }
@@ -115,23 +115,23 @@ void writer::push_load(Segment segment, int index)
 {
     switch (segment) {
     case STATIC:
-        out.emitA(constructString(filename, index));
-        out.emitC(DEST_D | COMP_M);
+        out.emitLoadSymbolic(constructString(filename, index));
+        out.emitInstruction(DEST_D | COMP_M);
         break;
     case POINTER:
-        out.emitA(3 + index);
-        out.emitC(DEST_D | COMP_M);
+        out.emitLoadConstant(3 + index);
+        out.emitInstruction(DEST_D | COMP_M);
         break;
     case TEMP:
-        out.emitA(5 + index);
-        out.emitC(DEST_D | COMP_M);
+        out.emitLoadConstant(5 + index);
+        out.emitInstruction(DEST_D | COMP_M);
         break;
     case LOCAL:
     case ARGUMENT:
     case THIS:
     case THAT:
         load(DEST_A, segment, index);
-        out.emitC(DEST_D | COMP_M);
+        out.emitInstruction(DEST_D | COMP_M);
         break;
     }
 }
@@ -139,10 +139,10 @@ void writer::poptop(bool in)
 {
     if (in) {
         pop();
-        out.emitC(DEST_A | COMP_A_MINUS_ONE);
+        out.emitInstruction(DEST_A | COMP_A_MINUS_ONE);
     } else {
-        out.emitA("SP");
-        out.emitC(DEST_A | COMP_M_MINUS_ONE);
+        out.emitLoadSymbolic("SP");
+        out.emitInstruction(DEST_A | COMP_M_MINUS_ONE);
     }
 }
 
@@ -152,43 +152,43 @@ void writer::poptop(bool in)
 void writer::writeConstant(bool, bool fin, int value)
 {
     if (fin && -2 <= value && value <= 2) {
-        out.emitA("SP");
-        out.emitC(DEST_M | COMP_M_PLUS_ONE); // ++SP
-        out.emitC(DEST_A | COMP_M_MINUS_ONE);
+        out.emitLoadSymbolic("SP");
+        out.emitInstruction(DEST_M | COMP_M_PLUS_ONE); // ++SP
+        out.emitInstruction(DEST_A | COMP_M_MINUS_ONE);
         switch (value) {
         case -2:
-            out.emitC(DEST_M | COMP_MINUS_ONE);
-            out.emitC(DEST_M | COMP_M_MINUS_ONE);
+            out.emitInstruction(DEST_M | COMP_MINUS_ONE);
+            out.emitInstruction(DEST_M | COMP_M_MINUS_ONE);
             break;
         case -1:
-            out.emitC(DEST_M | COMP_MINUS_ONE);
+            out.emitInstruction(DEST_M | COMP_MINUS_ONE);
             break;
         case 0:
-            out.emitC(DEST_M | COMP_ZERO);
+            out.emitInstruction(DEST_M | COMP_ZERO);
             break;
         case 1:
-            out.emitC(DEST_M | COMP_ONE);
+            out.emitInstruction(DEST_M | COMP_ONE);
             break;
         case 2:
-            out.emitC(DEST_M | COMP_ONE);
-            out.emitC(DEST_M | COMP_M_PLUS_ONE);
+            out.emitInstruction(DEST_M | COMP_ONE);
+            out.emitInstruction(DEST_M | COMP_M_PLUS_ONE);
             break;
         }
         return;
     }
 
     if (value == -1) {
-        out.emitC(DEST_D | COMP_MINUS_ONE);
+        out.emitInstruction(DEST_D | COMP_MINUS_ONE);
     } else if (value == 0) {
-        out.emitC(DEST_D | COMP_ZERO);
+        out.emitInstruction(DEST_D | COMP_ZERO);
     } else if (value == 1) {
-        out.emitC(DEST_D | COMP_ONE);
+        out.emitInstruction(DEST_D | COMP_ONE);
     } else if (value < 0) {
-        out.emitA(-value);
-        out.emitC(DEST_D | COMP_MINUS_A);
+        out.emitLoadConstant(-value);
+        out.emitInstruction(DEST_D | COMP_MINUS_A);
     } else {
-        out.emitA(value);
-        out.emitC(DEST_D | COMP_A);
+        out.emitLoadConstant(value);
+        out.emitInstruction(DEST_D | COMP_A);
     }
     if (fin)
         push();
@@ -205,13 +205,13 @@ void writer::writePopDirect(bool in, bool, Segment segment, int index)
         pop();
     switch (segment) {
     case STATIC:
-        out.emitA(constructString(filename.c_str(), index));
+        out.emitLoadSymbolic(constructString(filename.c_str(), index));
         break;
     case POINTER:
-        out.emitA(3 + index);
+        out.emitLoadConstant(3 + index);
         break;
     case TEMP:
-        out.emitA(5 + index);
+        out.emitLoadConstant(5 + index);
         break;
     case LOCAL:
     case ARGUMENT:
@@ -219,27 +219,27 @@ void writer::writePopDirect(bool in, bool, Segment segment, int index)
     case THAT:
         throw 1;
     }
-    out.emitC(DEST_M | COMP_D); // save
+    out.emitInstruction(DEST_M | COMP_D); // save
 }
 void writer::writePopIndirect(Segment segment, int index)
 {
     load(DEST_D, segment, index);
-    out.emitA("R15");
-    out.emitC(DEST_M | COMP_D); // save calculated address for popping
+    out.emitLoadSymbolic("R15");
+    out.emitInstruction(DEST_M | COMP_D); // save calculated address for popping
     pop();
-    out.emitA("R15");
-    out.emitC(DEST_A | COMP_M); // load the address
-    out.emitC(DEST_M | COMP_D); // save
+    out.emitLoadSymbolic("R15");
+    out.emitInstruction(DEST_A | COMP_M); // load the address
+    out.emitInstruction(DEST_M | COMP_D); // save
 }
 void writer::writePopIndirectPush(bool, bool fin, Segment segment, int index)
 {
     load(DEST_D, segment, index);
-    out.emitA("R15");
-    out.emitC(DEST_M | COMP_D); // save calculated address for popping
+    out.emitLoadSymbolic("R15");
+    out.emitInstruction(DEST_M | COMP_D); // save calculated address for popping
     pop();
-    out.emitA("R15");
-    out.emitC(DEST_A | COMP_M); // load the address
-    out.emitC(DEST_M | COMP_D); // save
+    out.emitLoadSymbolic("R15");
+    out.emitInstruction(DEST_A | COMP_M); // load the address
+    out.emitInstruction(DEST_M | COMP_D); // save
     if (fin)
         push();
 }
@@ -251,24 +251,24 @@ void writer::writeCopy(Segment sseg, int sind, Segment dseg, int dind)
 
         if (std::abs(dind - sind) < 4) { // 4 is empiric constant
             load(DEST_A, sseg, sind);
-            out.emitC(DEST_D | COMP_M); // fetch
+            out.emitInstruction(DEST_D | COMP_M); // fetch
             for (int i = sind; i > dind; --i)
-                out.emitC(DEST_A | COMP_A_MINUS_ONE);
+                out.emitInstruction(DEST_A | COMP_A_MINUS_ONE);
             for (int i = sind; i < dind; ++i)
-                out.emitC(DEST_A | COMP_A_PLUS_ONE);
-            out.emitC(DEST_M | COMP_D); // store
+                out.emitInstruction(DEST_A | COMP_A_PLUS_ONE);
+            out.emitInstruction(DEST_M | COMP_D); // store
             return;
         }
     }
 
     // TODO: do not duplicate writePop()
     load(DEST_D, dseg, dind);
-    out.emitA("R15");
-    out.emitC(DEST_M | COMP_D); // save calculated address for popping
+    out.emitLoadSymbolic("R15");
+    out.emitInstruction(DEST_M | COMP_D); // save calculated address for popping
     push_load(sseg, sind);
-    out.emitA("R15");
-    out.emitC(DEST_A | COMP_M); // load the address
-    out.emitC(DEST_M | COMP_D); // copy
+    out.emitLoadSymbolic("R15");
+    out.emitInstruction(DEST_A | COMP_M); // load the address
+    out.emitInstruction(DEST_M | COMP_D); // copy
 }
 /*
  * UNARY, BINARY
@@ -288,19 +288,19 @@ void writer::writeUnary(bool in, bool fin, UnaryOperation op, int intArg)
         switch (op) {
         case NOT:
         case NEG:
-            out.emitA("SP");
-            out.emitC(DEST_A | COMP_M_MINUS_ONE);
-            out.emitC(unaryTable[op]);
+            out.emitLoadSymbolic("SP");
+            out.emitInstruction(DEST_A | COMP_M_MINUS_ONE);
+            out.emitInstruction(unaryTable[op]);
             break;
         case DOUBLE:
-            out.emitC(DEST_D | COMP_M);
-            out.emitC(DEST_M | COMP_D_PLUS_M);
+            out.emitInstruction(DEST_D | COMP_M);
+            out.emitInstruction(DEST_M | COMP_D_PLUS_M);
             break;
         case SUBC:
             if (intArg == 1) {
-                out.emitA("SP");
-                out.emitC(DEST_A | COMP_M_MINUS_ONE);
-                out.emitC(DEST_M | COMP_M_MINUS_ONE);
+                out.emitLoadSymbolic("SP");
+                out.emitInstruction(DEST_A | COMP_M_MINUS_ONE);
+                out.emitInstruction(DEST_M | COMP_M_MINUS_ONE);
                 return;
             }
         // no break;
@@ -308,11 +308,11 @@ void writer::writeUnary(bool in, bool fin, UnaryOperation op, int intArg)
         case BUSC:
         case ANDC:
         case ORC:
-            out.emitA(intArg);
-            out.emitC(DEST_D | COMP_A);
-            out.emitA("SP");
-            out.emitC(DEST_A | COMP_M_MINUS_ONE);
-            out.emitC(unaryTable[op]);
+            out.emitLoadConstant(intArg);
+            out.emitInstruction(DEST_D | COMP_A);
+            out.emitLoadSymbolic("SP");
+            out.emitInstruction(DEST_A | COMP_M_MINUS_ONE);
+            out.emitInstruction(unaryTable[op]);
             break;
         }
 
@@ -321,42 +321,42 @@ void writer::writeUnary(bool in, bool fin, UnaryOperation op, int intArg)
             pop();
         switch (op) {
         case NOT:
-            out.emitC(DEST_D | COMP_NOT_D);
+            out.emitInstruction(DEST_D | COMP_NOT_D);
             break;
         case NEG:
-            out.emitC(DEST_D | COMP_MINUS_D);
+            out.emitInstruction(DEST_D | COMP_MINUS_D);
             break;
         case DOUBLE:
-            out.emitC(DEST_A | COMP_D);
-            out.emitC(DEST_D | COMP_D_PLUS_A);
+            out.emitInstruction(DEST_A | COMP_D);
+            out.emitInstruction(DEST_D | COMP_D_PLUS_A);
             break;
         case ADDC:
             if (intArg == 1) {
-                out.emitC(DEST_D | COMP_D_PLUS_ONE);
+                out.emitInstruction(DEST_D | COMP_D_PLUS_ONE);
             } else {
-                out.emitA(intArg);
-                out.emitC(DEST_D | COMP_D_PLUS_A);
+                out.emitLoadConstant(intArg);
+                out.emitInstruction(DEST_D | COMP_D_PLUS_A);
             }
             break;
         case SUBC:
             if (intArg == 1) {
-                out.emitC(DEST_D | COMP_D_MINUS_ONE);
+                out.emitInstruction(DEST_D | COMP_D_MINUS_ONE);
             } else {
-                out.emitA(intArg);
-                out.emitC(DEST_D | COMP_D_MINUS_A);
+                out.emitLoadConstant(intArg);
+                out.emitInstruction(DEST_D | COMP_D_MINUS_A);
             }
             break;
         case BUSC:
-            out.emitA(intArg);
-            out.emitC(DEST_D | COMP_A_MINUS_D);
+            out.emitLoadConstant(intArg);
+            out.emitInstruction(DEST_D | COMP_A_MINUS_D);
             break;
         case ANDC:
-            out.emitA(intArg);
-            out.emitC(DEST_D | COMP_D_AND_A);
+            out.emitLoadConstant(intArg);
+            out.emitInstruction(DEST_D | COMP_D_AND_A);
             break;
         case ORC:
-            out.emitA(intArg);
-            out.emitC(DEST_D | COMP_D_OR_A);
+            out.emitLoadConstant(intArg);
+            out.emitInstruction(DEST_D | COMP_D_OR_A);
             break;
         }
         if (fin)
@@ -373,24 +373,24 @@ void writer::writeBinary(bool in, bool fin, BinaryOperation op)
         dest = DEST_D;
         if (in) // fetch argument from stack
             pop();
-        out.emitA("SP");
-        out.emitC(DEST_A | DEST_M | COMP_M_MINUS_ONE);
+        out.emitLoadSymbolic("SP");
+        out.emitInstruction(DEST_A | DEST_M | COMP_M_MINUS_ONE);
     }
     switch (op) {
     case ADD:
-        out.emitC(dest | COMP_D_PLUS_M);
+        out.emitInstruction(dest | COMP_D_PLUS_M);
         break;
     case SUB:
-        out.emitC(dest | COMP_M_MINUS_D);
+        out.emitInstruction(dest | COMP_M_MINUS_D);
         break;
     case BUS:
-        out.emitC(dest | COMP_D_MINUS_M);
+        out.emitInstruction(dest | COMP_D_MINUS_M);
         break;
     case AND:
-        out.emitC(dest | COMP_D_AND_M);
+        out.emitInstruction(dest | COMP_D_AND_M);
         break;
     case OR:
-        out.emitC(dest | COMP_D_OR_M);
+        out.emitInstruction(dest | COMP_D_OR_M);
         break;
     }
 }
@@ -404,36 +404,36 @@ void writer::compareBranches(bool fin, CompareOperation op)
     ++compareCounter;
 
     if (fin) {
-        out.emitA(compareEnd);
-        out.emitC(COMP_D | op.jump());
-        out.emitA("SP");
-        out.emitC(DEST_A | COMP_M_MINUS_ONE);
-        out.emitC(DEST_M | COMP_ZERO); // adjust to false
-        out.emitL(compareEnd);
+        out.emitLoadSymbolic(compareEnd);
+        out.emitInstruction(COMP_D | op.jump());
+        out.emitLoadSymbolic("SP");
+        out.emitInstruction(DEST_A | COMP_M_MINUS_ONE);
+        out.emitInstruction(DEST_M | COMP_ZERO); // adjust to false
+        out.emitLabel(compareEnd);
     } else {
-        out.emitA(compareSwitch);
-        out.emitC(COMP_D | op.jump());
-        out.emitC(DEST_D | COMP_ZERO);
-        out.emitA(compareEnd);
-        out.emitC(COMP_ZERO | JMP);
-        out.emitL(compareSwitch);
-        out.emitC(DEST_D | COMP_MINUS_ONE);
-        out.emitL(compareEnd);
+        out.emitLoadSymbolic(compareSwitch);
+        out.emitInstruction(COMP_D | op.jump());
+        out.emitInstruction(DEST_D | COMP_ZERO);
+        out.emitLoadSymbolic(compareEnd);
+        out.emitInstruction(COMP_ZERO | JMP);
+        out.emitLabel(compareSwitch);
+        out.emitInstruction(DEST_D | COMP_MINUS_ONE);
+        out.emitLabel(compareEnd);
     }
 }
 void writer::writeUnaryCompare(bool in, bool fin, CompareOperation op, int intArg)
 {
     if (fin) { // save result to memory
         if (in) { // fetch argument from stack, do not adjust SP
-            out.emitA("SP");
-            out.emitC(DEST_A | COMP_M_MINUS_ONE);
-            out.emitC(DEST_D | COMP_M);
+            out.emitLoadSymbolic("SP");
+            out.emitInstruction(DEST_A | COMP_M_MINUS_ONE);
+            out.emitInstruction(DEST_D | COMP_M);
         } else { // argument is in register, increment SP
-            out.emitA("SP");
-            out.emitC(DEST_M | COMP_M_PLUS_ONE);
-            out.emitC(DEST_A | COMP_M_MINUS_ONE);
+            out.emitLoadSymbolic("SP");
+            out.emitInstruction(DEST_M | COMP_M_PLUS_ONE);
+            out.emitInstruction(DEST_A | COMP_M_MINUS_ONE);
         }
-        out.emitC(DEST_M | COMP_MINUS_ONE); // default is true
+        out.emitInstruction(DEST_M | COMP_MINUS_ONE); // default is true
     } else { // save result to register
         if (in)
             pop(); // fetch argument from stack
@@ -444,23 +444,23 @@ void writer::writeUnaryCompare(bool in, bool fin, CompareOperation op, int intAr
 void writer::writeCompare(bool in, bool fin, CompareOperation op)
 {
     poptop(in);
-    out.emitC(DEST_D | COMP_M_MINUS_D); // comparison
+    out.emitInstruction(DEST_D | COMP_M_MINUS_D); // comparison
     if (fin) {
-        out.emitC(DEST_M | COMP_MINUS_ONE); // default is true
+        out.emitInstruction(DEST_M | COMP_MINUS_ONE); // default is true
     } else {
-        out.emitA("SP");
-        out.emitC(DEST_M | COMP_M_MINUS_ONE);
+        out.emitLoadSymbolic("SP");
+        out.emitInstruction(DEST_M | COMP_M_MINUS_ONE);
     }
     compareBranches(fin, op);
 }
 /*
  * LABEL, GOTO, IF, COMPARE_IF, UNARY_COMPARE_IF
  */
-void writer::writeLabel(const std::string label) { out.emitL(constructString(function, label)); }
+void writer::writeLabel(const std::string label) { out.emitLabel(constructString(function, label)); }
 void writer::writeGoto(const std::string label)
 {
-    out.emitA(constructString(function, label));
-    out.emitC(COMP_ZERO | JMP);
+    out.emitLoadSymbolic(constructString(function, label));
+    out.emitInstruction(COMP_ZERO | JMP);
 }
 void writer::writeIf(bool in, bool, CompareOperation op, const std::string label,
                        bool compare, bool useConst, int intConst)
@@ -471,13 +471,13 @@ void writer::writeIf(bool in, bool, CompareOperation op, const std::string label
         if (useConst) { // UNARY_COMPARE_IF
             unaryCompare(intConst);
         } else { // COMPARE_IF
-            out.emitA("SP");
-            out.emitC(DEST_A | DEST_M | COMP_M_MINUS_ONE); // --SP
-            out.emitC(DEST_D | COMP_M_MINUS_D); // comparison
+            out.emitLoadSymbolic("SP");
+            out.emitInstruction(DEST_A | DEST_M | COMP_M_MINUS_ONE); // --SP
+            out.emitInstruction(DEST_D | COMP_M_MINUS_D); // comparison
         }
     } // else just IF
-    out.emitA(constructString(function, label));
-    out.emitC(COMP_D | op.jump());
+    out.emitLoadSymbolic(constructString(function, label));
+    out.emitInstruction(COMP_D | op.jump());
 }
 /*
  * FUNCTION, CALL, RETURN
@@ -485,27 +485,27 @@ void writer::writeIf(bool in, bool, CompareOperation op, const std::string label
 void writer::writeFunction(const std::string name, int localc)
 {
     function = name;
-    out.emitL(name);
+    out.emitLabel(name);
     switch (localc) {
     case 0:
         break;
     case 1:
-        out.emitA("SP");
-        out.emitC(DEST_M | COMP_M_PLUS_ONE);
-        out.emitC(DEST_A | COMP_M_MINUS_ONE);
-        out.emitC(DEST_M | COMP_ZERO);
+        out.emitLoadSymbolic("SP");
+        out.emitInstruction(DEST_M | COMP_M_PLUS_ONE);
+        out.emitInstruction(DEST_A | COMP_M_MINUS_ONE);
+        out.emitInstruction(DEST_M | COMP_ZERO);
         break;
     default: // 2*localc+4 instructions
-        out.emitA("SP");
-        out.emitC(DEST_A | COMP_M);
+        out.emitLoadSymbolic("SP");
+        out.emitInstruction(DEST_A | COMP_M);
         for (int i = 1; i < localc; ++i) {
-            out.emitC(DEST_M | COMP_ZERO);
-            out.emitC(DEST_A | COMP_A_PLUS_ONE);
+            out.emitInstruction(DEST_M | COMP_ZERO);
+            out.emitInstruction(DEST_A | COMP_A_PLUS_ONE);
         }
-        out.emitC(DEST_M | COMP_ZERO);
-        out.emitC(DEST_D | COMP_A_PLUS_ONE); // "unroll"
-        out.emitA("SP");
-        out.emitC(DEST_M | COMP_D);
+        out.emitInstruction(DEST_M | COMP_ZERO);
+        out.emitInstruction(DEST_D | COMP_A_PLUS_ONE); // "unroll"
+        out.emitLoadSymbolic("SP");
+        out.emitInstruction(DEST_M | COMP_D);
         break;
     }
 }
@@ -524,101 +524,101 @@ void writer::writeCall(const std::string name, int argc)
     std::string returnAddress = constructString("__returnAddress", returnCounter);
     ++returnCounter;
 
-    out.emitA(name);
-    out.emitC(DEST_D | COMP_A);
-    out.emitA("R15");
-    out.emitC(DEST_M | COMP_D);
-    out.emitA(returnAddress);
-    out.emitC(DEST_D | COMP_A);
+    out.emitLoadSymbolic(name);
+    out.emitInstruction(DEST_D | COMP_A);
+    out.emitLoadSymbolic("R15");
+    out.emitInstruction(DEST_M | COMP_D);
+    out.emitLoadSymbolic(returnAddress);
+    out.emitInstruction(DEST_D | COMP_A);
     if (found) {
-        out.emitA(call);
-        out.emitC(COMP_ZERO | JMP);
+        out.emitLoadSymbolic(call);
+        out.emitInstruction(COMP_ZERO | JMP);
     } else {
-        out.emitL(call);
+        out.emitLabel(call);
         push();
-        out.emitA("LCL");
-        out.emitC(DEST_D | COMP_M);
+        out.emitLoadSymbolic("LCL");
+        out.emitInstruction(DEST_D | COMP_M);
         push();
-        out.emitA("ARG");
-        out.emitC(DEST_D | COMP_M);
+        out.emitLoadSymbolic("ARG");
+        out.emitInstruction(DEST_D | COMP_M);
         push();
-        out.emitA("THIS");
-        out.emitC(DEST_D | COMP_M);
+        out.emitLoadSymbolic("THIS");
+        out.emitInstruction(DEST_D | COMP_M);
         push();
-        out.emitA("THAT");
-        out.emitC(DEST_D | COMP_M);
+        out.emitLoadSymbolic("THAT");
+        out.emitInstruction(DEST_D | COMP_M);
         push();
-        out.emitA("SP");
-        out.emitC(DEST_D | COMP_M);
-        out.emitA("LCL");
-        out.emitC(DEST_M | COMP_D); // LCL = SP
-        out.emitA(argc + 5);
-        out.emitC(DEST_D | COMP_D_MINUS_A);
-        out.emitA("ARG");
-        out.emitC(DEST_M | COMP_D); // ARG = SP - " << argc << " - 5\n"
-        out.emitA("R15");
-        out.emitC(DEST_A | COMP_M | JMP);
+        out.emitLoadSymbolic("SP");
+        out.emitInstruction(DEST_D | COMP_M);
+        out.emitLoadSymbolic("LCL");
+        out.emitInstruction(DEST_M | COMP_D); // LCL = SP
+        out.emitLoadConstant(argc + 5);
+        out.emitInstruction(DEST_D | COMP_D_MINUS_A);
+        out.emitLoadSymbolic("ARG");
+        out.emitInstruction(DEST_M | COMP_D); // ARG = SP - " << argc << " - 5\n"
+        out.emitLoadSymbolic("R15");
+        out.emitInstruction(DEST_A | COMP_M | JMP);
         argStubs.push_back(argc);
     }
-    out.emitL(returnAddress);
+    out.emitLabel(returnAddress);
 }
 
 void writer::writeReturn()
 {
-    out.emitA("__return");
-    out.emitC(COMP_ZERO | JMP);
+    out.emitLoadSymbolic("__return");
+    out.emitInstruction(COMP_ZERO | JMP);
 }
 /*
  * BOOTSTRAP
  */
 void writer::writeBootstrap()
 {
-    out.emitA(256);
-    out.emitC(DEST_D | COMP_A);
-    out.emitA("SP");
-    out.emitC(DEST_M | COMP_D);
+    out.emitLoadConstant(256);
+    out.emitInstruction(DEST_D | COMP_A);
+    out.emitLoadSymbolic("SP");
+    out.emitInstruction(DEST_M | COMP_D);
     writeCall("Sys.init", 0);
-    out.emitL("__return");
-    out.emitA(5);
-    out.emitC(DEST_D | COMP_A);
-    out.emitA("LCL");
-    out.emitC(DEST_A | COMP_M_MINUS_D);
-    out.emitC(DEST_D | COMP_M);
-    out.emitA("R15");
-    out.emitC(DEST_M | COMP_D); // R15 = *(LCL-5)
-    out.emitA("SP");
-    out.emitC(DEST_A | DEST_M | COMP_M_MINUS_ONE);
-    out.emitC(DEST_D | COMP_M); // return value
-    out.emitA("ARG");
-    out.emitC(DEST_A | COMP_M);
-    out.emitC(DEST_M | COMP_D); // *ARG = pop()
-    out.emitC(DEST_D | COMP_A_PLUS_ONE);
-    out.emitA("SP");
-    out.emitC(DEST_M | COMP_D); // SP = ARG + 1
-    out.emitA("LCL");
-    out.emitC(DEST_D | COMP_M);
-    out.emitA("R14");
-    out.emitC(DEST_A | DEST_M | COMP_D_MINUS_ONE); // R14 = LCL - 1
-    out.emitC(DEST_D | COMP_M);
-    out.emitA("THAT");
-    out.emitC(DEST_M | COMP_D); // THAT = M[R14]
-    out.emitA("R14");
-    out.emitC(DEST_A | DEST_M | COMP_M_MINUS_ONE);
-    out.emitC(DEST_D | COMP_M);
-    out.emitA("THIS");
-    out.emitC(DEST_M | COMP_D); // THIS = M[R14--]
-    out.emitA("R14");
-    out.emitC(DEST_A | DEST_M | COMP_M_MINUS_ONE);
-    out.emitC(DEST_D | COMP_M);
-    out.emitA("ARG");
-    out.emitC(DEST_M | COMP_D); // ARG = M[R14--]
-    out.emitA("R14");
-    out.emitC(DEST_A | DEST_M | COMP_M_MINUS_ONE);
-    out.emitC(DEST_D | COMP_M);
-    out.emitA("LCL");
-    out.emitC(DEST_M | COMP_D); // LCL = M[R14--]
-    out.emitA("R15");
-    out.emitC(DEST_A | COMP_M | JMP); // goto R15
+    out.emitLabel("__return");
+    out.emitLoadConstant(5);
+    out.emitInstruction(DEST_D | COMP_A);
+    out.emitLoadSymbolic("LCL");
+    out.emitInstruction(DEST_A | COMP_M_MINUS_D);
+    out.emitInstruction(DEST_D | COMP_M);
+    out.emitLoadSymbolic("R15");
+    out.emitInstruction(DEST_M | COMP_D); // R15 = *(LCL-5)
+    out.emitLoadSymbolic("SP");
+    out.emitInstruction(DEST_A | DEST_M | COMP_M_MINUS_ONE);
+    out.emitInstruction(DEST_D | COMP_M); // return value
+    out.emitLoadSymbolic("ARG");
+    out.emitInstruction(DEST_A | COMP_M);
+    out.emitInstruction(DEST_M | COMP_D); // *ARG = pop()
+    out.emitInstruction(DEST_D | COMP_A_PLUS_ONE);
+    out.emitLoadSymbolic("SP");
+    out.emitInstruction(DEST_M | COMP_D); // SP = ARG + 1
+    out.emitLoadSymbolic("LCL");
+    out.emitInstruction(DEST_D | COMP_M);
+    out.emitLoadSymbolic("R14");
+    out.emitInstruction(DEST_A | DEST_M | COMP_D_MINUS_ONE); // R14 = LCL - 1
+    out.emitInstruction(DEST_D | COMP_M);
+    out.emitLoadSymbolic("THAT");
+    out.emitInstruction(DEST_M | COMP_D); // THAT = M[R14]
+    out.emitLoadSymbolic("R14");
+    out.emitInstruction(DEST_A | DEST_M | COMP_M_MINUS_ONE);
+    out.emitInstruction(DEST_D | COMP_M);
+    out.emitLoadSymbolic("THIS");
+    out.emitInstruction(DEST_M | COMP_D); // THIS = M[R14--]
+    out.emitLoadSymbolic("R14");
+    out.emitInstruction(DEST_A | DEST_M | COMP_M_MINUS_ONE);
+    out.emitInstruction(DEST_D | COMP_M);
+    out.emitLoadSymbolic("ARG");
+    out.emitInstruction(DEST_M | COMP_D); // ARG = M[R14--]
+    out.emitLoadSymbolic("R14");
+    out.emitInstruction(DEST_A | DEST_M | COMP_M_MINUS_ONE);
+    out.emitInstruction(DEST_D | COMP_M);
+    out.emitLoadSymbolic("LCL");
+    out.emitInstruction(DEST_M | COMP_D); // LCL = M[R14--]
+    out.emitLoadSymbolic("R15");
+    out.emitInstruction(DEST_A | COMP_M | JMP); // goto R15
 }
 
 void writer::write(const command& c)
