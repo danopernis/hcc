@@ -9,8 +9,7 @@ namespace cpu {
 
 using namespace instruction;
 
-void CPU::comp(unsigned short instruction, unsigned short x, unsigned short y, unsigned short& out,
-               bool& zr, bool& ng)
+void CPU::comp(word instruction, word x, word y, word& out, bool& zr, bool& ng)
 {
     if (instruction & ALU_ZX) {
         x = 0;
@@ -36,22 +35,22 @@ void CPU::comp(unsigned short instruction, unsigned short x, unsigned short y, u
     ng = (out & (1 << 15));
 }
 
-bool CPU::jump(unsigned short instruction, bool zr, bool ng)
+bool CPU::jump(word instruction, bool zr, bool ng)
 {
     return (((instruction & JUMP_NEG) && ng) || ((instruction & JUMP_ZERO) && zr)
             || ((instruction & JUMP_POS) && !ng && !zr));
 }
 
-void CPU::step(IROM* rom, IRAM* ram)
+void CPU::step(const ROM& rom, RAM& ram)
 {
     auto olda = a;
-    auto instruction = rom->get(pc);
+    auto instruction = rom.at(pc);
 
     if (instruction & COMPUTE) {
         // COMP
-        unsigned short out;
+        word out;
         bool zr, ng;
-        CPU::comp(instruction, d, (instruction & FETCH) ? ram->get(olda) : a, out, zr, ng);
+        CPU::comp(instruction, d, (instruction & FETCH) ? ram.at(olda) : a, out, zr, ng);
 
         // DEST
         if (instruction & DEST_A) {
@@ -61,7 +60,7 @@ void CPU::step(IROM* rom, IRAM* ram)
             d = out;
         }
         if (instruction & DEST_M) {
-            ram->set(olda, out);
+            ram.at(olda) = out;
         }
 
         // JUMP

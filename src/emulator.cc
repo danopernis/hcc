@@ -9,49 +9,20 @@
 #include <mutex>
 #include <stdexcept>
 #include <thread>
-#include <vector>
 
 namespace {
 
 const unsigned int SCREEN_WIDTH = 512;
 const unsigned int SCREEN_HEIGHT = 256;
 
-struct ROM : public hcc::cpu::IROM {
-    ROM()
-        : data(0x8000, 0)
-    {
-    }
-
-    uint16_t get(unsigned int address) const override { return data.at(address); }
-
-    bool load(const char* filename);
-
-    std::vector<uint16_t> data;
-};
-
-struct RAM : public hcc::cpu::IRAM {
-    RAM()
-        : data(0x6001, 0)
-    {
-    }
-
-    uint16_t get(unsigned int address) const override { return data.at(address); }
-
-    void set(unsigned int address, uint16_t value) override { data.at(address) = value; }
-
-    void keyboard(uint16_t value) { set(0x6000, value); };
-
-    std::vector<uint16_t> data;
-};
-
 struct screen_widget : Gtk::DrawingArea {
-    screen_widget(RAM& ram);
+    screen_widget(hcc::cpu::RAM& ram);
 
     bool draw(const Cairo::RefPtr<Cairo::Context>& cr);
 
 private:
     Glib::RefPtr<Gdk::Pixbuf> pixbuf;
-    RAM& ram;
+    hcc::cpu::RAM& ram;
 };
 
 struct emulator {
@@ -65,8 +36,8 @@ struct emulator {
     void screen_thread();
     void setup_button(Gtk::ToolButton& button, const gchar* stock_id, const gchar* text);
 
-    ROM rom;
-    RAM ram;
+    hcc::cpu::ROM rom;
+    hcc::cpu::RAM ram;
     hcc::cpu::CPU cpu;
 
 private:
@@ -168,12 +139,12 @@ uint16_t translate(guint keyval)
     return keyval;
 }
 
-bool ROM::load(const char* filename)
+bool load(const char* filename, hcc::cpu::ROM& rom)
 {
     std::ifstream input(filename);
     std::string line;
-    auto it = begin(data);
-    while (input.good() && it != end(data)) {
+    auto it = begin(rom);
+    while (input.good() && it != end(rom)) {
         getline(input, line);
         if (line.size() == 0) {
             continue;
@@ -182,7 +153,7 @@ bool ROM::load(const char* filename)
             return false;
         }
 
-        unsigned int instruction = 0;
+        auto& instruction = *it++;
         for (unsigned int i = 0; i < 16; ++i) {
             instruction <<= 1;
             switch (line[i]) {
@@ -195,21 +166,20 @@ bool ROM::load(const char* filename)
                 return false;
             }
         }
-        *it++ = instruction;
     }
 
     // clear the rest
-    while (it != end(data)) {
+    while (it != end(rom)) {
         *it++ = 0;
     }
 
     return true;
 }
 
-screen_widget::screen_widget(RAM& ram)
+screen_widget::screen_widget(hcc::cpu::RAM& ram_)
     : pixbuf(Gdk::Pixbuf::create(Gdk::Colorspace::COLORSPACE_RGB, false, 8, SCREEN_WIDTH,
                                  SCREEN_HEIGHT))
-    , ram(ram)
+    , ram(ram_)
 {
     set_size_request(SCREEN_WIDTH, SCREEN_HEIGHT);
     signal_draw().connect(sigc::mem_fun(this, &screen_widget::draw));
@@ -218,8 +188,8 @@ screen_widget::screen_widget(RAM& ram)
 bool screen_widget::draw(const Cairo::RefPtr<Cairo::Context>& cr)
 {
     const auto rowstride = pixbuf->get_rowstride();
-    auto first = begin(ram.data) + 0x4000;
-    auto last = begin(ram.data) + 0x6000;
+    auto first = begin(ram) + 0x4000;
+    auto last = begin(ram) + 0x6000;
     guchar* row = pixbuf->get_pixels();
     uint16_t value = 0;
 
@@ -311,7 +281,7 @@ void emulator::load_clicked()
     }
 
     auto filename = load_dialog.get_filename();
-    const bool loaded = rom.load(filename.c_str());
+    const bool loaded = load(filename.c_str(), rom);
 
     if (!loaded) {
         error_dialog.run();
@@ -345,11 +315,7 @@ void emulator::pause_clicked()
 
 bool emulator::keyboard_callback(GdkEventKey* event)
 {
-    if (event->type == GDK_KEY_RELEASE) {
-        ram.keyboard(0);
-    } else {
-        ram.keyboard(translate(event->keyval));
-    }
+    ram.at(0x6000) = (event->type == GDK_KEY_RELEASE) ? 0 : translate(event->keyval);
     return true;
 }
 
@@ -357,7 +323,7 @@ void emulator::cpu_thread()
 {
     int steps = 0;
     while (running) {
-        cpu.step(&rom, &ram);
+        cpu.step(rom, ram);
         if (steps > 100) {
             std::this_thread::sleep_for(std::chrono::microseconds(10));
             steps = 0;

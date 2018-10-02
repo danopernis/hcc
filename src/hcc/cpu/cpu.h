@@ -2,21 +2,20 @@
 // See LICENSE for details
 #pragma once
 
+#include <array>
+#include <cstdint>
+
 namespace hcc {
 namespace cpu {
 
-/**
- * Memory interface. As far as CPU is concerned, memory is just
- * a set of registers, indexed by address.
- */
-struct IRAM {
-    virtual ~IRAM() = default;
-    virtual unsigned short get(unsigned int address) const = 0;
-    virtual void set(unsigned int address, unsigned short value) = 0;
+using word = std::uint16_t;
+
+struct ROM : std::array<word, 0x8000> {
+    ROM() : std::array<word, 0x8000>{} {}
 };
-struct IROM {
-    virtual ~IROM() = default;
-    virtual unsigned short get(unsigned int address) const = 0;
+
+struct RAM : std::array<word, 0x6001> {
+    RAM() : std::array<word, 0x6001>{} {}
 };
 
 /**
@@ -24,11 +23,9 @@ struct IROM {
  * Some functionality is factored out into static methods for later reuse.
  */
 struct CPU {
-    unsigned short pc; // program counter
-    unsigned short a, d; // registers
-
-    static const unsigned int romsize = 0x4000;
-    static const unsigned int ramsize = 0x6000;
+    word pc; // program counter
+    word a; // register A
+    word d; // register D
 
     void reset()
     {
@@ -36,10 +33,9 @@ struct CPU {
         a = 0;
         d = 0;
     }
-    void step(IROM* rom, IRAM* ram);
-    static void comp(unsigned short instr, unsigned short x, unsigned short y, unsigned short& out,
-                     bool& zr, bool& ng);
-    static bool jump(unsigned short instr, bool zr, bool ng);
+    void step(const ROM& rom, RAM& ram);
+    static void comp(word instr, word x, word y, word& out, bool& zr, bool& ng);
+    static bool jump(word instr, bool zr, bool ng);
 };
 
 } // namespace cpu {
