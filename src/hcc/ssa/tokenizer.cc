@@ -73,6 +73,7 @@ token_type get_token_type(const state& current_state, const token& t)
     case state::START:
         assert(false);;
     }
+    assert(false);
 }
 
 std::istreambuf_iterator<char> last;
@@ -133,6 +134,7 @@ std::string to_string(const token_type& tt)
     case token_type::END:
         return "end of file";
     }
+    assert(false);
 }
 
 token_type next_impl(std::istreambuf_iterator<char>& current, unsigned& line_number, token& t)

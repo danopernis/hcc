@@ -11,7 +11,7 @@ find_package (Threads)
 find_package (PkgConfig)
 pkg_check_modules (GTKMM gtkmm-3.0)
 
-add_compile_options (-Wall -Wextra -pedantic -std=c++14)
+add_compile_options (-Wall -Wextra -pedantic -std=c++17)
 
 enable_testing ()
 add_subdirectory (src)
