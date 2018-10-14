@@ -84,6 +84,7 @@ std::string argument::save_fast() const
     case argument_type::LABEL:
         return value.label_value.save_fast();
     }
+    assert(false);
 }
 
 } // namespace ssa {

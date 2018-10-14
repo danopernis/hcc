@@ -35,7 +35,6 @@ namespace ssa {
 
 struct unit;
 struct subroutine_ir;
-;
 
 enum class instruction_type {
     ARGUMENT,
